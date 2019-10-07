@@ -18,11 +18,12 @@ class SwimClient:
         thread.start()
 
     def stop(self):
-        for task in asyncio.all_tasks(self.loop):
-            task.cancel()
+        self.schedule_any_task(self.__stop_client)
 
-        while len(asyncio.all_tasks(self.loop)) > 0:
-            pass
+    async def __stop_client(self):
+        tasks = [task for task in asyncio.all_tasks(self.loop) if task is not asyncio.current_task(self.loop)]
+        [task.cancel() for task in tasks]
+        await asyncio.gather(*tasks, return_exceptions=True)
 
         self.loop.stop()
 
@@ -36,6 +37,9 @@ class SwimClient:
         while True:
             await asyncio.sleep(seconds)
             print(seconds)
+
+    def schedule_any_task(self, task):
+        asyncio.run_coroutine_threadsafe(task(), loop=self.loop)
 
     def schedule_task(self, time):
         asyncio.run_coroutine_threadsafe(self.example_function(time), loop=self.loop)
