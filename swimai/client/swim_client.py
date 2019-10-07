@@ -14,6 +14,9 @@ class SwimClient:
         return ValueDownlink(self)
 
     def start(self):
+        loop = asyncio.new_event_loop()
+        self.loop = loop
+
         thread = Thread(target=self.event_loop)
         thread.start()
 
@@ -28,9 +31,7 @@ class SwimClient:
         self.loop.stop()
 
     def event_loop(self):
-        loop = asyncio.new_event_loop()
-        self.loop = loop
-        asyncio.set_event_loop(loop)
+        asyncio.set_event_loop(self.loop)
         asyncio.get_event_loop().run_forever()
 
     async def example_function(self, seconds):

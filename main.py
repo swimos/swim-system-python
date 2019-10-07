@@ -11,7 +11,7 @@ if __name__ == '__main__':
     time.sleep(5)
 
     print("Main")
-    swim_client.unschedule_task()
+    # swim_client.unschedule_task()
     time.sleep(5)
     swim_client.stop()
 
