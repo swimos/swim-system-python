@@ -21,6 +21,9 @@ class SwimClient:
         for task in asyncio.all_tasks(self.loop):
             task.cancel()
 
+        while len(asyncio.all_tasks(self.loop)) > 0:
+            pass
+
         self.loop.stop()
 
     def event_loop(self):
@@ -35,7 +38,7 @@ class SwimClient:
             print(seconds)
 
     def schedule_task(self, time):
-        self.task = asyncio.run_coroutine_threadsafe(self.example_function(time), loop=self.loop)
+        asyncio.run_coroutine_threadsafe(self.example_function(time), loop=self.loop)
 
-    def unschedule_task(self):
-        self.task.cancel()
+    def unschedule_task(self, task):
+        task.cancel()
