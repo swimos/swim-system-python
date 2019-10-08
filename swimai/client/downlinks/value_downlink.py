@@ -1,3 +1,8 @@
+import asyncio
+import concurrent.futures
+import inspect
+
+
 class ValueDownlink:
 
     def __init__(self, client):
@@ -6,9 +11,12 @@ class ValueDownlink:
         self.node_uri = None
         self.lane_uri = None
 
-        self.value = None
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
-    async def execute_did_set(self, new_value, old_value):
+        self.value = None
+        self.linked = asyncio.Event(loop=self.client.loop)
+
+    def execute_did_set(self, new_value, old_value):
         # no-op
         pass
 
@@ -39,7 +47,7 @@ class ValueDownlink:
     async def __open(self):
         await self.client.open_websocket()
         await self.establish_downlink()
-        await self.handle_message()
+        await self.receive_message()
 
     def create_downlink_message(self):
         # TODO define parser to handle the encoding of messages
@@ -48,7 +56,7 @@ class ValueDownlink:
     async def establish_downlink(self):
         await self.client.websocket.send(self.create_downlink_message())
 
-    async def handle_message(self):
+    async def receive_message(self):
         while True:
             response = await self.client.websocket.recv()
 
@@ -61,11 +69,14 @@ class ValueDownlink:
                     old_value = self.value
                     self.value = data[1]
 
+                    if inspect.iscoroutinefunction(self.execute_did_set):
+                        self.client.schedule_task(self.execute_did_set, self.value, old_value)
+                    else:
+                        self.client.loop.run_in_executor(self.executor, self.execute_did_set, self.value, old_value)
                     # Schedule a task
-                    self.client.schedule_task(self.execute_did_set, self.value, old_value)
-
-                    # self.client.loop.run_in_executor(None, self.execute_did_set, self.value, old_value)
                     # self.execute_did_set(self.value, old_value)
+            if 'linked' in response:
+                self.linked.set()
 
             # if command == 'linked':
             #     did_link()
@@ -76,3 +87,14 @@ class ValueDownlink:
 
     def get(self):
         pass
+
+    def set(self, value):
+        message = self.create_set_message(value, self.node_uri, self.lane_uri)
+        self.client.schedule_task(self.send_message, message)
+
+    async def send_message(self, message):
+        await self.linked.wait()
+        await self.client.websocket.send(message)
+
+    def create_set_message(self, value, node_uri, lane_uri):
+        return f'@command(node:"{node_uri}",lane:{lane_uri})"{value}"'
