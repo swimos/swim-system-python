@@ -1,6 +1,6 @@
 from swimai.structure.value import Value
 from swimai.warp.envelope import Envelope
-from swimai.warp.forms import LinkedAddressedForm
+from swimai.warp.forms import LinkAddressedForm
 
 
 class SyncRequest(Envelope):
@@ -21,7 +21,7 @@ class SyncRequest(Envelope):
         return self.form
 
 
-class SyncRequestForm(LinkedAddressedForm):
+class SyncRequestForm(LinkAddressedForm):
 
     @property
     def tag(self):
