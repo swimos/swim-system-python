@@ -13,7 +13,7 @@ class Item(ABC):
 
     @staticmethod
     def extant():
-        return Extant.extant()
+        return Extant.get_extant()
 
     def concat(self, new_item):
 

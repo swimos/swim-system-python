@@ -2,7 +2,7 @@ class Value:
 
     @staticmethod
     def absent():
-        return Absent.absent()
+        return Absent.get_absent()
 
     def to_value(self):
         return self
@@ -11,11 +11,35 @@ class Value:
         return 0
 
 
+class Text(Value):
+    empty = None
+
+    def __init__(self, value):
+        self.value = value
+
+    @staticmethod
+    def get_from(string):
+        if not string:
+            return Text.get_empty()
+        return Text(string)
+
+    @staticmethod
+    def get_empty():
+        if Text.empty is None:
+            Text.empty = Text('')
+
+        return Text.empty
+
+
 class Absent(Value):
-    # TODO: Convert to singleton
+    absent = None
+
     def __init__(self):
         pass
 
     @staticmethod
-    def absent():
-        return Absent()
+    def get_absent():
+        if Absent.absent is None:
+            Absent.absent = Absent()
+
+        return Absent

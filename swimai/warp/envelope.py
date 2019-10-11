@@ -5,12 +5,12 @@ from swimai.reacon.recon import Recon
 
 class Envelope(ABC):
 
-    def to_recon(self):
+    async def to_recon(self):
         """
         Create a Recon message from Envelope.
         :return:
         """
-        return Recon.to_string(self.to_value())
+        return await Recon.to_string(self.to_value())
 
     def to_value(self):
         """

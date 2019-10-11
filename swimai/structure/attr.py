@@ -1,4 +1,5 @@
 from swimai.structure.field import Field
+from swimai.structure.value import Text
 
 
 class Attr(Field):
@@ -24,4 +25,4 @@ class Attr(Field):
         if value is None:
             raise TypeError('value')
 
-        return Attr(key, value)
+        return Attr(Text.get_from(key), value)

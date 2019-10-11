@@ -1,8 +1,12 @@
 class Extant:
-    # TODO: Convert to singleton
+    extant = None
+
     def __init__(self):
         pass
 
     @staticmethod
-    def extant():
+    def get_extant():
+        if Extant.extant is None:
+            Extant.extant = Extant()
+
         return Extant()

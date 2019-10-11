@@ -2,7 +2,7 @@ from enum import Enum
 from abc import abstractmethod, ABC
 
 from swimai.structure.slot import Slot
-from swimai.structure.value import Value
+from swimai.structure.value import Value, Text
 
 
 class Record(Value, ABC):
@@ -25,6 +25,13 @@ class Record(Value, ABC):
         return changed
 
     def slot(self, key, value):
+
+        if isinstance(key, str):
+            key = Text.get_from(key)
+
+        if isinstance(value, str):
+            value = Text.get_from(value)
+
         self.add(Slot(key, value))
         return self
 
