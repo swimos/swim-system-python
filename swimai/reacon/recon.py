@@ -1,4 +1,4 @@
-from swimai.reacon.recon_writer import ReconStructureWriter
+from swimai.reacon.writers import ReconStructureWriter
 
 
 class Recon:

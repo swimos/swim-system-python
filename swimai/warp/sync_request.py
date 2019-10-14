@@ -1,4 +1,4 @@
-from swimai.structure.value import Value
+from swimai.structure.structs import Value
 from swimai.warp.envelope import Envelope
 from swimai.warp.forms import LinkAddressedForm
 

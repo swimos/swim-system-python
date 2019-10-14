@@ -2,6 +2,8 @@ import asyncio
 import concurrent.futures
 import inspect
 
+from swimai.warp.sync_request import SyncRequest
+
 
 class ValueDownlink:
 
@@ -41,20 +43,17 @@ class ValueDownlink:
 
     def open(self):
         self.client.schedule_task(self.__open)
-
         return self
 
     async def __open(self):
-        await self.client.open_websocket()
+        await self.client.open_websocket(self.host_uri)
         await self.establish_downlink()
         await self.receive_message()
 
-    def create_downlink_message(self):
-        # TODO define parser to handle the encoding of messages
-        return f'@sync(node:"{self.node_uri}",lane:{self.lane_uri})'
-
     async def establish_downlink(self):
-        await self.client.websocket.send(self.create_downlink_message())
+
+        sync_request = SyncRequest(self.node_uri, self.lane_uri)
+        await self.client.websocket.send(await sync_request.to_recon())
 
     async def receive_message(self):
         while True:

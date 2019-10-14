@@ -20,7 +20,7 @@ if __name__ == '__main__':
     swim_client = SwimClient()
     swim_client.start()
 
-    host_uri = 'warp://localhost:9001'
+    host_uri = 'ws://localhost:9001'
     node_uri = '/unit/foo'
     lane_uri = 'info'
 
@@ -28,12 +28,11 @@ if __name__ == '__main__':
 
     link.set("Hello from Python")
 
-
     # print("synchronous link get: " + link.get())
 
     # Optional
     # link.close()
-
     time.sleep(2)
     print("Will shut down client in 2 seconds")
+    time.sleep(2)
     swim_client.stop()

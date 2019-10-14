@@ -1,9 +1,7 @@
 import math
 from abc import ABC, abstractmethod
 
-from swimai.structure.attr import Attr
-from swimai.structure.item import Item
-from swimai.structure.record import Record
+from swimai.structure.structs import Item, Record, Attr
 
 
 class LinkAddressedForm(ABC):
