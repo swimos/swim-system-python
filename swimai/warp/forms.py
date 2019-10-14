@@ -21,7 +21,25 @@ class LinkAddressedForm(ABC):
             if rate != 0 and not math.isnan(rate):
                 headers.slot('rate', rate)
 
-            # add `of` and `concat`
+            return Attr.of(self.tag, headers).concat(envelope.body)
+        else:
+            return Item.extant()
+
+    @property
+    @abstractmethod
+    def tag(self):
+        ...
+
+    def cast(self):
+        pass
+
+
+class LaneAddressedForm(ABC):
+
+    def mold(self, envelope):
+
+        if envelope is not None:
+            headers = Record.create().slot("node", envelope.node_uri).slot("lane", envelope.lane_uri)
             return Attr.of(self.tag, headers).concat(envelope.body)
         else:
             return Item.extant()

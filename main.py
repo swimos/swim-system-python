@@ -2,6 +2,7 @@ import asyncio
 import time
 
 from swimai.client.swim_client import SwimClient
+from swimai.structure.structs import Text
 
 
 async def my_custom_did_set_async(new_value, old_value):
@@ -26,7 +27,7 @@ if __name__ == '__main__':
 
     link = swim_client.downlink_value().set_host_uri(host_uri).set_node_uri(node_uri).set_lane_uri(lane_uri).did_set(my_custom_did_set_async).open()
 
-    link.set("Hello from Python")
+    link.set(Text.get_from('Hello from Python'))
 
     # print("synchronous link get: " + link.get())
 

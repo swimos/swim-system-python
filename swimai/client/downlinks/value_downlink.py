@@ -2,6 +2,7 @@ import asyncio
 import concurrent.futures
 import inspect
 
+from swimai.warp.command_message import CommandMessage
 from swimai.warp.sync_request import SyncRequest
 
 
@@ -21,9 +22,6 @@ class ValueDownlink:
     def execute_did_set(self, new_value, old_value):
         # no-op
         pass
-
-    # async def async_wrapper(self, function, *args):
-    #     await function(*args)
 
     def set_host_uri(self, host_uri):
         self.host_uri = host_uri
@@ -88,12 +86,9 @@ class ValueDownlink:
         pass
 
     def set(self, value):
-        message = self.create_set_message(value, self.node_uri, self.lane_uri)
+        message = CommandMessage(self.node_uri, self.lane_uri, value)
         self.client.schedule_task(self.send_message, message)
 
     async def send_message(self, message):
         await self.linked.wait()
-        await self.client.websocket.send(message)
-
-    def create_set_message(self, value, node_uri, lane_uri):
-        return f'@command(node:"{node_uri}",lane:{lane_uri})"{value}"'
+        await self.client.websocket.send(await message.to_recon())
