@@ -105,6 +105,28 @@ class Text(Value):
         return self.value
 
 
+class Bool(Value):
+    TRUE = None
+    FALSE = None
+
+    def __init__(self, value):
+        self.value = value
+
+    @staticmethod
+    def get_from(value):
+
+        if value:
+            if Bool.TRUE is None:
+                Bool.TRUE = Bool(True)
+
+            return Bool.TRUE
+        else:
+            if Bool.FALSE is None:
+                Bool.FALSE = Bool(False)
+
+            return Bool.FALSE
+
+
 class Absent(Value):
     absent = None
 
@@ -223,7 +245,7 @@ class RecordMap(Record):
 
 
 class ValueBuilder:
-    
+
     def __init__(self):
         self.record = None
         self.value = None

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from swimai.reacon.utils import ReconUtils
-from swimai.structure.structs import ValueBuilder, Text
+from swimai.structure.structs import ValueBuilder, Text, Bool, Attr, Value, Record
 
 
 class Parser(ABC):
@@ -15,7 +15,7 @@ class BlockParser(Parser):
         message = message.strip()
 
         if builder is None:
-            builder = ValueBuilder()
+            builder = parser.create_value_builder()
 
         if output is None:
             output = await parser.parse_block_expression(message)
@@ -73,8 +73,23 @@ class ReconParser:
 
 class ReconStructureParser(ReconParser):
 
-    async def create_text(self):
-        return Text('')
+    async def create_ident(self, value):
+        if isinstance(value, Text):
+            if value == 'true':
+                return Bool.get_from(True)
+            elif value == 'false':
+                return Bool.get_from(False)
+
+        return Text.get_from(value)
+
+    async def create_attr(self, key, value=Value.extant()):
+        return Attr.of(key, value)
+
+    async def create_record_builder(self):
+        return Record.create()
+
+    async def create_value_builder(self):
+        return ValueBuilder()
 
 
 class LambdaFuncParser(Parser):
@@ -182,9 +197,24 @@ class AttrExpressionParser(Parser):
     @staticmethod
     async def parse(message, parser, field_output=None, value_output=None, builder=None):
 
-        if message.head() == '@':
+        char = message.head()
+
+        if char == '@':
             if field_output is None:
                 field_output = await parser.parse_attr(message)
+
+            record_builder = await parser.create_record_builder()
+            record_builder.add(field_output)
+            return record_builder
+
+        elif ReconUtils.is_ident_start_char(ord(char)):
+            if value_output is None:
+                # TODO implement
+                value_output = await parser.parse_additive_operator(message, builder)
+
+            value_builder = await parser.create_value_builder()
+            value_builder.add(parser.create_item(value_output))
+            return value_builder
 
 
 class AttrParser(Parser):
@@ -201,6 +231,17 @@ class AttrParser(Parser):
             if key_output is None:
                 key_output = await parser.parse_ident(message)
 
+            if message.head() == '(':
+                message.step()
+
+                if message.head() == ')':
+                    return await parser.create_attr(key_output)
+
+                if value_output is None:
+                    value_output = await parser.parse_block(message)
+
+        return await parser.create_attr(key_output, value_output)
+
 
 class IdentParser(Parser):
 
@@ -215,7 +256,6 @@ class IdentParser(Parser):
 
         if await ReconUtils.is_ident_start_char(ord(char)):
             if output is None:
-                # output = await parser.create_text()
                 output = ''
 
             output = output + char
@@ -225,7 +265,7 @@ class IdentParser(Parser):
                 output = output + char
                 char = message.step()
 
-        pass
+        return await parser.create_ident(output)
 
 
 class InputMessage:
