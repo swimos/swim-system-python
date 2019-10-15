@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from swimai.reacon.writers import Recon
+from swimai.reacon.reacon import Recon
 
 
 class Envelope(ABC):
@@ -19,21 +19,13 @@ class Envelope(ABC):
         """
         return self.get_form().mold(self).to_value()
 
-    @abstractmethod
-    def get_form(self):
-        ...
-
-    @abstractmethod
-    def tag(self):
-        ...
-
     @staticmethod
-    def parse_recon(recon_message):
+    async def parse_recon(recon_message):
         """
         Parses a Recon message into an Envelope object.
         :return:
         """
-        value = Recon.parse(recon_message)
+        value = await Recon.parse(recon_message)
         return Envelope.create_from_value(value)
 
     @staticmethod
@@ -45,3 +37,11 @@ class Envelope(ABC):
         """
 
         pass
+
+    @abstractmethod
+    def get_form(self):
+        ...
+
+    @abstractmethod
+    def tag(self):
+        ...

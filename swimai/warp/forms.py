@@ -30,9 +30,6 @@ class LinkAddressedForm(ABC):
     def tag(self):
         ...
 
-    def cast(self):
-        pass
-
 
 class LaneAddressedForm(ABC):
 
@@ -48,6 +45,3 @@ class LaneAddressedForm(ABC):
     @abstractmethod
     def tag(self):
         ...
-
-    def cast(self):
-        pass

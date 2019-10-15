@@ -1,25 +1,11 @@
 from abc import ABC, abstractmethod
 
-from swimai.structure.structs import Field, Attr, Slot, Value, Record, Text, Absent, RecordMap
+from swimai.reacon.utils import ReconUtils
+from swimai.structure.structs import Field, Attr, Slot, Value, Record, Text, Absent
 
 
-class Writer:
-    pass
-    # @staticmethod
-    # async def write(items, writer):
-    #     if isinstance(items, Field):
-    #         writer.write_slot(writer.key(items))
-    #     else:
-    #
-    #         wrt
-    #
-    #         output_list = list()
-    #         for item in items:
-    #             output = await writer.write_item(item)
-    #             if output:
-    #                 output_list.append(output)
-    #
-    #         return ','.join(output_list)
+class Writer(ABC):
+    ...
 
 
 class BlockWriter(Writer):
@@ -79,11 +65,11 @@ class ReconWriter(ABC):
         if len(value) == 0:
             return False
 
-        if not await Recon.is_ident_start_char(ord(value[0])):
+        if not await ReconUtils.is_ident_start_char(ord(value[0])):
             return False
 
         for char in value:
-            if not await Recon.is_ident_char(ord(char)):
+            if not await ReconUtils.is_ident_char(ord(char)):
                 return False
 
         return True
@@ -138,48 +124,6 @@ class ReconStructureWriter(ReconWriter):
 
     async def value(self, item):
         return item.value
-
-
-class Recon:
-    structure_writer = None
-
-    @staticmethod
-    def parse(string):
-        """
-        Parse a string and return Value object.
-        :param string:
-        :return:
-        """
-        pass
-
-    @staticmethod
-    async def to_string(item):
-        """
-        Parse an Item object to string.
-        :return:
-        """
-        return await Recon.write(item)
-
-    @staticmethod
-    async def write(item):
-        return await Recon.get_structure_writer().write_item(item)
-
-    @staticmethod
-    def get_structure_writer():
-        if Recon.structure_writer is None:
-            Recon.structure_writer = ReconStructureWriter()
-
-        return Recon.structure_writer
-
-    @staticmethod
-    async def is_ident_start_char(c):
-        return ord('A') <= c <= ord('Z') or c == ord('_') or ord('a') <= c <= ord(
-            'z') or 0xc0 <= c <= 0xd6 or 0xd8 <= c <= 0xf6 or 0xf8 <= c <= 0x2ff or 0x370 <= c <= 0x37d or 0x37f <= c <= 0x1fff or 0x200c <= c <= 0x200d or 0x2070 <= c <= 0x218f or 0x2c00 <= c <= 0x2fef or 0x3001 <= c <= 0xd7ff or 0xf900 <= c <= 0xfdcf or 0xfdf0 <= c <= 0xfffd or 0x10000 <= c <= 0xeffff
-
-    @staticmethod
-    async def is_ident_char(c):
-        return c == ord('-') or ord('0') <= c <= ord('9') or ord('A') <= c <= ord('Z') or c == ord('_') or ord('a') <= c <= ord(
-            'z') or c == 0xb7 or 0xc0 <= c <= 0xd6 or 0xd8 <= c <= 0xf6 or 0xf8 <= c <= 0x37d or 0x37f <= c <= 0x1fff or 0x200c <= c <= 0x200d or 0x203f <= c <= 0x2040 or 0x2070 <= c <= 0x218f or 0x2c00 <= c <= 0x2fef or 0x3001 <= c <= 0xd7ff or 0xf900 <= c <= 0xfdcf or 0xfdf0 <= c <= 0xfffd or 0x10000 <= c <= 0xeffff
 
 
 class AttrWriter(Writer):

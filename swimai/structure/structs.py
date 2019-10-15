@@ -108,9 +108,6 @@ class Text(Value):
 class Absent(Value):
     absent = None
 
-    def __init__(self):
-        pass
-
     @staticmethod
     def get_absent():
         if Absent.absent is None:
@@ -136,9 +133,6 @@ class Slot(Field):
 
 class Extant(Value):
     extant = None
-
-    def __init__(self):
-        pass
 
     @staticmethod
     def get_extant():
@@ -226,3 +220,10 @@ class RecordMap(Record):
     @property
     def size(self):
         return self.item_count
+
+
+class ValueBuilder:
+    
+    def __init__(self):
+        self.record = None
+        self.value = None
