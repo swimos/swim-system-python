@@ -249,3 +249,44 @@ class ValueBuilder:
     def __init__(self):
         self.record = None
         self.value = None
+
+    def add(self, item):
+
+        if isinstance(item, Item):
+            return self.add_field(item)
+        elif isinstance(item, Value):
+            return self.add_value(item)
+        else:
+            raise AssertionError(item)
+
+    def add_field(self, item):
+        if self.record is None:
+            self.record = Record.create()
+
+            if self.value is not None:
+                self.record.add(self.value)
+                self.value = None
+
+        self.record.add(item)
+        return True
+
+    def add_value(self, item):
+        if self.record is not None:
+            self.record.add(item)
+        elif self.value is None:
+            self.value = item
+        else:
+            self.record = Record.create()
+            self.record.add(self.value)
+            self.value = None
+            self.record.add(item)
+
+        return True
+
+    def bind(self):
+        if self.record is not None:
+            return self.record
+        elif self.value is not None:
+            return self.value
+        else:
+            return Value.absent()
