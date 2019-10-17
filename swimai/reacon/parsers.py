@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from swimai.reacon.utils import ReconUtils
-from swimai.structure.structs import ValueBuilder, Text, Bool, Attr, Value, Record
+from swimai.structure.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot
 
 
 class Parser(ABC):
@@ -11,14 +11,49 @@ class Parser(ABC):
 class BlockParser(Parser):
 
     @staticmethod
-    async def parse(message, parser, output=None, builder=None):
-        message = message.strip()
+    async def parse(message, parser, key_output=None, value_output=None, builder=None):
+
+        char = message.head()
+
+        while await ReconUtils.is_space(ord(char)):
+            char = message.step()
+        # if char == '!' or char == '"' or char == '$' or char == '%' or char == '\'' or char == '(' or char == '+' or char == '-' or char == '@' or c
 
         if builder is None:
-            builder = parser.create_value_builder()
+            builder = await parser.create_value_builder()
 
-        if output is None:
-            output = await parser.parse_block_expression(message)
+        if key_output is None:
+            key_output = await parser.parse_block_expression(message)
+
+        char = message.head()
+
+        while await ReconUtils.is_space(ord(char)):
+            char = message.step()
+
+        if message.is_cont():
+
+            if char == ':':
+                char = message.step()
+
+            while await ReconUtils.is_space(ord(char)):
+                char = message.step()
+
+            if value_output is None:
+                value_output = await parser.parse_block_expression(message)
+
+            builder.add(await parser.create_slot(key_output, value_output))
+
+            char = message.head()
+            if char == ',' or char == ';':
+                message.step()
+                await BlockParser.parse(message, parser, builder=builder)
+                # Go back to start
+
+            return builder.bind()
+
+        else:
+            builder.add(key_output)
+            return builder.bind()
 
     @staticmethod
     async def parse_block(message, parser):
@@ -32,6 +67,9 @@ class ReconParser:
 
     async def parse_ident(self, message):
         return await IdentParser.parse_ident(message, self)
+
+    async def parse_string(self, message):
+        return await StringParser.parse_string(message, self)
 
     async def parse_block_string(self, recon_string):
         message = InputMessage(recon_string)
@@ -109,6 +147,9 @@ class ReconStructureParser(ReconParser):
     async def create_value_builder(self):
         return ValueBuilder()
 
+    async def create_slot(self, key, value=None):
+        return Slot.of(key, value)
+
 
 class LambdaFuncParser(Parser):
 
@@ -120,6 +161,8 @@ class LambdaFuncParser(Parser):
     async def parse(message, parser, output=None, builder=None):
         if output is None:
             output = await parser.parse_conditional_operator(message, builder=builder)
+
+        return output
 
 
 class ConditionalOperatorParser(Parser):
@@ -133,6 +176,8 @@ class ConditionalOperatorParser(Parser):
         if if_output is None:
             if_output = await parser.parse_or_operator(message, builder)
 
+        return if_output
+
 
 class OrOperatorParser(Parser):
 
@@ -144,6 +189,8 @@ class OrOperatorParser(Parser):
     async def parse(message, parser, lhs_output=None, rhs_output=None, builder=None):
         if lhs_output is None:
             lhs_output = await parser.parse_and_operator(message, builder)
+
+        return lhs_output
 
 
 class AndOperatorParser(Parser):
@@ -157,6 +204,8 @@ class AndOperatorParser(Parser):
         if lhs_output is None:
             lhs_output = await parser.parse_bitwise_or_operator(message, builder)
 
+        return lhs_output
+
 
 class BitwiseOrOperatorParser(Parser):
 
@@ -168,6 +217,8 @@ class BitwiseOrOperatorParser(Parser):
     async def parse(message, parser, lhs_output=None, rhs_output=None, builder=None):
         if lhs_output is None:
             lhs_output = await parser.parse_bitwise_xor_operator(message, builder)
+
+        return lhs_output
 
 
 class BitwiseXorOperatorParser(Parser):
@@ -181,6 +232,8 @@ class BitwiseXorOperatorParser(Parser):
         if lhs_output is None:
             lhs_output = await parser.parse_bitwise_and_operator(message, builder)
 
+        return lhs_output
+
 
 class BitwiseAndOperator(Parser):
 
@@ -193,6 +246,8 @@ class BitwiseAndOperator(Parser):
         if lhs_output is None:
             lhs_output = await parser.parse_comparison_operator(message, builder)
 
+        return lhs_output
+
 
 class ComparisonOperatorParser(Parser):
 
@@ -204,6 +259,8 @@ class ComparisonOperatorParser(Parser):
     async def parse(message, parser, lhs_output=None, operator_output=None, rhs_output=None, builder=None):
         if lhs_output is None:
             lhs_output = await parser.parse_attr_expression(message, builder)
+
+        return lhs_output
 
 
 class AttrExpressionParser(Parser):
@@ -221,11 +278,11 @@ class AttrExpressionParser(Parser):
             if field_output is None:
                 field_output = await parser.parse_attr(message)
 
-            record_builder = await parser.create_record_builder()
-            record_builder.add(field_output)
-            return record_builder
+            builder = await parser.create_record_builder()
+            builder.add(field_output)
+            return builder
 
-        elif ReconUtils.is_ident_start_char(ord(char)):
+        elif await ReconUtils.is_ident_start_char(ord(char)) or char == '"':
             if value_output is None:
                 value_output = await parser.parse_additive_operator(message, builder)
 
@@ -245,10 +302,17 @@ class AttrParser(Parser):
     @staticmethod
     async def parse(message, parser, key_output=None, value_output=None):
 
-        if message.head() == '@':
-            message.step()
-            if key_output is None:
-                key_output = await parser.parse_ident(message)
+        char = message.head()
+        if char == '@':
+            char = message.step()
+
+            if char == '"':
+                if key_output is None:
+                    key_output = await parser.parse_string(message)
+            else:
+
+                if key_output is None:
+                    key_output = await parser.parse_ident(message)
 
             if message.head() == '(':
                 message.step()
@@ -285,6 +349,35 @@ class IdentParser(Parser):
                 char = message.step()
 
         return await parser.create_ident(output)
+
+
+class StringParser(Parser):
+
+    @staticmethod
+    async def parse_string(message, parser):
+        return await StringParser.parse(message, parser)
+
+    @staticmethod
+    async def parse(message, parser, output=None):
+        char = message.head()
+
+        while await ReconUtils.is_space(ord(char)):
+            char = message.step()
+
+        if char == '"':
+
+            if output is None:
+                output = ''
+
+            char = message.step()
+
+            while char != '"':
+                output = output + char
+                char = message.step()
+
+            message.step()
+
+        return Text.get_from(output)
 
 
 class AdditiveOperatorParser(Parser):
@@ -414,12 +507,16 @@ class LiteralParser(Parser):
             if value_output is None:
                 value_output = await parser.parse_ident(message)
 
-            if builder is None:
-                builder = await parser.create_value_builder()
+        elif char == '"':
+            if value_output is None:
+                value_output = await parser.parse_string(message)
 
-            builder.add(value_output)
+        if builder is None:
+            builder = await parser.create_value_builder()
 
-            return builder.bind()
+        builder.add(value_output)
+
+        return builder.bind()
 
 
 class InputMessage:
@@ -438,3 +535,9 @@ class InputMessage:
     def strip(self):
         self.message = self.message.strip()
         return self
+
+    def is_cont(self):
+        if self.index >= len(self.message) - 1:
+            return False
+        else:
+            return True

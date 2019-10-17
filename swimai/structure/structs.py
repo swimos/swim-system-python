@@ -62,7 +62,12 @@ class Attr(Field):
         if value is None:
             raise TypeError('value')
 
-        return Attr(Text.get_from(key), value)
+        if isinstance(key, Text):
+            return Attr(key, value)
+        elif isinstance(key, str):
+            return Attr(Text.get_from(key), value)
+        else:
+            raise TypeError('key')
 
 
 class Value(Item):
@@ -138,6 +143,17 @@ class Absent(Value):
         return Absent.absent
 
 
+class Extant(Value):
+    extant = None
+
+    @staticmethod
+    def get_extant():
+        if Extant.extant is None:
+            Extant.extant = Extant()
+
+        return Extant()
+
+
 class Slot(Field):
 
     def __init__(self, key, value):
@@ -152,16 +168,15 @@ class Slot(Field):
     def value(self):
         return self.__value
 
-
-class Extant(Value):
-    extant = None
-
     @staticmethod
-    def get_extant():
-        if Extant.extant is None:
-            Extant.extant = Extant()
+    def of(key, value=None):
+        if key is None:
+            raise Exception('Key is empty!')
 
-        return Extant()
+        if value is None:
+            value = Value.extant()
+
+        return Slot(key, value)
 
 
 class Record(Value, ABC):
@@ -252,7 +267,7 @@ class ValueBuilder:
 
     def add(self, item):
 
-        if isinstance(item, Item):
+        if isinstance(item, Field):
             return self.add_field(item)
         elif isinstance(item, Value):
             return self.add_value(item)
