@@ -9,10 +9,6 @@ class Item(ABC):
     def key(self):
         ...
 
-    @staticmethod
-    def extant():
-        return Extant.get_extant()
-
     def concat(self, new_item):
 
         record = Record.create()
@@ -24,6 +20,24 @@ class Item(ABC):
             record.add(new_item)
 
         return record
+
+    @staticmethod
+    def from_object(obj):
+        if isinstance(obj, Item):
+            return obj
+        elif isinstance(obj, dict):
+            entry = next(iter(obj.items()))
+            return Slot.of(entry[0], entry[1])
+        else:
+            return Value.from_object(obj)
+
+    @staticmethod
+    def extant():
+        return Extant.get_extant()
+
+    @staticmethod
+    def absent():
+        return Absent.get_absent()
 
 
 class Field(Item, ABC):
@@ -68,6 +82,14 @@ class Attr(Field):
             return Attr(Text.get_from(key), value)
         else:
             raise TypeError('key')
+
+    def key_equals(self, item):
+        if isinstance(item, str):
+            return self.key.value == item
+        elif isinstance(item, Field):
+            return self.key == item.key
+        else:
+            return self.key == item
 
 
 class Value(Item):
@@ -217,6 +239,25 @@ class Record(Value, ABC):
     def length(self):
         return self.size
 
+    def get_headers(self, tag):
+        head = self.get_head()
+
+        if isinstance(head, Attr) and head.key_equals(tag):
+            header = head.value
+            if isinstance(header, Record):
+                return header
+            else:
+                return RecordMap.of(header)
+        else:
+            return None
+
+    def get_head(self):
+        return self.get_item(0)
+
+    @abstractmethod
+    def get_item(self, index):
+        ...
+
 
 class RecordFlags(Enum):
     IMMUTABLE = 1 << 0
@@ -249,6 +290,9 @@ class RecordMap(Record):
         self.items.append(item)
         self.item_count = self.item_count + 1
 
+        if isinstance(item, Field):
+            self.field_count += 1
+
         return True
 
     def add_aliased(self, item):
@@ -257,6 +301,49 @@ class RecordMap(Record):
     @property
     def size(self):
         return self.item_count
+
+    @property
+    def tag(self):
+        if self.field_count > 0:
+            item = self.items[0]
+            if isinstance(item, Attr):
+                return item.key.value
+
+        return None
+
+    def get_item(self, index):
+        if 0 <= index < self.item_count:
+            return self.items[index]
+        else:
+            return Item.absent()
+
+    def get_body(self):
+        n = self.item_count
+
+        if n > 2:
+            pass
+            # TODO fix this
+            # return RecordMapView(self, 1, n).branch()
+        elif n == 2:
+            item = self.items[1]
+
+            if isinstance(item, Value):
+                return item
+            else:
+                return RecordMap.of(item)
+
+        else:
+            return Value.absent()
+
+    @staticmethod
+    def of(object):
+        array = list()
+        item = Item.from_object(object)
+        array.append(item)
+
+        field_count = 1 if isinstance(item, Field) else 0
+
+        return RecordMap(array, None, 1, field_count, 0)
 
 
 class ValueBuilder:

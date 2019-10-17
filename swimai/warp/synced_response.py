@@ -1,9 +1,9 @@
 from swimai.structure.structs import Value
 from swimai.warp.envelope import Envelope
-from swimai.warp.forms import SyncRequestForm
+from swimai.warp.forms import SyncedResponseForm
 
 
-class SyncRequest(Envelope):
+class SyncedResponse(Envelope):
 
     def __init__(self, node_uri, lane_uri, prio=0.0, rate=0.0, body=Value.absent()):
         self.node_uri = node_uri
@@ -11,11 +11,10 @@ class SyncRequest(Envelope):
         self.prio = prio
         self.rate = rate
         self.body = body
-        self.form = SyncRequestForm()
+        self.form = SyncedResponseForm()
 
-    @property
     def tag(self):
-        return "sync"
+        return 'synced'
 
     def get_form(self):
         return self.form

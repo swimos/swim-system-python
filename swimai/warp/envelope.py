@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from swimai.reacon.reacon import Recon
+from swimai.warp.forms import SyncedResponseForm
 
 
 class Envelope(ABC):
@@ -35,8 +36,18 @@ class Envelope(ABC):
         :param value:
         :return:
         """
+        tag = value.tag
+        form = Envelope.resolve_form(tag)
 
-        pass
+        if form is not None:
+            return form.cast(value)
+        else:
+            return None
+
+    @staticmethod
+    def resolve_form(tag):
+        if tag == 'synced':
+            return SyncedResponseForm()
 
     @abstractmethod
     def get_form(self):

@@ -1,6 +1,6 @@
 from swimai.structure.structs import Value
 from swimai.warp.envelope import Envelope
-from swimai.warp.forms import LaneAddressedForm
+from swimai.warp.forms import CommandMessageForm
 
 
 class CommandMessage(Envelope):
@@ -17,10 +17,3 @@ class CommandMessage(Envelope):
 
     def get_form(self):
         return self.form
-
-
-class CommandMessageForm(LaneAddressedForm):
-
-    @property
-    def tag(self):
-        return "command"
