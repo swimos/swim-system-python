@@ -15,7 +15,7 @@ class BlockParser(Parser):
 
         char = message.head()
 
-        while await ReconUtils.is_space(ord(char)):
+        while await ReconUtils.is_space(char):
             char = message.step()
         # if char == '!' or char == '"' or char == '$' or char == '%' or char == '\'' or char == '(' or char == '+' or char == '-' or char == '@' or c
 
@@ -27,16 +27,15 @@ class BlockParser(Parser):
 
         char = message.head()
 
-        if char:
-            while await ReconUtils.is_space(ord(char)):
-                char = message.step()
+        while await ReconUtils.is_space(char):
+            char = message.step()
 
         if message.is_cont():
 
             if char == ':':
                 char = message.step()
 
-            while await ReconUtils.is_space(ord(char)):
+            while await ReconUtils.is_space(char):
                 char = message.step()
 
             if value_output is None:
@@ -286,7 +285,7 @@ class AttrExpressionParser(Parser):
 
             return builder
 
-        elif await ReconUtils.is_ident_start_char(ord(char)) or char == '"':
+        elif await ReconUtils.is_ident_start_char(char) or char == '"':
             if value_output is None:
                 value_output = await parser.parse_additive_operator(message, None)
 
@@ -346,14 +345,14 @@ class IdentParser(Parser):
 
         char = message.head()
 
-        if await ReconUtils.is_ident_start_char(ord(char)):
+        if await ReconUtils.is_ident_start_char(char):
             if output is None:
                 output = ''
 
             output = output + char
             char = message.step()
 
-            while await ReconUtils.is_ident_char(ord(char)):
+            while await ReconUtils.is_ident_char(char):
                 output = output + char
                 char = message.step()
 
@@ -370,7 +369,7 @@ class StringParser(Parser):
     async def parse(message, parser, output=None):
         char = message.head()
 
-        while await ReconUtils.is_space(ord(char)):
+        while await ReconUtils.is_space(char):
             char = message.step()
 
         if char == '"':
@@ -511,7 +510,7 @@ class LiteralParser(Parser):
             pass
         elif char == '[':
             pass
-        elif await ReconUtils.is_ident_start_char(ord(char)):
+        elif await ReconUtils.is_ident_start_char(char):
 
             if value_output is None:
                 value_output = await parser.parse_ident(message)

@@ -65,11 +65,11 @@ class ReconWriter(ABC):
         if len(value) == 0:
             return False
 
-        if not await ReconUtils.is_ident_start_char(ord(value[0])):
+        if not await ReconUtils.is_ident_start_char(value[0]):
             return False
 
         for char in value:
-            if not await ReconUtils.is_ident_char(ord(char)):
+            if not await ReconUtils.is_ident_char(char):
                 return False
 
         return True
