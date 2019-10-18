@@ -15,7 +15,7 @@ class Item(ABC):
         record.add(self)
 
         if isinstance(new_item, Record):
-            record.add_all(new_item)
+            record.add_all(new_item.items)
         else:
             record.add(new_item)
 
@@ -130,6 +130,9 @@ class Text(Value):
 
     def string_value(self):
         return self.value
+
+    def float_value(self):
+        return float(self.value)
 
 
 class Bool(Value):
@@ -258,6 +261,9 @@ class Record(Value, ABC):
     def get_item(self, index):
         ...
 
+    def bind(self):
+        return self
+
 
 class RecordFlags(Enum):
     IMMUTABLE = 1 << 0
@@ -321,9 +327,7 @@ class RecordMap(Record):
         n = self.item_count
 
         if n > 2:
-            pass
-            # TODO fix this
-            # return RecordMapView(self, 1, n).branch()
+            return RecordMapView(self, 1, n).branch()
         elif n == 2:
             item = self.items[1]
 
@@ -336,14 +340,50 @@ class RecordMap(Record):
             return Value.absent()
 
     @staticmethod
-    def of(object):
+    def of(obj):
         array = list()
-        item = Item.from_object(object)
+        item = Item.from_object(obj)
         array.append(item)
 
         field_count = 1 if isinstance(item, Field) else 0
 
         return RecordMap(array, None, 1, field_count, 0)
+
+
+class RecordMapView(Record):
+
+    def __init__(self, record, lower, upper):
+        self.record = record
+        self.lower = lower
+        self.upper = upper
+
+    def add(self, item):
+        pass
+
+    @property
+    def size(self):
+        return self.upper - self.lower
+
+    def get_item(self, index):
+        pass
+
+    def branch(self):
+        size = self.size
+        fields_count = 0
+        copy_index = self.lower
+        new_array = list()
+
+        for _ in range(0, size):
+
+            item = self.record.items[copy_index]
+            new_array.append(item)
+
+            if isinstance(item, Field):
+                fields_count += 1
+
+            copy_index += 1
+
+        return RecordMap(new_array, None, size, fields_count, 0)
 
 
 class ValueBuilder:

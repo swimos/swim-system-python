@@ -27,8 +27,9 @@ class BlockParser(Parser):
 
         char = message.head()
 
-        while await ReconUtils.is_space(ord(char)):
-            char = message.step()
+        if char:
+            while await ReconUtils.is_space(ord(char)):
+                char = message.step()
 
         if message.is_cont():
 
@@ -280,11 +281,14 @@ class AttrExpressionParser(Parser):
 
             builder = await parser.create_record_builder()
             builder.add(field_output)
+
+            await AttrExpressionParser.parse(message, parser, builder=builder)
+
             return builder
 
         elif await ReconUtils.is_ident_start_char(ord(char)) or char == '"':
             if value_output is None:
-                value_output = await parser.parse_additive_operator(message, builder)
+                value_output = await parser.parse_additive_operator(message, None)
 
             if builder is None:
                 builder = await parser.create_value_builder()
@@ -314,14 +318,19 @@ class AttrParser(Parser):
                 if key_output is None:
                     key_output = await parser.parse_ident(message)
 
-            if message.head() == '(':
-                message.step()
+                if message.head() == '(':
+                    message.step()
 
                 if message.head() == ')':
+                    message.step()
                     return await parser.create_attr(key_output)
 
                 if value_output is None:
                     value_output = await parser.parse_block(message)
+
+                if message.head() == ')':
+                    message.step()
+                    return await parser.create_attr(key_output, value_output)
 
         return await parser.create_attr(key_output, value_output)
 
@@ -526,7 +535,11 @@ class InputMessage:
         self.index = 0
 
     def head(self):
-        return self.message[self.index]
+
+        if self.is_cont():
+            return self.message[self.index]
+        else:
+            return ''
 
     def step(self):
         self.index = self.index + 1
@@ -537,7 +550,7 @@ class InputMessage:
         return self
 
     def is_cont(self):
-        if self.index >= len(self.message) - 1:
+        if self.index >= len(self.message):
             return False
         else:
             return True
