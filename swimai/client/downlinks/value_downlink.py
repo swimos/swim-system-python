@@ -1,9 +1,10 @@
 import asyncio
+from collections import Callable
 import concurrent.futures
 import inspect
 
-from swimai.warp.command_message import CommandMessage
-from swimai.warp.sync_request import SyncRequest
+from swimai.structure.structs import Absent
+from swimai.warp.warp import SyncRequest, CommandMessage, Envelope
 
 
 class ValueDownlink:
@@ -36,7 +37,14 @@ class ValueDownlink:
         return self
 
     def did_set(self, function):
-        self.execute_did_set = function
+
+        if inspect.iscoroutinefunction(function):
+            self.execute_did_set = function
+        elif isinstance(function, Callable):
+            self.execute_did_set = function
+        else:
+            raise TypeError('Callback must be a function!')
+
         return self
 
     def open(self):
@@ -55,39 +63,33 @@ class ValueDownlink:
 
     async def receive_message(self):
         while True:
-            response = await self.client.websocket.recv()
+            message = await self.client.websocket.recv()
 
-            # TODO define parser to handle the decoding of messages
+            response = await Envelope.parse_recon(message)
 
-            if 'event' in response:
-                data = response.split(')')
-
-                if len(data) > 1:
-                    old_value = self.value
-                    self.value = data[1]
-
-                    if inspect.iscoroutinefunction(self.execute_did_set):
-                        self.client.schedule_task(self.execute_did_set, self.value, old_value)
-                    else:
-                        self.client.loop.run_in_executor(self.executor, self.execute_did_set, self.value, old_value)
-                    # Schedule a task
-                    # self.execute_did_set(self.value, old_value)
-            if 'linked' in response:
+            if response.tag == 'linked':
                 self.linked.set()
-
-            # if command == 'linked':
-            #     did_link()
-            # if command == 'synced':
-            #     did_sync()
-            # if command == 'event':
-            #     execute_did_set()
-
-    def get(self):
-        pass
+            elif response.tag == 'synced':
+                pass
+            elif response.tag == 'event':
+                await self.set_value(response)
 
     def set(self, value):
         message = CommandMessage(self.node_uri, self.lane_uri, value)
         self.client.schedule_task(self.send_message, message)
+
+    async def set_value(self, response):
+        old_value = self.value
+
+        if response.body == Absent.get_absent():
+            self.value = None
+        else:
+            self.value = response.body.value
+
+        if inspect.iscoroutinefunction(self.execute_did_set):
+            self.client.schedule_task(self.execute_did_set, self.value, old_value)
+        else:
+            self.client.loop.run_in_executor(self.executor, self.execute_did_set, self.value, old_value)
 
     async def send_message(self, message):
         await self.linked.wait()

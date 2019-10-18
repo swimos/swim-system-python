@@ -135,6 +135,19 @@ class Text(Value):
         return float(self.value)
 
 
+class Num(Value):
+
+    def __init__(self, value):
+        self.value = value
+
+    @staticmethod
+    def create_from(value):
+        return Num(value)
+
+    def num_value(self):
+        return self.value
+
+
 class Bool(Value):
     TRUE = None
     FALSE = None

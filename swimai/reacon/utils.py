@@ -25,3 +25,11 @@ class ReconUtils:
             return c == ord(' ') or c == ord('\t')
         else:
             return False
+
+    @staticmethod
+    async def is_digit(c):
+        if c:
+            c = ord(c)
+            return ord('0') <= c <= ord('9')
+        else:
+            return False

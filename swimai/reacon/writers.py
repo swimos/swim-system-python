@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from swimai.reacon.utils import ReconUtils
-from swimai.structure.structs import Field, Attr, Slot, Value, Record, Text, Absent
+from swimai.structure.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num
 
 
 class Writer(ABC):
@@ -86,6 +86,9 @@ class ReconWriter(ABC):
         else:
             return await StringWriter.write_string(value)
 
+    async def write_number(self, value):
+        return await NumberWriter.write_number(value)
+
     async def write_absent(self):
         pass
 
@@ -116,6 +119,8 @@ class ReconStructureWriter(ReconWriter):
             return await self.write_record(value)
         elif isinstance(value, Text):
             return await self.write_text(value.string_value())
+        elif isinstance(value, Num):
+            return await self.write_number(value.num_value())
         elif isinstance(value, Absent):
             return await self.write_absent()
 
@@ -185,6 +190,19 @@ class StringWriter(Writer):
             output += value
 
         output += '"'
+
+        return output
+
+
+class NumberWriter(Writer):
+
+    @staticmethod
+    async def write_number(value):
+        output = ''
+
+        if value:
+            output += ' '
+            output += str(value)
 
         return output
 

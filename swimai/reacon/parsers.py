@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from swimai.reacon.utils import ReconUtils
-from swimai.structure.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot
+from swimai.structure.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num
 
 
 class Parser(ABC):
@@ -70,6 +70,9 @@ class ReconParser:
 
     async def parse_string(self, message):
         return await StringParser.parse_string(message, self)
+
+    async def parse_number(self, message):
+        return await NumberParser.parse_number(message, self)
 
     async def parse_block_string(self, recon_string):
         message = InputMessage(recon_string)
@@ -149,6 +152,9 @@ class ReconStructureParser(ReconParser):
 
     async def create_slot(self, key, value=None):
         return Slot.of(key, value)
+
+    async def create_number(self, value):
+        return Num.create_from(value)
 
 
 class LambdaFuncParser(Parser):
@@ -274,6 +280,9 @@ class AttrExpressionParser(Parser):
 
         char = message.head()
 
+        while await ReconUtils.is_space(char):
+            char = message.step()
+
         if char == '@':
             if field_output is None:
                 field_output = await parser.parse_attr(message)
@@ -285,7 +294,7 @@ class AttrExpressionParser(Parser):
 
             return builder
 
-        elif await ReconUtils.is_ident_start_char(char) or char == '"':
+        elif await ReconUtils.is_ident_start_char(char) or char == '"' or await ReconUtils.is_digit(char):
             if value_output is None:
                 value_output = await parser.parse_additive_operator(message, None)
 
@@ -386,6 +395,75 @@ class StringParser(Parser):
             message.step()
 
         return Text.get_from(output)
+
+
+class NumberParser(Parser):
+
+    @staticmethod
+    async def parse_number(message, parser):
+        return await NumberParser.parse(message, parser)
+
+    @staticmethod
+    async def parse(message, parser, value_output=None, sign_output=1):
+
+        char = message.head()
+
+        if char == '-':
+            sign_output = -1
+
+        if char == '0':
+            char = message.step()
+        elif '1' <= char <= '9':
+            value_output = sign_output * int(char)
+            char = message.step()
+
+            while message.is_cont() and await ReconUtils.is_digit(char):
+                value_output = 10 * value_output + sign_output * int(char)
+                char = message.step()
+
+        if message.is_cont():
+            if char == '.':
+                return await DecimalParser.parse_decimal(message, parser, value_output, sign_output)
+            else:
+                return await parser.create_number(value_output)
+        else:
+            return await parser.create_number(value_output)
+
+
+class DecimalParser(Parser):
+
+    @staticmethod
+    async def parse_decimal(message, parser, value_output=None, sign_output=None):
+        builder = ''
+
+        if sign_output < 0 and value_output == 0:
+            builder += '-' + str(value_output)
+        else:
+            builder += str(value_output)
+
+        return await DecimalParser.parse(message, parser, builder)
+
+    @staticmethod
+    async def parse(message, parser, builder):
+
+        char = message.head()
+
+        if char == '.':
+            builder += '.'
+            message.step()
+
+            if message.is_cont():
+                char = message.head()
+
+                if await ReconUtils.is_digit(char):
+                    builder += char
+                    char = message.step()
+
+                while message.is_cont() and await ReconUtils.is_digit(char):
+                    builder += char
+                    char = message.step()
+
+                return await parser.create_number(float(builder))
 
 
 class AdditiveOperatorParser(Parser):
@@ -511,14 +589,11 @@ class LiteralParser(Parser):
         elif char == '[':
             pass
         elif await ReconUtils.is_ident_start_char(char):
-
-            if value_output is None:
-                value_output = await parser.parse_ident(message)
-
+            value_output = await parser.parse_ident(message)
         elif char == '"':
-            if value_output is None:
-                value_output = await parser.parse_string(message)
-
+            value_output = await parser.parse_string(message)
+        elif char == '-' or await ReconUtils.is_digit(char):
+            value_output = await parser.parse_number(message)
         if builder is None:
             builder = await parser.create_value_builder()
 
