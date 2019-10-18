@@ -7,7 +7,7 @@ from swimai.structure.structs import Text
 
 async def my_custom_did_set_async(new_value, old_value):
     print(f'link watched info change to {new_value} from {old_value}')
-    # await asyncio.sleep(15)
+    await asyncio.sleep(15)
     # print("Wake up!")
 
 
