@@ -23,7 +23,6 @@ class BlockWriter(Writer):
 
     @staticmethod
     async def write(items, writer, first):
-        # TODO make this more clear
         output = ''
 
         for item in items:
@@ -111,8 +110,7 @@ class ReconStructureWriter(ReconWriter):
         elif isinstance(item, Value):
             return await self.write_value(item)
 
-        # TODO add exception
-        return f'No Recon serialization for {item}'
+        raise AttributeError(f'No Recon serialization for {item}')
 
     async def write_value(self, value):
         if isinstance(value, Record):
@@ -136,9 +134,7 @@ class AttrWriter(Writer):
     @staticmethod
     async def write_attr(key, value, writer):
 
-        # TODO change this
-        output = ''
-        output += '@'
+        output = '@'
 
         key_text = await writer.write_value(key)
 
@@ -161,7 +157,6 @@ class SlotWriter(Writer):
 
     @staticmethod
     async def write_slot(key, value, writer):
-        # TODO change this
         output = ''
 
         key_text = await writer.write_value(key)
@@ -183,7 +178,6 @@ class StringWriter(Writer):
 
     @staticmethod
     async def write_string(value):
-        # TODO change this
         output = '"'
 
         if value:
@@ -211,7 +205,6 @@ class IdentWriter(Writer):
 
     @staticmethod
     async def write_ident(value):
-        # TODO change this
         output = ''
 
         if value:

@@ -395,7 +395,7 @@ class StringParser(Parser):
 
             char = message.step()
 
-            while char != '"':
+            while char != '"' and message.is_cont():
                 output = output + char
                 char = message.step()
 

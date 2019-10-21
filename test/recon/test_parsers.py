@@ -3,7 +3,7 @@ import unittest
 
 from aiounittest import async_test
 
-from swimai.structure.structs import Num, Text
+from swimai.structure.structs import Num, Text, RecordMap, Attr, Slot
 from swimai.warp.warp import Envelope, SyncedResponse
 
 
@@ -71,3 +71,22 @@ class TestParser(unittest.TestCase):
         self.assertEqual(expected.node_uri, actual.node_uri)
         self.assertEqual(expected.lane_uri, actual.lane_uri)
         self.assertEqual(expected.body.value, actual.body.value)
+
+    @async_test
+    async def test_parse_command_remove_key(self):
+        # Given
+        message = '@command(node:"/unit/foo",lane:shoppingCart)@remove(key:FromClientLink)'
+        expected = SyncedResponse('/unit/foo', 'shoppingCart',
+                                  body=RecordMap.of(
+                                      Attr.of(Text.create_from('remove'),
+                                              RecordMap.of(Slot.of(Text.create_from('key'), Text.create_from('FromClientLink'))))))
+
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+        self.assertEqual(expected.body.items[0].key.value, actual.body.items[0].key.value)
+        self.assertEqual(expected.body.items[0].value.items[0].key.value, actual.body.items[0].value.items[0].key.value)
+        self.assertEqual(expected.body.items[0].value.items[0].value.value, actual.body.items[0].value.items[0].value.value)
