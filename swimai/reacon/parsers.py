@@ -139,7 +139,7 @@ class ReconStructureParser(ReconParser):
             elif value == 'false':
                 return Bool.get_from(False)
 
-        return Text.get_from(value)
+        return Text.create_from(value)
 
     async def create_attr(self, key, value=Value.extant()):
         return Attr.of(key, value)
@@ -287,7 +287,9 @@ class AttrExpressionParser(Parser):
             if field_output is None:
                 field_output = await parser.parse_attr(message)
 
-            builder = await parser.create_record_builder()
+            if builder is None:
+                builder = await parser.create_record_builder()
+
             builder.add(field_output)
 
             await AttrExpressionParser.parse(message, parser, builder=builder)
@@ -303,6 +305,9 @@ class AttrExpressionParser(Parser):
 
             builder.add(value_output)
             return builder.bind()
+
+        elif char == '{' or char == '[':
+            pass
 
 
 class AttrParser(Parser):
@@ -326,15 +331,17 @@ class AttrParser(Parser):
                 if key_output is None:
                     key_output = await parser.parse_ident(message)
 
-                if message.head() == '(':
+                if message.head() == '(' and message.is_cont():
                     message.step()
+                else:
+                    return await parser.create_attr(key_output)
 
                 if message.head() == ')':
                     message.step()
                     return await parser.create_attr(key_output)
-
-                if value_output is None:
-                    value_output = await parser.parse_block(message)
+                else:
+                    if value_output is None:
+                        value_output = await parser.parse_block(message)
 
                 if message.head() == ')':
                     message.step()
@@ -394,7 +401,7 @@ class StringParser(Parser):
 
             message.step()
 
-        return Text.get_from(output)
+        return Text.create_from(output)
 
 
 class NumberParser(Parser):

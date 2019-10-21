@@ -53,6 +53,8 @@ class Envelope(ABC):
             return LinkedResponseForm()
         if tag == 'event':
             return EventMessageForm()
+        if tag == 'command':
+            return CommandMessageForm()
 
     @abstractmethod
     def get_form(self):
@@ -273,6 +275,9 @@ class CommandMessageForm(LaneAddressedForm):
     @property
     def tag(self):
         return 'command'
+
+    def create_from(self, node_uri, lane_uri, body):
+        return CommandMessage(node_uri, lane_uri, body=body)
 
 
 class EventMessageForm(LaneAddressedForm):

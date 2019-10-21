@@ -79,7 +79,7 @@ class Attr(Field):
         if isinstance(key, Text):
             return Attr(key, value)
         elif isinstance(key, str):
-            return Attr(Text.get_from(key), value)
+            return Attr(Text.create_from(key), value)
         else:
             raise TypeError('key')
 
@@ -116,7 +116,7 @@ class Text(Value):
         self.value = value
 
     @staticmethod
-    def get_from(string):
+    def create_from(string):
         if not string:
             return Text.get_empty()
         return Text(string)
@@ -239,10 +239,10 @@ class Record(Value, ABC):
     def slot(self, key, value):
 
         if isinstance(key, str):
-            key = Text.get_from(key)
+            key = Text.create_from(key)
 
         if isinstance(value, str):
-            value = Text.get_from(value)
+            value = Text.create_from(value)
 
         self.add(Slot(key, value))
         return self
