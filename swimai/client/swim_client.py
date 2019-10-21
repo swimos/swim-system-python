@@ -47,5 +47,8 @@ class SwimClient:
         asyncio.set_event_loop(self.loop)
         asyncio.get_event_loop().run_forever()
 
-    async def open_websocket(self):
-        self.websocket = await websockets.connect('ws://localhost:9001')
+    async def open_websocket(self, host_uri):
+        try:
+            self.websocket = await websockets.connect(host_uri)
+        except Exception as e:
+            print(e)
