@@ -4,8 +4,7 @@
 <a href="https://www.swimos.org"><img src="https://docs.swimos.org/readme/marlin-blue.svg" align="left"></a>
 
 The **Swim System** Python implementation provides a standalone set of
-frameworks for building massively real-time streaming WARP clients and web user
-interface applications.
+frameworks for building massively real-time streaming WARP clients.
 
 ## Installation
 ## Usage
