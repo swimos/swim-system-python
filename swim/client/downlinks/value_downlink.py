@@ -3,8 +3,8 @@ from collections import Callable
 import concurrent.futures
 import inspect
 
-from swimai.structure.structs import Absent
-from swimai.warp.warp import SyncRequest, CommandMessage, Envelope
+from swim.structures.structs import Absent
+from swim.warp.warp import SyncRequest, CommandMessage, Envelope
 
 
 class ValueDownlink:

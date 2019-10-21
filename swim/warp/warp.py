@@ -1,8 +1,8 @@
 import math
 from abc import ABC, abstractmethod
 
-from swimai.reacon.reacon import Recon
-from swimai.structure.structs import Item, Record, Attr, Value, Absent
+from swim.reacon.reacon import Recon
+from swim.structures.structs import Item, Record, Attr, Value, Absent
 
 
 class Envelope(ABC):

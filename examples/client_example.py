@@ -1,8 +1,8 @@
 import asyncio
 import time
 
-from swimai.client.swim_client import SwimClient
-from swimai.structure.structs import Text
+from swimai import SwimClient
+from swimai import Text
 
 
 async def my_custom_did_set_async(new_value, old_value):

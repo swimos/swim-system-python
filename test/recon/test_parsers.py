@@ -3,8 +3,8 @@ import unittest
 
 from aiounittest import async_test
 
-from swimai.structure.structs import Num, Text, RecordMap, Attr, Slot
-from swimai.warp.warp import Envelope, SyncedResponse
+from swim.structures.structs import Num, Text, RecordMap, Attr, Slot
+from swim.warp.warp import Envelope, SyncedResponse
 
 
 class TestParser(unittest.TestCase):

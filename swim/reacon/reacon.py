@@ -1,5 +1,5 @@
-from swimai.reacon.parsers import ReconStructureParser
-from swimai.reacon.writers import ReconStructureWriter
+from swim.reacon.parsers import ReconStructureParser
+from swim.reacon.writers import ReconStructureWriter
 
 
 class Recon:

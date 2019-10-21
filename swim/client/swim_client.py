@@ -3,7 +3,7 @@ from threading import Thread
 
 import websockets
 
-from swimai.client.downlinks.value_downlink import ValueDownlink
+from swim.client.downlinks.value_downlink import ValueDownlink
 
 
 class SwimClient:
