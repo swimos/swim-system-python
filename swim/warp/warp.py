@@ -47,6 +47,8 @@ class Envelope(ABC):
 
     @staticmethod
     def resolve_form(tag):
+        if tag == 'sync':
+            return SyncRequestForm()
         if tag == 'synced':
             return SyncedResponseForm()
         if tag == 'linked':
@@ -86,11 +88,9 @@ class SyncRequest(Envelope):
 
 class SyncedResponse(Envelope):
 
-    def __init__(self, node_uri, lane_uri, prio=0.0, rate=0.0, body=Value.absent()):
+    def __init__(self, node_uri, lane_uri, body=Value.absent()):
         self.node_uri = node_uri
         self.lane_uri = lane_uri
-        self.prio = prio
-        self.rate = rate
         self.body = body
         self.form = SyncedResponseForm()
 
@@ -197,9 +197,9 @@ class LinkAddressedForm(ABC):
                 elif key == 'lane':
                     lane_uri = header.value.string_value()
                 elif key == 'prio':
-                    prio = header.value.float_value()
+                    prio = header.value.num_value()
                 elif key == 'rate':
-                    rate = header.value.float_value()
+                    rate = header.value.num_value()
 
         if node_uri is not None and lane_uri is not None:
             body = value.get_body()
@@ -258,6 +258,9 @@ class SyncRequestForm(LinkAddressedForm):
     @property
     def tag(self):
         return 'sync'
+
+    def create_from(self, node_uri, lane_uri, prio, rate, body):
+        return SyncRequest(node_uri, lane_uri, prio, rate, body=body)
 
 
 class LinkedResponseForm(LinkAddressedForm):

@@ -296,7 +296,7 @@ class AttrExpressionParser(Parser):
 
             return builder
 
-        elif await ReconUtils.is_ident_start_char(char) or char == '"' or await ReconUtils.is_digit(char):
+        elif await ReconUtils.is_ident_start_char(char) or char == '"' or await ReconUtils.is_digit(char) or char == '-':
             if value_output is None:
                 value_output = await parser.parse_additive_operator(message, None)
 
@@ -417,6 +417,7 @@ class NumberParser(Parser):
 
         if char == '-':
             sign_output = -1
+            char = message.step()
 
         if char == '0':
             char = message.step()
@@ -443,9 +444,12 @@ class DecimalParser(Parser):
     async def parse_decimal(message, parser, value_output=None, sign_output=None):
         builder = ''
 
-        if sign_output < 0 and value_output == 0:
-            builder += '-' + str(value_output)
+        if sign_output < 0 and value_output is None:
+            builder += '-0'
         else:
+            if value_output is None:
+                value_output = 0
+
             builder += str(value_output)
 
         return await DecimalParser.parse(message, parser, builder)
@@ -488,8 +492,6 @@ class AdditiveOperatorParser(Parser):
 
             if char == '+':
                 pass
-            elif char == '-':
-                pass
             else:
                 return lhs_output
 
@@ -531,8 +533,6 @@ class PrefixOperatorParser(Parser):
         if char == '!':
             pass
         elif char == '~':
-            pass
-        elif char == '-':
             pass
         elif char == '+':
             pass
