@@ -2,9 +2,8 @@ import asyncio
 import unittest
 
 from aiounittest import async_test
-
 from swim.structures.structs import Num, Text, RecordMap, Attr, Slot
-from swim.warp.warp import Envelope, SyncedResponse, CommandMessage, SyncRequest
+from swim.warp.warp import Envelope, SyncedResponse, CommandMessage, SyncRequest, LinkedResponse, EventMessage
 
 
 class TestParser(unittest.TestCase):
@@ -186,6 +185,114 @@ class TestParser(unittest.TestCase):
         self.assertEqual(expected.body.value, actual.body.value)
 
     @async_test
+    async def test_parse_linked(self):
+        # Given
+        message = '@linked(node: foo, lane: bar)'
+        expected = LinkedResponse('foo', 'bar')
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.tag, actual.tag)
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+
+    @async_test
+    async def test_parse_linked_escaped(self):
+        # Given
+        message = '@linked(node: "bar/baz/2", lane: "foo/bar")'
+        expected = LinkedResponse('bar/baz/2', 'foo/bar')
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.tag, actual.tag)
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+
+    @async_test
+    async def test_parse_linked_body_int(self):
+        # Given
+        message = '@linked(node: "bar/baz/2", lane: "foo/bar")9999999'
+        expected = LinkedResponse('bar/baz/2', 'foo/bar', body=Num.create_from(9999999))
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.tag, actual.tag)
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+        self.assertEqual(expected.body.value, actual.body.value)
+
+    @async_test
+    async def test_parse_linked_body_float(self):
+        # Given
+        message = '@linked(node: "bar/baz/2", lane: "foo/bar")-0.00031'
+        expected = LinkedResponse('bar/baz/2', 'foo/bar', body=Num.create_from(-0.00031))
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.tag, actual.tag)
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+        self.assertEqual(expected.body.value, actual.body.value)
+
+    @async_test
+    async def test_parse_linked_body_string(self):
+        # Given
+        message = '@linked(node: "bar/baz/2", lane: "foo/bar")"Hello, World"'
+        expected = LinkedResponse('bar/baz/2', 'foo/bar', body=Text.create_from('Hello, World'))
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.tag, actual.tag)
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+        self.assertEqual(expected.body.value, actual.body.value)
+
+    @async_test
+    async def test_parse_linked_prio(self):
+        # Given
+        message = '@linked(node: foo, lane: bar, prio: 1000.3)'
+        expected = LinkedResponse('foo', 'bar', prio=1000.3)
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+        self.assertEqual(expected.prio, actual.prio)
+
+    @async_test
+    async def test_parse_linked_rate(self):
+        # Given
+        message = '@linked(node: "foo", lane: "1/bar/", rate: 33)'
+        expected = LinkedResponse('foo', '1/bar/', rate=33)
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+        self.assertEqual(expected.rate, actual.rate)
+
+    @async_test
+    async def test_parse_linked_prio_rate(self):
+        # Given
+        message = '@linked(node: foo, lane: bar, prio: 13, rate: 37)'
+        expected = LinkedResponse('foo', 'bar', prio=13, rate=37)
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+        self.assertEqual(expected.prio, actual.prio)
+        self.assertEqual(expected.rate, actual.rate)
+
+    @async_test
     async def test_parse_command(self):
         # Given
         message = '@command(node: foo, lane: bar)'
@@ -257,7 +364,7 @@ class TestParser(unittest.TestCase):
     async def test_parse_command_body_remove(self):
         # Given
         message = '@command(node:"/unit/foo",lane:shoppingCart)@remove(key:FromClientLink)'
-        expected = SyncedResponse('/unit/foo', 'shoppingCart',
+        expected = CommandMessage('/unit/foo', 'shoppingCart',
                                   body=RecordMap.of(
                                       Attr.of(Text.create_from('remove'),
                                               RecordMap.of(Slot.of(Text.create_from('key'), Text.create_from('FromClientLink'))))))
@@ -266,8 +373,77 @@ class TestParser(unittest.TestCase):
         requests = await asyncio.gather(Envelope.parse_recon(message))
         actual = requests[0]
         # Then
+        self.assertEqual(expected.tag, actual.tag)
         self.assertEqual(expected.node_uri, actual.node_uri)
         self.assertEqual(expected.lane_uri, actual.lane_uri)
         self.assertEqual(expected.body.items[0].key.value, actual.body.items[0].key.value)
         self.assertEqual(expected.body.items[0].value.items[0].key.value, actual.body.items[0].value.items[0].key.value)
         self.assertEqual(expected.body.items[0].value.items[0].value.value, actual.body.items[0].value.items[0].value.value)
+
+    @async_test
+    async def test_parse_event(self):
+        # Given
+        message = '@event(node: foo, lane: bar)'
+        expected = EventMessage('foo', 'bar')
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.tag, actual.tag)
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+
+    @async_test
+    async def test_parse_event_escaped(self):
+        # Given
+        message = '@event(node: "bar/baz/2", lane: "foo/bar")'
+        expected = EventMessage('bar/baz/2', 'foo/bar')
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.tag, actual.tag)
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+
+    @async_test
+    async def test_parse_event_body_int(self):
+        # Given
+        message = '@event(node: "bar/baz/2", lane: "foo/bar")332'
+        expected = EventMessage('bar/baz/2', 'foo/bar', body=Num.create_from(332))
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.tag, actual.tag)
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+        self.assertEqual(expected.body.value, actual.body.value)
+
+    @async_test
+    async def test_parse_event_body_float(self):
+        # Given
+        message = '@event(node: "bar/baz/2", lane: "foo/bar")0.1'
+        expected = EventMessage('bar/baz/2', 'foo/bar', body=Num.create_from(0.1))
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.tag, actual.tag)
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+        self.assertEqual(expected.body.value, actual.body.value)
+
+    @async_test
+    async def test_parse_event_body_string(self):
+        # Given
+        message = '@event(node: "bar/baz/2", lane: "foo/bar")"Hello, World"'
+        expected = EventMessage('bar/baz/2', 'foo/bar', body=Text.create_from('Hello, World'))
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual(expected.tag, actual.tag)
+        self.assertEqual(expected.node_uri, actual.node_uri)
+        self.assertEqual(expected.lane_uri, actual.lane_uri)
+        self.assertEqual(expected.body.value, actual.body.value)

@@ -21,10 +21,6 @@ class Recon:
         Parse an Item object to string.
         :return:
         """
-        return await Recon.write(item)
-
-    @staticmethod
-    async def write(item):
         return await Recon.get_structure_writer().write_item(item)
 
     @staticmethod

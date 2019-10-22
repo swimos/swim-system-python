@@ -2,7 +2,7 @@ import math
 from abc import ABC, abstractmethod
 
 from swim.reacon.reacon import Recon
-from swim.structures.structs import Item, Record, Attr, Value, Absent
+from swim.structures.structs import Item, Record, Attr, Value, Num
 
 
 class Envelope(ABC):
@@ -162,12 +162,12 @@ class LinkAddressedForm(ABC):
             prio = envelope.prio
 
             if prio != 0 and not math.isnan(prio):
-                headers.slot('prio', prio)
+                headers.slot('prio', Num.create_from(prio))
 
             rate = envelope.rate
 
             if rate != 0 and not math.isnan(rate):
-                headers.slot('rate', rate)
+                headers.slot('rate', Num.create_from(rate))
 
             return Attr.of(self.tag, headers).concat(envelope.body)
         else:

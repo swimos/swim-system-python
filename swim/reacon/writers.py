@@ -195,7 +195,6 @@ class NumberWriter(Writer):
         output = ''
 
         if value:
-            output += ' '
             output += str(value)
 
         return output
