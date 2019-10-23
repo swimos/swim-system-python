@@ -4,7 +4,7 @@ with open('README.md', 'r') as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='swim',
+    name='swimai',
     version='0.0.1.dev2',
     author='Dobromir Marinov',
     author_email='dobromir@swim.it',
