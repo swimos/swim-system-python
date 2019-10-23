@@ -6,3 +6,9 @@ install:
     - pip install -r requirements.txt
 script:
     - python -m unittest
+deploy:
+    provider: pypi
+    user: "__token__"
+    password: ${KEY}
+    on:
+        tags: true
