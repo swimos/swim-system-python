@@ -5,7 +5,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name='swim',
-    version='0.0.1.dev1',
+    version='0.0.1.dev2',
     author='Dobromir Marinov',
     author_email='dobromir@swim.it',
     description='Standalone Python framework for building massively real-time streaming WARP clients.',
@@ -15,7 +15,7 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['test']),
     classifiers=[
         'Programming Language :: Python :: 3',
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
