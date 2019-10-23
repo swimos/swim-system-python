@@ -6,3 +6,5 @@
 build
 out
 venv
+dist
+*.egg-info
