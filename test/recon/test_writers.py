@@ -2,7 +2,7 @@ import asyncio
 import unittest
 
 from aiounittest import async_test
-from swim import Num, Text, RecordMap, Attr, Slot
+from swim import Num, Text, RecordMap, Attr, Slot, Extant
 from swim.warp.warp import SyncRequest, SyncedResponse, EventMessage, LinkedResponse, CommandMessage
 
 
@@ -282,71 +282,6 @@ class TestWriters(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     @async_test
-    async def test_write_event(self):
-        # Given
-        envelope = EventMessage('test', 'foo')
-        expected = '@event(node:test,lane:foo)'
-
-        # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
-
-        # Then
-        self.assertEqual(expected, actual)
-
-    @async_test
-    async def test_write_event_escaped(self):
-        # Given
-        envelope = EventMessage('/this/is/spam', 'hello')
-        expected = '@event(node:"/this/is/spam",lane:hello)'
-
-        # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
-
-        # Then
-        self.assertEqual(expected, actual)
-
-    @async_test
-    async def test_write_event_body_int(self):
-        # Given
-        envelope = EventMessage('/this/is/spam', 'hello', body=Num.create_from(1224))
-        expected = '@event(node:"/this/is/spam",lane:hello)1224'
-
-        # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
-
-        # Then
-        self.assertEqual(expected, actual)
-
-    @async_test
-    async def test_write_event_body_float(self):
-        # Given
-        envelope = EventMessage('/this/is/spam', 'hello', body=Num.create_from(33.12))
-        expected = '@event(node:"/this/is/spam",lane:hello)33.12'
-
-        # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
-
-        # Then
-        self.assertEqual(expected, actual)
-
-    @async_test
-    async def test_write_event_body_string(self):
-        # Given
-        envelope = EventMessage('/this/is/spam', 'hello', body=Text.create_from("-33.12 / 6"))
-        expected = '@event(node:"/this/is/spam",lane:hello)"-33.12 / 6"'
-
-        # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
-
-        # Then
-        self.assertEqual(expected, actual)
-
-    @async_test
     async def test_write_command(self):
         # Given
         envelope = CommandMessage('test', 'foo')
@@ -419,6 +354,117 @@ class TestWriters(unittest.TestCase):
                                       Attr.of(Text.create_from('remove'),
                                               RecordMap.of(Slot.of(Text.create_from('key'), Text.create_from('FromClientLink'))))))
         expected = '@command(node:"/unit/foo",lane:shoppingCart)@remove(key:FromClientLink)'
+
+        # When
+        responses = await asyncio.gather(envelope.to_recon())
+        actual = responses[0]
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_event(self):
+        # Given
+        envelope = EventMessage('test', 'foo')
+        expected = '@event(node:test,lane:foo)'
+
+        # When
+        responses = await asyncio.gather(envelope.to_recon())
+        actual = responses[0]
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_event_escaped(self):
+        # Given
+        envelope = EventMessage('/this/is/spam', 'hello')
+        expected = '@event(node:"/this/is/spam",lane:hello)'
+
+        # When
+        responses = await asyncio.gather(envelope.to_recon())
+        actual = responses[0]
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_event_body_int(self):
+        # Given
+        envelope = EventMessage('/this/is/spam', 'hello', body=Num.create_from(1224))
+        expected = '@event(node:"/this/is/spam",lane:hello)1224'
+
+        # When
+        responses = await asyncio.gather(envelope.to_recon())
+        actual = responses[0]
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_event_body_float(self):
+        # Given
+        envelope = EventMessage('/this/is/spam', 'hello', body=Num.create_from(33.12))
+        expected = '@event(node:"/this/is/spam",lane:hello)33.12'
+
+        # When
+        responses = await asyncio.gather(envelope.to_recon())
+        actual = responses[0]
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_event_body_string(self):
+        # Given
+        envelope = EventMessage('/this/is/spam', 'hello', body=Text.create_from("-33.12 / 6"))
+        expected = '@event(node:"/this/is/spam",lane:hello)"-33.12 / 6"'
+
+        # When
+        responses = await asyncio.gather(envelope.to_recon())
+        actual = responses[0]
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_event_body_object(self):
+        # Given
+        body = RecordMap.create()
+        body.add(Attr.of(Text.create_from('Person'), Extant.get_extant()))
+        body.add(Slot.of(Text.create_from('name'), Text.create_from('Bar')))
+        body.add(Slot.of(Text.create_from('age'), Num.create_from(14)))
+        body.add(Slot.of(Text.create_from('salary'), Num.create_from(-5.9)))
+
+        envelope = EventMessage('/this/is/spam', 'hello', body=body)
+        expected = '@event(node:"/this/is/spam",lane:hello)@Person{name:Bar,age:14,salary:-5.9}'
+
+        # When
+        responses = await asyncio.gather(envelope.to_recon())
+        actual = responses[0]
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_event_body_nested(self):
+        # Given
+
+        friend = RecordMap.create()
+        friend.add(Attr.of(Text.create_from('Person'), Extant.get_extant()))
+        friend.add(Slot.of(Text.create_from('name'), Text.create_from('Sam/Spam')))
+        friend.add(Slot.of(Text.create_from('age'), Num.create_from(1)))
+        friend.add(Slot.of(Text.create_from('salary'), Num.create_from(22)))
+
+        body = RecordMap.create()
+        body.add(Attr.of(Text.create_from('Person'), Extant.get_extant()))
+        body.add(Slot.of(Text.create_from('name'), Text.create_from('Bar')))
+        body.add(Slot.of(Text.create_from('age'), Num.create_from(14)))
+        body.add(Slot.of(Text.create_from('salary'), Num.create_from(-5.9)))
+        body.add(Slot.of(Text.create_from('friend'), friend))
+
+        envelope = EventMessage('/this/is/spam', 'hello', body=body)
+        expected = '@event(node:"/this/is/spam",lane:hello)@Person{name:Bar,age:14,salary:-5.9,friend:@Person{name:"Sam/Spam",age:1,salary:22}}'
 
         # When
         responses = await asyncio.gather(envelope.to_recon())

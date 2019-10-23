@@ -1,7 +1,7 @@
 import math
 from abc import ABC, abstractmethod
 
-from swim.reacon.reacon import Recon
+from swim.recon.recon import Recon
 from swim.structures.structs import Item, Record, Attr, Value, Num
 
 

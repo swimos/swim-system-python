@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from swim.reacon.utils import ReconUtils
+from swim.recon.utils import ReconUtils
 from swim.structures.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num
 
 
@@ -47,7 +47,6 @@ class BlockParser(Parser):
             if char == ',' or char == ';':
                 message.step()
                 await BlockParser.parse(message, parser, builder=builder)
-                # Go back to start
 
             return builder.bind()
 
@@ -83,6 +82,9 @@ class ReconParser:
 
     async def parse_block_expression(self, message):
         return await self.parse_lambda_func(message)
+
+    async def parse_record(self, message, builder):
+        return await RecordParser.parse_record(message, self, builder=builder)
 
     async def parse_lambda_func(self, message):
         return await LambdaFuncParser.parse_lambda_func(message, self)
@@ -156,6 +158,51 @@ class ReconStructureParser(ReconParser):
     async def create_number(self, value):
         return Num.create_from(value)
 
+
+class RecordParser(Parser):
+
+    @staticmethod
+    async def parse_record(message, parser, builder=None):
+        return await RecordParser.parse(message, parser, builder=builder)
+
+    @staticmethod
+    async def parse(message, parser, key_output=None, value_output=None, builder=None):
+        char = message.head()
+
+        if char == '{':
+            char = message.step()
+
+        while await ReconUtils.is_space(char):
+            char = message.step()
+
+        if key_output is None:
+            key_output = await parser.parse_block_expression(message)
+
+        while await ReconUtils.is_space(char):
+            char = message.step()
+
+        if message.is_cont():
+            if message.head() == ':':
+                message.step()
+
+                if value_output is None:
+                    value_output = await parser.parse_block_expression(message)
+
+                builder.add(await parser.create_slot(key_output, value_output))
+
+            else:
+                builder.add(key_output)
+
+        if message.is_cont():
+            char = message.head()
+
+            if char == ',' or char == ';':
+                message.step()
+                await RecordParser.parse_record(message, parser, builder)
+
+            elif char == '}':
+                message.step()
+                return builder
 
 class LambdaFuncParser(Parser):
 
@@ -307,7 +354,15 @@ class AttrExpressionParser(Parser):
             return builder.bind()
 
         elif char == '{' or char == '[':
-            pass
+            if builder is None:
+                builder = await parser.create_record_builder()
+
+            if value_output is None:
+                await parser.parse_additive_operator(message, builder)
+
+            if message.is_cont():
+                if message.head() == '@':
+                    await AttrExpressionParser.parse(message, parser, builder=builder)
 
 
 class AttrParser(Parser):
@@ -592,7 +647,11 @@ class LiteralParser(Parser):
         if char == '(':
             pass
         elif char == '{':
-            pass
+            if builder is None:
+                builder = await parser.create_record_builder()
+
+            await parser.parse_record(message, builder)
+
         elif char == '[':
             pass
         elif await ReconUtils.is_ident_start_char(char):
@@ -604,7 +663,8 @@ class LiteralParser(Parser):
         if builder is None:
             builder = await parser.create_value_builder()
 
-        builder.add(value_output)
+        if value_output is not None:
+            builder.add(value_output)
 
         return builder.bind()
 

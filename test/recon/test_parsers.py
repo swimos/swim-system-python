@@ -447,3 +447,54 @@ class TestParser(unittest.TestCase):
         self.assertEqual(expected.node_uri, actual.node_uri)
         self.assertEqual(expected.lane_uri, actual.lane_uri)
         self.assertEqual(expected.body.value, actual.body.value)
+
+    @async_test
+    async def test_parse_event_body_object(self):
+        # Given
+        message = '@event(node: "bar/baz/2", lane: "foo/bar")@Person{name:Bar,age:14,salary:5.9}'
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual('event', actual.tag)
+        self.assertEqual('bar/baz/2', actual.node_uri)
+        self.assertEqual('foo/bar', actual.lane_uri)
+
+        self.assertEqual(4, len(actual.body.items))
+        self.assertEqual('Person', actual.body.items[0].key.value)
+        self.assertEqual('name', actual.body.items[1].key.value)
+        self.assertEqual('Bar', actual.body.items[1].value.value)
+        self.assertEqual('age', actual.body.items[2].key.value)
+        self.assertEqual(14, actual.body.items[2].value.value)
+        self.assertEqual('salary', actual.body.items[3].key.value)
+        self.assertEqual(5.9, actual.body.items[3].value.value)
+
+    @async_test
+    async def test_parse_event_body_nested(self):
+        # Given
+        message = '@event(node: "bar/baz/2", lane: "foo/bar")@Person{name:Bar,age:14,salary:5.9,friend:@Person{name:Foo,age:18,salary:99.9}'
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual('event', actual.tag)
+        self.assertEqual('bar/baz/2', actual.node_uri)
+        self.assertEqual('foo/bar', actual.lane_uri)
+
+        self.assertEqual(5, len(actual.body.items))
+        self.assertEqual('Person', actual.body.items[0].key.value)
+        self.assertEqual('name', actual.body.items[1].key.value)
+        self.assertEqual('Bar', actual.body.items[1].value.value)
+        self.assertEqual('age', actual.body.items[2].key.value)
+        self.assertEqual(14, actual.body.items[2].value.value)
+        self.assertEqual('salary', actual.body.items[3].key.value)
+        self.assertEqual(5.9, actual.body.items[3].value.value)
+        self.assertEqual('friend', actual.body.items[4].key.value)
+        self.assertEqual(4, len(actual.body.items[4].value.items))
+        self.assertEqual('Person', actual.body.items[4].value.items[0].key.value)
+        self.assertEqual('name', actual.body.items[4].value.items[1].key.value)
+        self.assertEqual('Foo', actual.body.items[4].value.items[1].value.value)
+        self.assertEqual('age', actual.body.items[4].value.items[2].key.value)
+        self.assertEqual(18, actual.body.items[4].value.items[2].value.value)
+        self.assertEqual('salary', actual.body.items[4].value.items[3].key.value)
+        self.assertEqual(99.9, actual.body.items[4].value.items[3].value.value)

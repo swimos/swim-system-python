@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from swim.reacon.utils import ReconUtils
-from swim.structures.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num
+from swim.recon.utils import ReconUtils
+from swim.structures.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant
 
 
 class Writer(ABC):
@@ -22,7 +22,7 @@ class BlockWriter(Writer):
         return await BlockWriter.write(items, writer, first=True)
 
     @staticmethod
-    async def write(items, writer, first):
+    async def write(items, writer, first, in_braces=False):
         output = ''
 
         for item in items:
@@ -35,12 +35,20 @@ class BlockWriter(Writer):
 
                 if not first:
                     output += ','
+                elif isinstance(item, Slot):
+                    if len(output) > 0 and output[-1] != '(':
+                        output += '{'
+                        in_braces = True
+
                 item_text = await writer.write_item(item)
 
                 first = False
 
             if item_text:
                 output += item_text
+
+        if in_braces:
+            output += '}'
 
         return output
 
@@ -141,14 +149,16 @@ class AttrWriter(Writer):
         if key_text:
             output += key_text
 
-        output += '('
+        if not isinstance(value, Extant):
 
-        value_text = await writer.write_value(value)
+            output += '('
 
-        if value_text:
-            output += value_text
+            value_text = await writer.write_value(value)
 
-        output += ')'
+            if value_text:
+                output += value_text
+
+            output += ')'
 
         return output
 
