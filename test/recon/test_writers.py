@@ -458,13 +458,13 @@ class TestWriters(unittest.TestCase):
 
         body = RecordMap.create()
         body.add(Attr.of(Text.create_from('Person'), Extant.get_extant()))
-        body.add(Slot.of(Text.create_from('name'), Text.create_from('Bar')))
-        body.add(Slot.of(Text.create_from('age'), Num.create_from(14)))
+        body.add(Slot.of(Text.create_from('name'), Text.create_from('Par')))
+        body.add(Slot.of(Text.create_from('age'), Num.create_from(11)))
         body.add(Slot.of(Text.create_from('salary'), Num.create_from(-5.9)))
         body.add(Slot.of(Text.create_from('friend'), friend))
 
         envelope = EventMessage('/this/is/spam', 'hello', body=body)
-        expected = '@event(node:"/this/is/spam",lane:hello)@Person{name:Bar,age:14,salary:-5.9,friend:@Person{name:"Sam/Spam",age:1,salary:22}}'
+        expected = '@event(node:"/this/is/spam",lane:hello)@Person{name:Par,age:11,salary:-5.9,friend:@Person{name:"Sam/Spam",age:1,salary:22}}'
 
         # When
         responses = await asyncio.gather(envelope.to_recon())
