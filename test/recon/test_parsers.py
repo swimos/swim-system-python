@@ -58,6 +58,19 @@ class TestParser(unittest.TestCase):
         self.assertEqual(0.31, actual.body.value)
 
     @async_test
+    async def test_parse_sync_body_bool(self):
+        # Given
+        message = '@sync(node: "bar/baz/2", lane: "foo/bar")false'
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual('sync', actual.tag)
+        self.assertEqual('bar/baz/2', actual.node_uri)
+        self.assertEqual('foo/bar', actual.lane_uri)
+        self.assertEqual(False, actual.body.value)
+
+    @async_test
     async def test_parse_sync_body_string(self):
         # Given
         message = '@sync(node: "bar/baz/2", lane: "foo/bar")"Hello, World"'
@@ -161,6 +174,19 @@ class TestParser(unittest.TestCase):
         self.assertEqual(37.13, actual.body.value)
 
     @async_test
+    async def test_parse_synced_body_bool(self):
+        # Given
+        message = '@synced(node: foo, lane: bar)true'
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual('synced', actual.tag)
+        self.assertEqual('foo', actual.node_uri)
+        self.assertEqual('bar', actual.lane_uri)
+        self.assertEqual(True, actual.body.value)
+
+    @async_test
     async def test_parse_synced_body_string(self):
         # Given
         message = '@synced(node: foo, lane: bar)"Hello, World"'
@@ -222,6 +248,19 @@ class TestParser(unittest.TestCase):
         self.assertEqual('bar/baz/2', actual.node_uri)
         self.assertEqual('foo/bar', actual.lane_uri)
         self.assertEqual(-0.00031, actual.body.value)
+
+    @async_test
+    async def test_parse_linked_body_bool(self):
+        # Given
+        message = '@linked(node: "bar/baz/2", lane: "foo/bar")false'
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual('linked', actual.tag)
+        self.assertEqual('bar/baz/2', actual.node_uri)
+        self.assertEqual('foo/bar', actual.lane_uri)
+        self.assertEqual(False, actual.body.value)
 
     @async_test
     async def test_parse_linked_body_string(self):
@@ -324,6 +363,19 @@ class TestParser(unittest.TestCase):
         self.assertEqual(-0.5, actual.body.value)
 
     @async_test
+    async def test_parse_command_body_bool(self):
+        # Given
+        message = '@command(node: "foo/bar", lane: "lane/uri/test")true'
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual('command', actual.tag)
+        self.assertEqual('foo/bar', actual.node_uri)
+        self.assertEqual('lane/uri/test', actual.lane_uri)
+        self.assertEqual(True, actual.body.value)
+
+    @async_test
     async def test_parse_command_body_string(self):
         # Given
         message = '@command(node: "foo/bar", lane: "lane/uri/test")"0.32"'
@@ -400,6 +452,19 @@ class TestParser(unittest.TestCase):
         self.assertEqual('bar/baz/2', actual.node_uri)
         self.assertEqual('foo/bar', actual.lane_uri)
         self.assertEqual(0.1, actual.body.value)
+
+    @async_test
+    async def test_parse_event_body_bool(self):
+        # Given
+        message = '@event(node: "bar/baz/2", lane: "foo/bar")true'
+        # When
+        requests = await asyncio.gather(Envelope.parse_recon(message))
+        actual = requests[0]
+        # Then
+        self.assertEqual('event', actual.tag)
+        self.assertEqual('bar/baz/2', actual.node_uri)
+        self.assertEqual('foo/bar', actual.lane_uri)
+        self.assertEqual(True, actual.body.value)
 
     @async_test
     async def test_parse_event_body_string(self):
