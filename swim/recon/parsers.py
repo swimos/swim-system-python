@@ -135,11 +135,11 @@ class ReconParser:
 class ReconStructureParser(ReconParser):
 
     async def create_ident(self, value):
-        if isinstance(value, Text):
+        if isinstance(value, str):
             if value == 'true':
-                return Bool.get_from(True)
+                return Bool.create_from(True)
             elif value == 'false':
-                return Bool.get_from(False)
+                return Bool.create_from(False)
 
         return Text.create_from(value)
 

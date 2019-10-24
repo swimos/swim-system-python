@@ -156,7 +156,7 @@ class Bool(Value):
         self.value = value
 
     @staticmethod
-    def get_from(value):
+    def create_from(value):
 
         if value:
             if Bool.TRUE is None:
@@ -168,6 +168,9 @@ class Bool(Value):
                 Bool.FALSE = Bool(False)
 
             return Bool.FALSE
+
+    def bool_value(self):
+        return self.value
 
 
 class Absent(Value):

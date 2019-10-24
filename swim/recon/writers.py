@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from swim.recon.utils import ReconUtils
-from swim.structures.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant
+from swim.structures.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant, Bool
 
 
 class Writer(ABC):
@@ -96,6 +96,9 @@ class ReconWriter(ABC):
     async def write_number(self, value):
         return await NumberWriter.write_number(value)
 
+    async def write_bool(self, value):
+        return await BoolWriter.write_bool(value)
+
     async def write_absent(self):
         pass
 
@@ -127,6 +130,8 @@ class ReconStructureWriter(ReconWriter):
             return await self.write_text(value.string_value())
         elif isinstance(value, Num):
             return await self.write_number(value.num_value())
+        elif isinstance(value, Bool):
+            return await self.write_bool(value.bool_value())
         elif isinstance(value, Absent):
             return await self.write_absent()
 
@@ -208,6 +213,17 @@ class NumberWriter(Writer):
             output += str(value)
 
         return output
+
+
+class BoolWriter(Writer):
+
+    @staticmethod
+    async def write_bool(value):
+
+        if value:
+            return 'true'
+        else:
+            return 'false'
 
 
 class IdentWriter(Writer):
