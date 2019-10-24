@@ -1,16 +1,16 @@
 dist: xenial
 language: python
 python:
-    - '3.7'
+- '3.7'
 install:
-    - pip install -r requirements.txt
+- pip install -r requirements.txt
 script:
-    - python -m unittest
+- python -m unittest
 deploy:
-    provider: pypi
-    user: __token__
-    password:
-        secure: b1GzJ1X8zWmQyJmmmrSdlrr+pX7vWP6+h4Tt9x9ePAE7TTA/LlUTkGvG6Qy6+er1W2lH1dYsqNbX2k1YpYJWksIhIN/loal9eaVECpUL898ijylE+Kzh00Ik/nEMEEuyRAX9T1Rj7vHXyZxvVn4WbR0jCklRv+0RpLii+GI2KSY10uVzhUx9ZrL/tBzTYTGCrJul54k7gMcVJbBvOTEsJNaD5aMzfTigauKjJk5kRG4eaEBHKm1NRUsB3g+aRJ0qG7dijqvG01mEtNs1dRmhSzVdXocYgRPD2ruyTA5tuCwarAIDpox5rtqiVlTfjCDVxpq34RAt0u4Wbrxu7uCLuDTiBzIKRsvKGAWXFHenJpM4vYl3eq/Vtg5vH2AoWMQ5a1G1Er8JhgAtE6/mdvwpsVFSxG9DfKywFXl2rcQAA8ByXgOocn0PxDyW7XEmYcAM1ccNtBd1inDCPgZJwQUr6rejDkKxrLCjVqRY6qW5bL3MTwPP1+EG1nnZw7IL6RJ2k7Q0tMbEpA5oh0S3O5Mtsa0b6HpvRCBr1SwgSW0RCodgVPk3DbfW692fHRzpiqakeilcN+Lf868GEd0Q4z+a1DrBat5meZA8udu8KHU3S0UPWT6kqcQ486bovDerHLem1JChEmWWqPI5RNO0hb9ANpITi+Dp1wJGOsTitasTNrk=
-    distributions: sdist bdist_wheel
-    on:
-        tags: true
+  provider: pypi
+  user: __token__
+  password:
+      secure: kK4++8pRgzyQA10Nu045is7fW6mwfZ79zK33ohQZ4HN9VNXhUduI1eh+N5N/6Lfp6iQ/fR2x86ydUbjmq2BYkUCtqTnordnUbhA4yRyJAU3sfmyDOVEwhPod1mLzhVCvFqT4QzcY1b+f94NDRZNB1guBTmEpdSqYIYmrdjwmSwk24O0c2S6rQ4jN7P9MqEPGdb/9kz2DqajWnrJizLSfr2Bsb/Lry1eUoSanLSo+tXK0Z7LHITeiqqmc9YBycvSfEG7KXzIJ2wKgAO5vf3ZyKXKC3KWQHnR+YiC3XjJpnbngccB0EIigB33Ko5cjBaElK2QVgXEL/xn/s5Ic+IcyVZDRue9r01QH6ZoBlq4OwOOU+mKSQCsudq327FB0qKhaXhpK6YUgdGg2xq2LGOr0O16Lqec3zbqeDQ5eWADVJITxX85eSezVqh2uWsP4DConz0DI/g1+G4Imp3A1nTRIxkWbwnq8hiw12zSouyUINQ7wzadKzvdoPwm8JDHVs/I8cTdZXcy2AZOrpI8tTUACMKE9gt8l+XBCb84BaC39zfeCe/u7NERTRn6jva2GN+DM/FNjfbUvyGoi+JApT56NjzRW9MEILb3GqM5P16z3abD1UqAqi34Ix+7jz0ZsHWSkTxJiKShr2XqvA3jHGro+Bs5JwSVyq4jdCeTesEW8kQw=
+  distributions: sdist bdist_wheel
+  on:
+    tags: true
