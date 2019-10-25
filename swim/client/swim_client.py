@@ -4,6 +4,7 @@ from threading import Thread
 import websockets
 
 from swim.client.downlinks.value_downlink import ValueDownlink
+from swim.warp.warp import CommandMessage
 
 
 class SwimClient:
@@ -11,10 +12,18 @@ class SwimClient:
     def __init__(self):
         self.downlinks = list()
         self.loop = None
-        self.websocket = None
+        self.websocket_pool = dict()
 
     def downlink_value(self):
         return ValueDownlink(self)
+
+    def command(self, host_uri, node_uri, lane_uri, body):
+        message = CommandMessage(node_uri, lane_uri, body=body)
+        self.schedule_task(self.__send_command, host_uri, message)
+
+    async def __send_command(self, host_uri, message):
+        await self.open_websocket(host_uri)
+        await self.websocket_pool[host_uri].send(await message.to_recon())
 
     def start(self):
         loop = asyncio.new_event_loop()
@@ -49,6 +58,10 @@ class SwimClient:
 
     async def open_websocket(self, host_uri):
         try:
-            self.websocket = await websockets.connect(host_uri)
+            if host_uri not in self.websocket_pool:
+                self.websocket_pool[host_uri] = await websockets.connect(host_uri)
+
+            return self.websocket_pool[host_uri]
+        
         except Exception as e:
             print(e)

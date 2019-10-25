@@ -14,10 +14,10 @@ class ValueDownlink:
         self.host_uri = None
         self.node_uri = None
         self.lane_uri = None
-
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-
+        self.websocket = None
         self.value = None
+
+        self.executor = concurrent.futures.ThreadPoolExecutor()
         self.linked = asyncio.Event(loop=self.client.loop)
 
     def execute_did_set(self, new_value, old_value):
@@ -52,18 +52,18 @@ class ValueDownlink:
         return self
 
     async def __open(self):
-        await self.client.open_websocket(self.host_uri)
+        self.websocket = await self.client.open_websocket(self.host_uri)
         await self.establish_downlink()
         await self.receive_message()
 
     async def establish_downlink(self):
 
         sync_request = SyncRequest(self.node_uri, self.lane_uri)
-        await self.client.websocket.send(await sync_request.to_recon())
+        await self.websocket.send(await sync_request.to_recon())
 
     async def receive_message(self):
         while True:
-            message = await self.client.websocket.recv()
+            message = await self.websocket.recv()
 
             response = await Envelope.parse_recon(message)
 
@@ -93,4 +93,4 @@ class ValueDownlink:
 
     async def send_message(self, message):
         await self.linked.wait()
-        await self.client.websocket.send(await message.to_recon())
+        await self.websocket.send(await message.to_recon())
