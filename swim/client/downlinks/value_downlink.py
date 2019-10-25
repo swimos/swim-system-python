@@ -15,6 +15,8 @@ class ValueDownlink:
         self.node_uri = None
         self.lane_uri = None
         self.websocket = None
+        self.task = None
+
         self.value = None
 
         self.executor = concurrent.futures.ThreadPoolExecutor()
@@ -48,7 +50,7 @@ class ValueDownlink:
         return self
 
     def open(self):
-        self.client.schedule_task(self.__open)
+        self.task = self.client.schedule_task(self.__open)
         return self
 
     async def __open(self):
@@ -94,3 +96,10 @@ class ValueDownlink:
     async def send_message(self, message):
         await self.linked.wait()
         await self.websocket.send(await message.to_recon())
+
+    def close(self):
+        self.client.schedule_task(self.__close)
+
+    async def __close(self):
+        self.task.cancel()
+        await self.websocket.close()
