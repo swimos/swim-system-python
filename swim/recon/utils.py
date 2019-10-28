@@ -1,35 +1,75 @@
 class ReconUtils:
 
     @staticmethod
-    async def is_ident_start_char(c):
-        if c:
-            c = ord(c)
-            return ord('A') <= c <= ord('Z') or c == ord('_') or ord('a') <= c <= ord(
-                'z') or 0xc0 <= c <= 0xd6 or 0xd8 <= c <= 0xf6 or 0xf8 <= c <= 0x2ff or 0x370 <= c <= 0x37d or 0x37f <= c <= 0x1fff or 0x200c <= c <= 0x200d or 0x2070 <= c <= 0x218f or 0x2c00 <= c <= 0x2fef or 0x3001 <= c <= 0xd7ff or 0xf900 <= c <= 0xfdcf or 0xfdf0 <= c <= 0xfffd or 0x10000 <= c <= 0xeffff
+    async def is_ident_start_char(char):
+        """
+        Check if a character is a valid first character of an identifier.
+        Valid start characters for identifiers: [A-Za-z_]
+
+        :param char:        - Character to check.
+        :return:            - True if the character is valid, False otherwise.
+        """
+        if char:
+            char = await ReconUtils.to_ord(char)
+
+            return ord('A') <= char <= ord('Z') or char == ord('_') or ord('a') <= char <= ord('z')
         else:
             return False
 
     @staticmethod
-    async def is_ident_char(c):
-        if c:
-            c = ord(c)
-            return c == ord('-') or ord('0') <= c <= ord('9') or ord('A') <= c <= ord('Z') or c == ord('_') or ord('a') <= c <= ord(
-                'z') or c == 0xb7 or 0xc0 <= c <= 0xd6 or 0xd8 <= c <= 0xf6 or 0xf8 <= c <= 0x37d or 0x37f <= c <= 0x1fff or 0x200c <= c <= 0x200d or 0x203f <= c <= 0x2040 or 0x2070 <= c <= 0x218f or 0x2c00 <= c <= 0x2fef or 0x3001 <= c <= 0xd7ff or 0xf900 <= c <= 0xfdcf or 0xfdf0 <= c <= 0xfffd or 0x10000 <= c <= 0xeffff
+    async def is_ident_char(char):
+        """
+        Check if a character is a valid character of an identifier.
+        Valid characters for identifiers: [A-Za-z_-]
+
+        :param char:        - Character to check.
+        :return:            - True if the character is valid, False otherwise.
+        """
+        if char:
+            char = await ReconUtils.to_ord(char)
+            return char == ord('-') or await ReconUtils.is_digit(char) or await ReconUtils.is_ident_start_char(char)
         else:
             return False
 
     @staticmethod
-    async def is_space(c):
-        if c:
-            c = ord(c)
-            return c == ord(' ') or c == ord('\t')
+    async def is_space(char):
+        """
+        Check if a character is a space character.
+
+        :param char:        - Character to check.
+        :return:            - True if the character is a space character, False otherwise.
+        """
+        if char:
+            char = await ReconUtils.to_ord(char)
+            return char == ord(' ') or char == ord('\t')
         else:
             return False
 
     @staticmethod
-    async def is_digit(c):
-        if c:
-            c = ord(c)
-            return ord('0') <= c <= ord('9')
+    async def is_digit(char):
+        """
+       Check if a character is a digit.
+
+       :param char:         - Character to check.
+       :return:             - True if the character is a digit, False otherwise.
+       """
+        if char:
+            char = await ReconUtils.to_ord(char)
+            return ord('0') <= char <= ord('9')
         else:
             return False
+
+    @staticmethod
+    async def to_ord(char):
+        """
+        Convert a character to its integer representation.
+
+        :param char:        - Character to convert.
+        :return:            - Integer representation of the character.
+        """
+        if isinstance(char, str):
+            return ord(char)
+        if isinstance(char, int):
+            return char
+        else:
+            return None

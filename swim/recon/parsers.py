@@ -686,10 +686,6 @@ class InputMessage:
         self.index = self.index + 1
         return self.head()
 
-    def strip(self):
-        self.message = self.message.strip()
-        return self
-
     def is_cont(self):
         if self.index >= len(self.message):
             return False
