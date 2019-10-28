@@ -15,6 +15,14 @@ class SwimClient:
         self.loop = None
         self.websocket_connections = dict()
 
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.stop()
+        return self
+
     def downlink_value(self):
         return ValueDownlink(self)
 
