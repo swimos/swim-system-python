@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from swim.recon.utils import ReconUtils
 from swim.structures.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num
@@ -17,7 +17,6 @@ class BlockParser(Parser):
 
         while await ReconUtils.is_space(char):
             char = message.step()
-        # if char == '!' or char == '"' or char == '$' or char == '%' or char == '\'' or char == '(' or char == '+' or char == '-' or char == '@' or c
 
         if builder is None:
             builder = await parser.create_value_builder()
@@ -203,6 +202,7 @@ class RecordParser(Parser):
             elif char == '}':
                 message.step()
                 return builder
+
 
 class LambdaFuncParser(Parser):
 
