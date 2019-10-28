@@ -64,17 +64,20 @@ class ValueDownlink:
         await self.websocket.send(await sync_request.to_recon())
 
     async def receive_message(self):
-        while True:
-            message = await self.websocket.recv()
+        try:
+            while True:
+                message = await self.websocket.recv()
 
-            response = await Envelope.parse_recon(message)
+                response = await Envelope.parse_recon(message)
 
-            if response.tag == 'linked':
-                self.linked.set()
-            elif response.tag == 'synced':
-                pass
-            elif response.tag == 'event':
-                await self.set_value(response)
+                if response.tag == 'linked':
+                    self.linked.set()
+                elif response.tag == 'synced':
+                    pass
+                elif response.tag == 'event':
+                    await self.set_value(response)
+        finally:
+            await self.websocket.close()
 
     def set(self, value):
         message = CommandMessage(self.node_uri, self.lane_uri, value)
@@ -102,4 +105,4 @@ class ValueDownlink:
 
     async def __close(self):
         self.task.cancel()
-        await self.websocket.close()
+        await self.client.remove_connection(self.host_uri)
