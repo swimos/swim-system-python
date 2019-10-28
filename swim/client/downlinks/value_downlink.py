@@ -1,6 +1,5 @@
 import asyncio
 from collections import Callable
-import concurrent.futures
 import inspect
 
 from swim.structures.structs import Absent
@@ -16,11 +15,10 @@ class ValueDownlink:
         self.lane_uri = None
         self.websocket = None
         self.task = None
-
         self.value = None
 
-        self.executor = concurrent.futures.ThreadPoolExecutor()
         self.linked = asyncio.Event(loop=self.client.loop)
+        self.synced = asyncio.Event(loop=self.client.loop)
 
     def execute_did_set(self, new_value, old_value):
         # no-op
@@ -73,11 +71,23 @@ class ValueDownlink:
                 if response.tag == 'linked':
                     self.linked.set()
                 elif response.tag == 'synced':
-                    pass
+                    self.synced.set()
                 elif response.tag == 'event':
                     await self.set_value(response)
         finally:
             await self.websocket.close()
+
+    def get(self, blocking=False):
+
+        if blocking:
+            task = self.client.schedule_task(self.get_val)
+            return task.result()
+        else:
+            return self.value
+
+    async def get_val(self):
+        await self.synced.wait()
+        return self.value
 
     def set(self, value):
         message = CommandMessage(self.node_uri, self.lane_uri, value)
@@ -94,7 +104,7 @@ class ValueDownlink:
         if inspect.iscoroutinefunction(self.execute_did_set):
             self.client.schedule_task(self.execute_did_set, self.value, old_value)
         else:
-            self.client.loop.run_in_executor(self.executor, self.execute_did_set, self.value, old_value)
+            self.client.loop.run_in_executor(self.client.get_pool_executor(), self.execute_did_set, self.value, old_value)
 
     async def send_message(self, message):
         await self.linked.wait()

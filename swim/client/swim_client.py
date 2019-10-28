@@ -1,6 +1,6 @@
 import asyncio
+import concurrent.futures
 from threading import Thread
-
 import websockets
 
 from swim.client.downlinks.value_downlink import ValueDownlink
@@ -13,7 +13,9 @@ class SwimClient:
     def __init__(self):
         self.downlinks = list()
         self.loop = None
+        self.loop_thread = None
         self.websocket_connections = dict()
+        self.executor = None
 
     def __enter__(self):
         self.start()
@@ -22,6 +24,12 @@ class SwimClient:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.stop()
         return self
+
+    def get_pool_executor(self):
+        if self.executor is None:
+            self.executor = concurrent.futures.ThreadPoolExecutor()
+
+        return self.executor
 
     def downlink_value(self):
         return ValueDownlink(self)
@@ -38,11 +46,12 @@ class SwimClient:
         loop = asyncio.new_event_loop()
         self.loop = loop
 
-        thread = Thread(target=self.__start_event_loop)
-        thread.start()
+        self.loop_thread = Thread(target=self.__start_event_loop)
+        self.loop_thread.start()
 
     def stop(self):
         self.schedule_task(self.__stop_client)
+        self.loop_thread.join()
 
     def schedule_task(self, task, *args):
 
@@ -57,6 +66,10 @@ class SwimClient:
         task.cancel()
 
     async def __stop_client(self):
+
+        if self.executor is not None:
+            self.executor.shutdown(wait=False)
+
         tasks = [task for task in asyncio.all_tasks(self.loop) if task is not asyncio.current_task(self.loop)]
         [task.cancel() for task in tasks]
         await asyncio.gather(*tasks, return_exceptions=True)
