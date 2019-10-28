@@ -10,7 +10,7 @@ class Recon:
     @staticmethod
     async def parse(recon_string):
         """
-        Parse a string and return a Swim structure object.
+        Parse a Recon message in string format and return a Swim structure object.
 
         :param recon_string:        - Recon message in string format.
         :return:                    - Swim structure object representing the Recon message.

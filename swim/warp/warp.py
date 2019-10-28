@@ -9,23 +9,27 @@ class Envelope(ABC):
 
     async def to_recon(self):
         """
-        Create a Recon message from Envelope.
-        :return:
+        Create a Recon message in string format representing this Envelope.
+
+        :return:                - Recon message in string format from this Envelope.
         """
         return await Recon.to_string(self.to_value())
 
     def to_value(self):
         """
-        Create a value object from Envelope.
-        :return:
+        Create a Swim structure object representing this Envelope.
+
+        :return:                - Swim structure object from this Envelope.
         """
         return self.get_form().mold(self).to_value()
 
     @staticmethod
     async def parse_recon(recon_message):
         """
-        Parses a Recon message into an Envelope object.
-        :return:
+        Parse a Recon message in string format into an Envelope.
+
+        :param recon_message    - Recon message in string format.
+        :return:                - Envelope from the Recon message.
         """
         value = await Recon.parse(recon_message)
         return Envelope.create_from_value(value)
@@ -33,9 +37,10 @@ class Envelope(ABC):
     @staticmethod
     def create_from_value(value):
         """
-        Create an Envelope from a Value object.
-        :param value:
-        :return:
+        Parse a Swim structure object into an Envelope.
+
+        :param value:           - Swim structure object.
+        :return:                - Envelope from the Swim structure object.
         """
         tag = value.tag
         form = Envelope.resolve_form(tag)
@@ -57,6 +62,8 @@ class Envelope(ABC):
             return EventMessageForm()
         if tag == 'command':
             return CommandMessageForm()
+        else:
+            raise TypeError(f'Invalid form tag: {tag}')
 
     @abstractmethod
     def get_form(self):
@@ -178,6 +185,10 @@ class LinkAddressedForm(ABC):
     def tag(self):
         ...
 
+    @abstractmethod
+    def create_from(self, node_uri, lane_uri, prio, rate, body):
+        ...
+
     def cast(self, item):
         value = item.to_value()
         headers = value.get_headers(self.tag)
@@ -219,6 +230,10 @@ class LaneAddressedForm(ABC):
     @property
     @abstractmethod
     def tag(self):
+        ...
+
+    @abstractmethod
+    def create_from(self, node_uri, lane_uri, body):
         ...
 
     def cast(self, item):
