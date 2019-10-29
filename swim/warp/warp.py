@@ -10,10 +10,19 @@ class Envelope(ABC):
     @property
     @abstractmethod
     def tag(self) -> str:
+        """
+        Return the tag associated with the given Envelope object.
+        :return:
+        """
         ...
 
     @abstractmethod
     def get_form(self) -> 'Form':
+        """
+        Return the Form object associated with the given Envelope object.
+
+        :return:                - Swim Form object.
+        """
         ...
 
     async def to_recon(self) -> str:
@@ -54,13 +63,16 @@ class Envelope(ABC):
         tag = value.tag
         form = Envelope.resolve_form(tag)
 
-        if form is not None:
-            return form.cast(value)
-        else:
-            raise TypeError(f'There is no form for tag: {tag}')
+        return form.cast(value)
 
     @staticmethod
     def resolve_form(tag: str) -> 'Form':
+        """
+        Returns a Swim form corresponding to a given tag.
+
+        :param tag:             - Name of the tag as string.
+        :return:                - The form corresponding to the tag.
+        """
         if tag == 'sync':
             return SyncRequestForm()
         if tag == 'synced':
@@ -102,10 +114,10 @@ class SyncedResponse(Envelope):
         self.form = SyncedResponseForm()
 
     @property
-    def tag(self):
+    def tag(self) -> str:
         return 'synced'
 
-    def get_form(self):
+    def get_form(self) -> 'Form':
         return self.form
 
 
@@ -120,10 +132,10 @@ class LinkedResponse(Envelope):
         self.form = LinkedResponseForm()
 
     @property
-    def tag(self):
+    def tag(self) -> str:
         return 'linked'
 
-    def get_form(self):
+    def get_form(self) -> 'Form':
         return self.form
 
 
@@ -136,10 +148,10 @@ class CommandMessage(Envelope):
         self.form = CommandMessageForm()
 
     @property
-    def tag(self):
+    def tag(self) -> str:
         return 'command'
 
-    def get_form(self):
+    def get_form(self) -> 'Form':
         return self.form
 
 
@@ -152,10 +164,10 @@ class EventMessage(Envelope):
         self.form = EventMessageForm()
 
     @property
-    def tag(self):
+    def tag(self) -> str:
         return 'event'
 
-    def get_form(self):
+    def get_form(self) -> 'Form':
         return self.form
 
 
@@ -192,7 +204,7 @@ class LinkAddressedForm(Form):
             if rate != 0 and not math.isnan(rate):
                 headers.slot('rate', Num.create_from(rate))
 
-            return Attr.of(self.tag, headers).concat(envelope.body)
+            return Attr.create_from(self.tag, headers).concat(envelope.body)
         else:
             return Item.extant()
 
@@ -234,7 +246,7 @@ class LaneAddressedForm(Form):
 
         if envelope is not None:
             headers = Record.create().slot('node', envelope.node_uri).slot('lane', envelope.lane_uri)
-            return Attr.of(self.tag, headers).concat(envelope.body)
+            return Attr.create_from(self.tag, headers).concat(envelope.body)
         else:
             return Item.extant()
 

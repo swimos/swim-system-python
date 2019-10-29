@@ -154,7 +154,7 @@ class AttrWriter(Writer):
         if key_text:
             output += key_text
 
-        if not isinstance(value, Extant):
+        if value != Extant.get_extant():
 
             output += '('
 

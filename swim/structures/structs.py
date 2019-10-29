@@ -4,17 +4,13 @@ from enum import Enum
 
 class Item(ABC):
 
-    @property
-    @abstractmethod
-    def key(self):
-        ...
+    def concat(self, new_item: 'Item') -> 'Record':
+        """
+        Creates a Record object by appending an Item object to the current Item.
 
-    @abstractmethod
-    def to_value(self):
-        ...
-
-    def concat(self, new_item):
-
+        :param new_item:            - New Item to add to the Record.
+        :return:                    - Record containing the current Item and the new Item.
+        """
         record = Record.create()
         record.add(self)
 
@@ -26,21 +22,37 @@ class Item(ABC):
         return record
 
     @staticmethod
-    def from_object(obj):
+    def from_object(obj: object) -> 'Item':
+        """
+        Create Item object from compatible object.
+
+        :param obj:                 - Object convertible to Item or a dictionary.
+        :return:                    - Converted object as Item.
+        """
         if isinstance(obj, Item):
             return obj
-        elif isinstance(obj, dict):
+        elif isinstance(obj, dict) and len(obj) == 1:
             entry = next(iter(obj.items()))
             return Slot.of(entry[0], entry[1])
         else:
             return Value.from_object(obj)
 
     @staticmethod
-    def extant():
+    def extant() -> 'Extant':
+        """
+        Return Extant item singleton.
+
+        :return:                     - Item of type Extant.
+        """
         return Extant.get_extant()
 
     @staticmethod
-    def absent():
+    def absent() -> 'Absent':
+        """
+        Return Absent item singleton.
+
+        :return:                      - Item of type Absent.
+        """
         return Absent.get_absent()
 
 
@@ -48,31 +60,31 @@ class Field(Item):
 
     @property
     @abstractmethod
-    def key(self):
+    def key(self) -> 'Value':
         ...
 
     @property
     @abstractmethod
-    def value(self):
+    def value(self) -> object:
         ...
 
 
 class Attr(Field):
 
-    def __init__(self, key, value):
+    def __init__(self, key: 'Value', value: object) -> None:
         self.__key = key
         self.__value = value
 
     @property
-    def key(self):
+    def key(self) -> 'Value':
         return self.__key
 
     @property
-    def value(self):
+    def value(self) -> object:
         return self.__value
 
     @staticmethod
-    def of(key, value):
+    def create_from(key: object, value: object) -> 'Attr':
 
         if key is None:
             raise TypeError('key')
@@ -85,18 +97,15 @@ class Attr(Field):
         elif isinstance(key, str):
             return Attr(Text.create_from(key), value)
         else:
-            raise TypeError('key')
+            raise TypeError(f'Invalid key: {key}')
 
-    def key_equals(self, item):
+    def key_equals(self, item: object):
         if isinstance(item, str):
             return self.key.value == item
         elif isinstance(item, Field):
             return self.key == item.key
         else:
             return self.key == item
-
-    def to_value(self):
-        return self
 
 
 class Value(Item):
@@ -105,9 +114,9 @@ class Value(Item):
     def key(self):
         return Value.absent()
 
-    @staticmethod
-    def absent():
-        return Absent.get_absent()
+    @property
+    def value(self):
+        return Value.absent()
 
     def to_value(self):
         return self
@@ -115,12 +124,35 @@ class Value(Item):
     def length(self):
         return 0
 
+    @staticmethod
+    def absent():
+        return Absent.get_absent()
+
+    @staticmethod
+    def from_object(obj):
+        if obj is None:
+            return Extant.get_extant()
+        elif isinstance(obj, Value):
+            return obj
+        elif isinstance(obj, str):
+            return Text.create_from(obj)
+        elif isinstance(obj, (float, int)):
+            return Num.create_from(obj)
+        elif isinstance(obj, bool):
+            return Bool.create_from(obj)
+        else:
+            raise TypeError(f'{str(obj)} cannot be converted to Value!')
+
 
 class Text(Value):
     empty = None
 
     def __init__(self, value):
-        self.value = value
+        self.__value = value
+
+    @property
+    def value(self):
+        return self.__value
 
     @staticmethod
     def create_from(string):
@@ -145,7 +177,11 @@ class Text(Value):
 class Num(Value):
 
     def __init__(self, value):
-        self.value = value
+        self.__value = value
+
+    @property
+    def value(self):
+        return self.__value
 
     @staticmethod
     def create_from(value):
@@ -160,7 +196,11 @@ class Bool(Value):
     FALSE = None
 
     def __init__(self, value):
-        self.value = value
+        self.__value = value
+
+    @property
+    def value(self):
+        return self.__value
 
     @staticmethod
     def create_from(value):
@@ -199,7 +239,7 @@ class Extant(Value):
         if Extant.extant is None:
             Extant.extant = Extant()
 
-        return Extant()
+        return Extant.extant
 
 
 class Slot(Field):
@@ -225,9 +265,6 @@ class Slot(Field):
             value = Value.extant()
 
         return Slot(key, value)
-
-    def to_value(self):
-        return self
 
 
 class Record(Value):
