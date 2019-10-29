@@ -1,5 +1,5 @@
 # Swim System Python
-[![Build Status](https://travis-ci.com/DobromirM/swim-system-python.svg?token=qE25UxFHBoKkK362pme4&branch=master)](https://travis-ci.com/DobromirM/swim-system-python)
+[![Build Status](https://travis-ci.com/swimos/swim-system-python.svg?branch=master)](https://travis-ci.com/swimos/swim-system-python)(https://travis-ci.com/DobromirM/swim-system-python)
 
 <a href="https://www.swimos.org"><img src="https://docs.swimos.org/readme/marlin-blue.svg" align="left"></a>
 
