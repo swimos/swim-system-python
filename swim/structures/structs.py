@@ -9,13 +9,17 @@ class Item(ABC):
     def key(self):
         ...
 
+    @abstractmethod
+    def to_value(self):
+        ...
+
     def concat(self, new_item):
 
         record = Record.create()
         record.add(self)
 
         if isinstance(new_item, Record):
-            record.add_all(new_item.items)
+            record.add_all(new_item.get_items())
         else:
             record.add(new_item)
 
@@ -40,7 +44,7 @@ class Item(ABC):
         return Absent.get_absent()
 
 
-class Field(Item, ABC):
+class Field(Item):
 
     @property
     @abstractmethod
@@ -90,6 +94,9 @@ class Attr(Field):
             return self.key == item.key
         else:
             return self.key == item
+
+    def to_value(self):
+        return self
 
 
 class Value(Item):
@@ -219,8 +226,11 @@ class Slot(Field):
 
         return Slot(key, value)
 
+    def to_value(self):
+        return self
 
-class Record(Value, ABC):
+
+class Record(Value):
 
     @staticmethod
     def create():
@@ -228,6 +238,10 @@ class Record(Value, ABC):
 
     @abstractmethod
     def add(self, item):
+        ...
+
+    @abstractmethod
+    def get_items(self):
         ...
 
     def add_all(self, items):
@@ -294,6 +308,9 @@ class RecordMap(Record):
         self.item_count = item_count
         self.field_count = field_count
         self.flags = flags
+
+    def get_items(self):
+        return self.items
 
     @staticmethod
     def create():
@@ -381,6 +398,9 @@ class RecordMapView(Record):
         return self.upper - self.lower
 
     def get_item(self, index):
+        pass
+
+    def get_items(self):
         pass
 
     def branch(self):
