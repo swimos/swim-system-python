@@ -129,9 +129,9 @@ class ReconStructureWriter(ReconWriter):
         elif isinstance(value, Text):
             return await self.write_text(value.get_string_value())
         elif isinstance(value, Num):
-            return await self.write_number(value.num_value())
+            return await self.write_number(value.get_num_value())
         elif isinstance(value, Bool):
-            return await self.write_bool(value.bool_value())
+            return await self.write_bool(value.get_bool_value())
         elif isinstance(value, Absent):
             return await self.write_absent()
 

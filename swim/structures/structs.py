@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Any
 
 
 class Item(ABC):
@@ -22,7 +23,7 @@ class Item(ABC):
         return record
 
     @staticmethod
-    def create_from(obj: object) -> 'Item':
+    def create_from(obj: Any) -> 'Item':
         """
         Create Item object from a compatible object.
 
@@ -33,7 +34,7 @@ class Item(ABC):
             return obj
         elif isinstance(obj, dict) and len(obj) == 1:
             entry = next(iter(obj.items()))
-            return Slot.of(entry[0], entry[1])
+            return Slot.create_slot(entry[0], entry[1])
         else:
             return Value.create_from(obj)
 
@@ -65,13 +66,13 @@ class Field(Item):
 
     @property
     @abstractmethod
-    def value(self) -> object:
+    def value(self) -> Any:
         ...
 
 
 class Attr(Field):
 
-    def __init__(self, key: 'Value', value: object) -> None:
+    def __init__(self, key: 'Value', value: Any) -> None:
         self.__key = key
         self.__value = value
 
@@ -80,11 +81,11 @@ class Attr(Field):
         return self.__key
 
     @property
-    def value(self) -> object:
+    def value(self) -> Any:
         return self.__value
 
     @staticmethod
-    def create_attr(key: object, value: object) -> 'Attr':
+    def create_attr(key: Any, value: Any) -> 'Attr':
         """
         Create an attribute object from given key and value.
 
@@ -105,7 +106,7 @@ class Attr(Field):
         else:
             raise TypeError(f'Invalid key: {key}')
 
-    def key_equals(self, item: object) -> bool:
+    def key_equals(self, item: Any) -> bool:
         """
         Compare the key of the attribute to an arbitrary object.
 
@@ -135,7 +136,7 @@ class Value(Item):
         return 0
 
     @staticmethod
-    def create_from(obj: object) -> 'Value':
+    def create_from(obj: Any) -> 'Value':
         """
         Create Value object from a compatible object.
 
@@ -202,18 +203,30 @@ class Text(Value):
 
 class Num(Value):
 
-    def __init__(self, value):
+    def __init__(self, value: (int, float)) -> None:
         self.__value = value
 
     @property
-    def value(self):
+    def value(self) -> (int, float):
         return self.__value
 
     @staticmethod
-    def create_from(value):
-        return Num(value)
+    def create_from(obj: (float, int)) -> 'Num':
+        """
+        Create Num object from a compatible object.
 
-    def num_value(self):
+        :param obj:             - Integer or Float value.
+        :return:                - Converted value as a Num object.
+        """
+
+        return Num(obj)
+
+    def get_num_value(self) -> (int, float):
+        """
+        Return the value of the Num object as integer or float.
+
+        :return:                - Num value as integer or float.
+        """
         return self.value
 
 
@@ -221,17 +234,23 @@ class Bool(Value):
     TRUE = None
     FALSE = None
 
-    def __init__(self, value):
+    def __init__(self, value: bool) -> None:
         self.__value = value
 
     @property
-    def value(self):
+    def value(self) -> bool:
         return self.__value
 
     @staticmethod
-    def create_from(value):
+    def create_from(obj: bool) -> 'Bool':
+        """
+        Create Bool object from a compatible object.
 
-        if value:
+        :param obj:             - Boolean value.
+        :return:                - Converted value as a Bool object.
+        """
+
+        if obj:
             if Bool.TRUE is None:
                 Bool.TRUE = Bool(True)
 
@@ -242,7 +261,12 @@ class Bool(Value):
 
             return Bool.FALSE
 
-    def bool_value(self):
+    def get_bool_value(self) -> bool:
+        """
+        Return the value of the Bool object as Boolean.
+
+        :return:                - Bool value as Boolean.
+        """
         return self.value
 
 
@@ -250,7 +274,12 @@ class Absent(Value):
     absent = None
 
     @staticmethod
-    def get_absent():
+    def get_absent() -> 'Absent':
+        """
+        Create an Absent singleton if it does not exist and return it
+
+        :return:                - Absent singleton.
+        """
         if Absent.absent is None:
             Absent.absent = Absent()
 
@@ -261,7 +290,12 @@ class Extant(Value):
     extant = None
 
     @staticmethod
-    def get_extant():
+    def get_extant() -> 'Extant':
+        """
+        Create an Extant singleton if it does not exist and return it
+
+        :return:                - Extant singleton.
+        """
         if Extant.extant is None:
             Extant.extant = Extant()
 
@@ -283,7 +317,7 @@ class Slot(Field):
         return self.__value
 
     @staticmethod
-    def of(key, value=None):
+    def create_slot(key, value=None):
         if key is None:
             raise Exception('Key is empty!')
 
@@ -316,7 +350,7 @@ class Record(Value):
 
         return changed
 
-    def slot(self, key, value):
+    def add_slot(self, key, value):
 
         if isinstance(key, str):
             key = Text.create_from(key)

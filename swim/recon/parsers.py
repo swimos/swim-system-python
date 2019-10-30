@@ -152,7 +152,7 @@ class ReconStructureParser(ReconParser):
         return ValueBuilder()
 
     async def create_slot(self, key, value=None):
-        return Slot.of(key, value)
+        return Slot.create_slot(key, value)
 
     async def create_number(self, value):
         return Num.create_from(value)
