@@ -12,7 +12,8 @@ class Envelope(ABC):
     def tag(self) -> str:
         """
         Return the tag associated with the given Envelope object.
-        :return:
+
+        :return:                - Name of the tag as string value.
         """
         ...
 
@@ -193,16 +194,16 @@ class LinkAddressedForm(Form):
 
         if envelope is not None:
 
-            headers = Record.create().slot('node', envelope.node_uri).slot('lane', envelope.lane_uri)
+            headers = Record.create().add_slot('node', envelope.node_uri).add_slot('lane', envelope.lane_uri)
             prio = envelope.prio
 
             if prio != 0 and not math.isnan(prio):
-                headers.slot('prio', Num.create_from(prio))
+                headers.add_slot('prio', Num.create_from(prio))
 
             rate = envelope.rate
 
             if rate != 0 and not math.isnan(rate):
-                headers.slot('rate', Num.create_from(rate))
+                headers.add_slot('rate', Num.create_from(rate))
 
             return Attr.create_attr(self.tag, headers).concat(envelope.body)
         else:
@@ -231,9 +232,9 @@ class LinkAddressedForm(Form):
                 elif key == 'lane':
                     lane_uri = header.value.get_string_value()
                 elif key == 'prio':
-                    prio = header.value.num_value()
+                    prio = header.value.get_num_value()
                 elif key == 'rate':
-                    rate = header.value.num_value()
+                    rate = header.value.get_num_value()
 
         if node_uri is not None and lane_uri is not None:
             body = value.get_body()
@@ -245,7 +246,7 @@ class LaneAddressedForm(Form):
     def mold(self, envelope) -> Value:
 
         if envelope is not None:
-            headers = Record.create().slot('node', envelope.node_uri).slot('lane', envelope.lane_uri)
+            headers = Record.create().add_slot('node', envelope.node_uri).add_slot('lane', envelope.lane_uri)
             return Attr.create_attr(self.tag, headers).concat(envelope.body)
         else:
             return Item.extant()

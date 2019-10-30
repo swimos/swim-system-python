@@ -404,7 +404,7 @@ class TestWriters(unittest.TestCase):
         envelope = CommandMessage('/unit/foo', 'shoppingCart',
                                   body=RecordMap.of(
                                       Attr.create_attr(Text.create_from('remove'),
-                                                       RecordMap.of(Slot.of(Text.create_from('key'), Text.create_from('FromClientLink'))))))
+                                                       RecordMap.of(Slot.create_slot(Text.create_from('key'), Text.create_from('FromClientLink'))))))
         expected = '@command(node:"/unit/foo",lane:shoppingCart)@remove(key:FromClientLink)'
 
         # When
@@ -497,9 +497,9 @@ class TestWriters(unittest.TestCase):
         # Given
         body = RecordMap.create()
         body.add(Attr.create_attr(Text.create_from('Person'), Extant.get_extant()))
-        body.add(Slot.of(Text.create_from('name'), Text.create_from('Bar')))
-        body.add(Slot.of(Text.create_from('age'), Num.create_from(14)))
-        body.add(Slot.of(Text.create_from('salary'), Num.create_from(-5.9)))
+        body.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Bar')))
+        body.add(Slot.create_slot(Text.create_from('age'), Num.create_from(14)))
+        body.add(Slot.create_slot(Text.create_from('salary'), Num.create_from(-5.9)))
 
         envelope = EventMessage('/this/is/spam', 'hello', body=body)
         expected = '@event(node:"/this/is/spam",lane:hello)@Person{name:Bar,age:14,salary:-5.9}'
@@ -517,16 +517,16 @@ class TestWriters(unittest.TestCase):
 
         friend = RecordMap.create()
         friend.add(Attr.create_attr(Text.create_from('Person'), Extant.get_extant()))
-        friend.add(Slot.of(Text.create_from('name'), Text.create_from('Sam/Spam')))
-        friend.add(Slot.of(Text.create_from('age'), Num.create_from(1)))
-        friend.add(Slot.of(Text.create_from('salary'), Num.create_from(22)))
+        friend.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Sam/Spam')))
+        friend.add(Slot.create_slot(Text.create_from('age'), Num.create_from(1)))
+        friend.add(Slot.create_slot(Text.create_from('salary'), Num.create_from(22)))
 
         body = RecordMap.create()
         body.add(Attr.create_attr(Text.create_from('Person'), Extant.get_extant()))
-        body.add(Slot.of(Text.create_from('name'), Text.create_from('Par')))
-        body.add(Slot.of(Text.create_from('age'), Num.create_from(11)))
-        body.add(Slot.of(Text.create_from('salary'), Num.create_from(-5.9)))
-        body.add(Slot.of(Text.create_from('friend'), friend))
+        body.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Par')))
+        body.add(Slot.create_slot(Text.create_from('age'), Num.create_from(11)))
+        body.add(Slot.create_slot(Text.create_from('salary'), Num.create_from(-5.9)))
+        body.add(Slot.create_slot(Text.create_from('friend'), friend))
 
         envelope = EventMessage('/this/is/spam', 'hello', body=body)
         expected = '@event(node:"/this/is/spam",lane:hello)@Person{name:Par,age:11,salary:-5.9,friend:@Person{name:"Sam/Spam",age:1,salary:22}}'

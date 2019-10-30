@@ -1,6 +1,6 @@
 import unittest
 
-from swim import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value, Field
+from swim import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value
 from test.test_utils import CustomString
 
 
@@ -8,7 +8,7 @@ class TestStructs(unittest.TestCase):
 
     def test_item_concat_single_num(self):
         # Given
-        headers = Record.create().slot('node', 'foo').slot('lane', 'bar')
+        headers = Record.create().add_slot('node', 'foo').add_slot('lane', 'bar')
         body = Num.create_from(42)
         # When
         actual = Attr.create_attr('tag', headers).concat(body)
@@ -20,8 +20,8 @@ class TestStructs(unittest.TestCase):
 
     def test_item_concat_single_record(self):
         # Given
-        headers = Record.create().slot('node', 'foo').slot('lane', 'bar')
-        body = Record.create().slot('attr', 'hello').slot('message', 'world')
+        headers = Record.create().add_slot('node', 'foo').add_slot('lane', 'bar')
+        body = Record.create().add_slot('attr', 'hello').add_slot('message', 'world')
         # When
         actual = Attr.create_attr('tag', headers).concat(body)
         # Then
@@ -36,7 +36,7 @@ class TestStructs(unittest.TestCase):
 
     def test_item_concat_multiple_text(self):
         # Given
-        headers = Record.create().slot('node', 'foo').slot('lane', 'bar')
+        headers = Record.create().add_slot('node', 'foo').add_slot('lane', 'bar')
         headers.add(Num.create_from(42))
         body = Text.create_from('Polly the parrot')
         # When
@@ -50,9 +50,9 @@ class TestStructs(unittest.TestCase):
 
     def test_item_concat_multiple_record(self):
         # Given
-        headers = Record.create().slot('node', 'foo').slot('lane', 'bar')
-        headers.add(Record.create().slot('node', 'boo').slot('lane', 'far'))
-        body = Record.create().slot('node', 'poo').slot('lane', 'car')
+        headers = Record.create().add_slot('node', 'foo').add_slot('lane', 'bar')
+        headers.add(Record.create().add_slot('node', 'boo').add_slot('lane', 'far'))
+        body = Record.create().add_slot('node', 'poo').add_slot('lane', 'car')
         # When
         actual = headers.concat(body)
         # Then
@@ -81,7 +81,7 @@ class TestStructs(unittest.TestCase):
     def test_item_concat_zero_record(self):
         # Given
         headers = Record.create()
-        body = Record.create().slot('node', 'moo').slot('lane', 'cow')
+        body = Record.create().add_slot('node', 'moo').add_slot('lane', 'cow')
         # When
         actual = headers.concat(body)
         # Then
@@ -109,7 +109,7 @@ class TestStructs(unittest.TestCase):
 
     def test_item_create_from_item(self):
         # Given
-        record = Record.create().slot('node', 'boo').slot('lane', 'ghost')
+        record = Record.create().add_slot('node', 'boo').add_slot('lane', 'ghost')
         # When
         actual = Item.create_from(record)
         # Then
@@ -361,3 +361,145 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, str)
         self.assertEqual('Dog', actual)
+
+    def test_num_integer(self):
+        # When
+        num = Num(33)
+        # Then
+        self.assertEqual(33, num.value)
+        self.assertEqual(33, num.get_num_value())
+
+    def test_num_float(self):
+        # When
+        num = Num(0.11)
+        # Then
+        self.assertEqual(0.11, num.value)
+        self.assertEqual(0.11, num.get_num_value())
+
+    def test_create_num_from_positive_integer(self):
+        # Given
+        num = 99
+        # When
+        actual = Num.create_from(num)
+        # Then
+        self.assertIsInstance(actual, Num)
+        self.assertEqual(99, actual.get_num_value())
+
+    def test_create_num_from_negative_integer(self):
+        # Given
+        num = -99
+        # When
+        actual = Num.create_from(num)
+        # Then
+        self.assertIsInstance(actual, Num)
+        self.assertEqual(-99, actual.get_num_value())
+
+    def test_create_num_from_positive_float(self):
+        # Given
+        num = 9.9
+        # When
+        actual = Num.create_from(num)
+        # Then
+        self.assertIsInstance(actual, Num)
+        self.assertEqual(9.9, actual.get_num_value())
+
+    def test_create_num_from_negative_float(self):
+        # Given
+        num = -9.9
+        # When
+        actual = Num.create_from(num)
+        # Then
+        self.assertIsInstance(actual, Num)
+        self.assertEqual(-9.9, actual.get_num_value())
+
+    def test_bool_false(self):
+        # Given
+        boolean = Bool(True)
+        # Then
+        self.assertEqual(True, boolean.value)
+        self.assertEqual(True, boolean.get_bool_value())
+
+    def test_bool_true(self):
+        # Given
+        boolean = Bool(False)
+        # Then
+        self.assertEqual(False, boolean.value)
+        self.assertEqual(False, boolean.get_bool_value())
+
+    def test_create_bool_from_true_once(self):
+        # Given
+        boolean = True
+        # When
+        actual = Bool.create_from(boolean)
+        # Then
+        self.assertIsInstance(actual, Bool)
+        self.assertEqual(Bool.TRUE, actual)
+        self.assertEqual(True, actual.get_bool_value())
+
+    def test_create_bool_from_true_twice(self):
+        # Given
+        boolean = True
+        Bool.create_from(boolean)
+        # When
+        actual = Bool.create_from(boolean)
+        # Then
+        self.assertIsInstance(actual, Bool)
+        self.assertEqual(Bool.TRUE, actual)
+        self.assertEqual(True, actual.get_bool_value())
+
+    def test_create_bool_from_false_once(self):
+        # Given
+        boolean = False
+        # When
+        actual = Bool.create_from(boolean)
+        # Then
+        self.assertIsInstance(actual, Bool)
+        self.assertEqual(Bool.FALSE, actual)
+        self.assertEqual(False, actual.get_bool_value())
+
+    def test_create_bool_from_false_twice(self):
+        # Given
+        boolean = False
+        Bool.create_from(boolean)
+        # When
+        actual = Bool.create_from(boolean)
+        # Then
+        self.assertIsInstance(actual, Bool)
+        self.assertEqual(Bool.FALSE, actual)
+        self.assertEqual(False, actual.get_bool_value())
+
+    def test_get_absent_once(self):
+        # When
+        actual = Absent.get_absent()
+        # Then
+        self.assertIsInstance(actual, Absent)
+        self.assertEqual(Absent.absent, actual)
+        self.assertEqual(Absent.get_absent(), actual)
+
+    def test_get_absent_twice(self):
+        # Given
+        Absent.get_absent()
+        # When
+        actual = Absent.get_absent()
+        # Then
+        self.assertIsInstance(actual, Absent)
+        self.assertEqual(Absent.absent, actual)
+        self.assertEqual(Absent.get_absent(), actual)
+
+    def test_get_extant_once(self):
+        # When
+        actual = Extant.get_extant()
+        # Then
+        self.assertIsInstance(actual, Extant)
+        self.assertEqual(Extant.extant, actual)
+        self.assertEqual(Extant.get_extant(), actual)
+
+    def test_get_extant_twice(self):
+        # Given
+        Extant.get_extant()
+        # When
+        actual = Extant.get_extant()
+        # Then
+        self.assertIsInstance(actual, Extant)
+        self.assertEqual(Extant.extant, actual)
+        self.assertEqual(Extant.get_extant(), actual)
