@@ -127,7 +127,7 @@ class ReconStructureWriter(ReconWriter):
         if isinstance(value, Record):
             return await self.write_record(value)
         elif isinstance(value, Text):
-            return await self.write_text(value.string_value())
+            return await self.write_text(value.get_string_value())
         elif isinstance(value, Num):
             return await self.write_number(value.num_value())
         elif isinstance(value, Bool):

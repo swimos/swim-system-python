@@ -143,7 +143,7 @@ class ReconStructureParser(ReconParser):
         return Text.create_from(value)
 
     async def create_attr(self, key, value=Value.extant()):
-        return Attr.create_from(key, value)
+        return Attr.create_attr(key, value)
 
     async def create_record_builder(self):
         return Record.create()

@@ -8,8 +8,8 @@ class Item(ABC):
         """
         Creates a Record object by appending an Item object to the current Item.
 
-        :param new_item:            - New Item to add to the Record.
-        :return:                    - Record containing the current Item and the new Item.
+        :param new_item:        - New Item to add to the Record.
+        :return:                - Record containing the current Item and the new Item.
         """
         record = Record.create()
         record.add(self)
@@ -22,12 +22,12 @@ class Item(ABC):
         return record
 
     @staticmethod
-    def from_object(obj: object) -> 'Item':
+    def create_from(obj: object) -> 'Item':
         """
-        Create Item object from compatible object.
+        Create Item object from a compatible object.
 
-        :param obj:                 - Object convertible to Item or a dictionary.
-        :return:                    - Converted object as Item.
+        :param obj:             - Object extending Item or a dictionary.
+        :return:                - Converted object as Item.
         """
         if isinstance(obj, Item):
             return obj
@@ -35,14 +35,14 @@ class Item(ABC):
             entry = next(iter(obj.items()))
             return Slot.of(entry[0], entry[1])
         else:
-            return Value.from_object(obj)
+            return Value.create_from(obj)
 
     @staticmethod
     def extant() -> 'Extant':
         """
         Return Extant item singleton.
 
-        :return:                     - Item of type Extant.
+        :return:                - Item of type Extant.
         """
         return Extant.get_extant()
 
@@ -51,7 +51,7 @@ class Item(ABC):
         """
         Return Absent item singleton.
 
-        :return:                      - Item of type Absent.
+        :return:                - Item of type Absent.
         """
         return Absent.get_absent()
 
@@ -84,13 +84,19 @@ class Attr(Field):
         return self.__value
 
     @staticmethod
-    def create_from(key: object, value: object) -> 'Attr':
+    def create_attr(key: object, value: object) -> 'Attr':
+        """
+        Create an attribute object from given key and value.
 
+        :param key:             - Key of the attribute. Can be Text or str.
+        :param value:           - Value of the attribute.
+        :return:                - Attribute object.
+        """
         if key is None:
-            raise TypeError('key')
+            raise TypeError('Empty key for attribute!')
 
         if value is None:
-            raise TypeError('value')
+            raise TypeError('Empty value for attribute!')
 
         if isinstance(key, Text):
             return Attr(key, value)
@@ -99,37 +105,44 @@ class Attr(Field):
         else:
             raise TypeError(f'Invalid key: {key}')
 
-    def key_equals(self, item: object):
+    def key_equals(self, item: object) -> bool:
+        """
+        Compare the key of the attribute to an arbitrary object.
+
+        :param item:            - Item to compare the key to.
+        :return:                - True if the key and the item are equal, False otherwise.
+        """
         if isinstance(item, str):
             return self.key.value == item
         elif isinstance(item, Field):
-            return self.key == item.key
+            return self.key.value == item.key.value
         else:
-            return self.key == item
+            return self.key.value == item
 
 
 class Value(Item):
 
     @property
-    def key(self):
+    def key(self) -> 'Value':
         return Value.absent()
 
     @property
-    def value(self):
+    def value(self) -> 'Value':
         return Value.absent()
 
-    def to_value(self):
-        return self
-
-    def length(self):
+    @property
+    def length(self) -> int:
         return 0
 
     @staticmethod
-    def absent():
-        return Absent.get_absent()
+    def create_from(obj: object) -> 'Value':
+        """
+        Create Value object from a compatible object.
 
-    @staticmethod
-    def from_object(obj):
+        :param obj:             - Object extending Value or None.
+        :return:                - Converted object as Value.
+        """
+
         if obj is None:
             return Extant.get_extant()
         elif isinstance(obj, Value):
@@ -147,31 +160,44 @@ class Value(Item):
 class Text(Value):
     empty = None
 
-    def __init__(self, value):
+    def __init__(self, value: str) -> None:
         self.__value = value
 
     @property
-    def value(self):
+    def value(self) -> str:
         return self.__value
 
     @staticmethod
-    def create_from(string):
+    def create_from(string: str) -> 'Text':
+        """
+        Create Text object from a string.
+
+        :param string:          - String value.
+        :return:                - Converted string as a Text object.
+        """
         if not string:
             return Text.get_empty()
         return Text(string)
 
     @staticmethod
-    def get_empty():
+    def get_empty() -> 'Text':
+        """
+        Create an empty Text singleton if it does not exist and return it.
+
+        :return:                - Empty Text singleton.
+        """
         if Text.empty is None:
             Text.empty = Text('')
 
         return Text.empty
 
-    def string_value(self):
-        return self.value
+    def get_string_value(self) -> str:
+        """
+        Return the value of the Text object as string.
 
-    def float_value(self):
-        return float(self.value)
+        :return:                - Text value as string.
+        """
+        return self.value
 
 
 class Num(Value):
@@ -306,6 +332,7 @@ class Record(Value):
     def size(self):
         ...
 
+    @property
     def length(self):
         return self.size
 
@@ -412,7 +439,7 @@ class RecordMap(Record):
     @staticmethod
     def of(obj):
         array = list()
-        item = Item.from_object(obj)
+        item = Item.create_from(obj)
         array.append(item)
 
         field_count = 1 if isinstance(item, Field) else 0

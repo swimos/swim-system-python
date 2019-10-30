@@ -39,7 +39,7 @@ class Envelope(ABC):
 
         :return:                - Swim value object from this Envelope.
         """
-        return self.get_form().mold(self).to_value()
+        return self.get_form().mold(self)
 
     @staticmethod
     async def parse_recon(recon_message: str) -> 'Envelope':
@@ -183,13 +183,13 @@ class Form(ABC):
         ...
 
     @abstractmethod
-    def mold(self, envelope) -> Item:
+    def mold(self, envelope) -> Value:
         ...
 
 
 class LinkAddressedForm(Form):
 
-    def mold(self, envelope):
+    def mold(self, envelope) -> Value:
 
         if envelope is not None:
 
@@ -204,7 +204,7 @@ class LinkAddressedForm(Form):
             if rate != 0 and not math.isnan(rate):
                 headers.slot('rate', Num.create_from(rate))
 
-            return Attr.create_from(self.tag, headers).concat(envelope.body)
+            return Attr.create_attr(self.tag, headers).concat(envelope.body)
         else:
             return Item.extant()
 
@@ -213,7 +213,7 @@ class LinkAddressedForm(Form):
         ...
 
     def cast(self, item):
-        value = item.to_value()
+        value = item
         headers = value.get_headers(self.tag)
         node_uri = None
         lane_uri = None
@@ -222,14 +222,14 @@ class LinkAddressedForm(Form):
 
         for index in range(0, headers.size):
             header = headers.get_item(index)
-            key = header.key.string_value()
+            key = header.key.get_string_value()
 
             if key is not None:
 
                 if key == 'node':
-                    node_uri = header.value.string_value()
+                    node_uri = header.value.get_string_value()
                 elif key == 'lane':
-                    lane_uri = header.value.string_value()
+                    lane_uri = header.value.get_string_value()
                 elif key == 'prio':
                     prio = header.value.num_value()
                 elif key == 'rate':
@@ -242,11 +242,11 @@ class LinkAddressedForm(Form):
 
 class LaneAddressedForm(Form):
 
-    def mold(self, envelope):
+    def mold(self, envelope) -> Value:
 
         if envelope is not None:
             headers = Record.create().slot('node', envelope.node_uri).slot('lane', envelope.lane_uri)
-            return Attr.create_from(self.tag, headers).concat(envelope.body)
+            return Attr.create_attr(self.tag, headers).concat(envelope.body)
         else:
             return Item.extant()
 
@@ -255,21 +255,21 @@ class LaneAddressedForm(Form):
         ...
 
     def cast(self, item):
-        value = item.to_value()
+        value = item
         headers = value.get_headers(self.tag)
         node_uri = None
         lane_uri = None
 
         for index in range(0, headers.size):
             header = headers.get_item(index)
-            key = header.key.string_value()
+            key = header.key.get_string_value()
 
             if key is not None:
 
                 if key == 'node':
-                    node_uri = header.value.string_value()
+                    node_uri = header.value.get_string_value()
                 elif key == 'lane':
-                    lane_uri = header.value.string_value()
+                    lane_uri = header.value.get_string_value()
 
         if node_uri is not None and lane_uri is not None:
             body = value.get_body()

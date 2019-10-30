@@ -403,8 +403,8 @@ class TestWriters(unittest.TestCase):
         # Given
         envelope = CommandMessage('/unit/foo', 'shoppingCart',
                                   body=RecordMap.of(
-                                      Attr.of(Text.create_from('remove'),
-                                              RecordMap.of(Slot.of(Text.create_from('key'), Text.create_from('FromClientLink'))))))
+                                      Attr.create_attr(Text.create_from('remove'),
+                                                       RecordMap.of(Slot.of(Text.create_from('key'), Text.create_from('FromClientLink'))))))
         expected = '@command(node:"/unit/foo",lane:shoppingCart)@remove(key:FromClientLink)'
 
         # When
@@ -496,7 +496,7 @@ class TestWriters(unittest.TestCase):
     async def test_write_event_body_object(self):
         # Given
         body = RecordMap.create()
-        body.add(Attr.of(Text.create_from('Person'), Extant.get_extant()))
+        body.add(Attr.create_attr(Text.create_from('Person'), Extant.get_extant()))
         body.add(Slot.of(Text.create_from('name'), Text.create_from('Bar')))
         body.add(Slot.of(Text.create_from('age'), Num.create_from(14)))
         body.add(Slot.of(Text.create_from('salary'), Num.create_from(-5.9)))
@@ -516,13 +516,13 @@ class TestWriters(unittest.TestCase):
         # Given
 
         friend = RecordMap.create()
-        friend.add(Attr.of(Text.create_from('Person'), Extant.get_extant()))
+        friend.add(Attr.create_attr(Text.create_from('Person'), Extant.get_extant()))
         friend.add(Slot.of(Text.create_from('name'), Text.create_from('Sam/Spam')))
         friend.add(Slot.of(Text.create_from('age'), Num.create_from(1)))
         friend.add(Slot.of(Text.create_from('salary'), Num.create_from(22)))
 
         body = RecordMap.create()
-        body.add(Attr.of(Text.create_from('Person'), Extant.get_extant()))
+        body.add(Attr.create_attr(Text.create_from('Person'), Extant.get_extant()))
         body.add(Slot.of(Text.create_from('name'), Text.create_from('Par')))
         body.add(Slot.of(Text.create_from('age'), Num.create_from(11)))
         body.add(Slot.of(Text.create_from('salary'), Num.create_from(-5.9)))

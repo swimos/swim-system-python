@@ -53,7 +53,6 @@ class TestEnvelopes(unittest.TestCase):
         # When
         with self.assertRaises(TypeError) as error:
             Envelope.resolve_form(tag)
-
         # Then
         message = error.exception.args[0]
         self.assertEqual(message, 'Invalid form tag: this_is_not_a_valid_form')
