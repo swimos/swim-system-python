@@ -11,7 +11,7 @@ setuptools.setup(
     description='Standalone Python framework for building massively real-time streaming WARP clients.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/DobromirM/swim-system-python',
+    url='https://github.com/swimos/swim-system-python',
     packages=setuptools.find_packages(exclude=['test']),
     classifiers=[
         'Programming Language :: Python :: 3',
