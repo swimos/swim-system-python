@@ -254,7 +254,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertEqual(Absent.get_absent(), actual.key)
         self.assertEqual(Absent.get_absent(), actual.value)
-        self.assertEqual(0, actual.length)
+        self.assertEqual(0, actual.size)
 
     def test_create_value_from_object_none(self):
         # Given
@@ -503,3 +503,65 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, Extant)
         self.assertEqual(Extant.extant, actual)
         self.assertEqual(Extant.get_extant(), actual)
+
+    def test_slot_key_value(self):
+        # Given
+        slot = Slot('Foo', 'Bar')
+        # Then
+        self.assertIsInstance(slot, Slot)
+        self.assertEqual('Foo', slot.key)
+        self.assertEqual('Bar', slot.value)
+
+    def test_slot_key_only(self):
+        # Given
+        slot = Slot('Foo')
+        # Then
+        self.assertIsInstance(slot, Slot)
+        self.assertEqual('Foo', slot.key)
+        self.assertEqual(Extant.get_extant(), slot.value)
+
+    def test_create_slot_key_value(self):
+        # Given
+        key = 'dog'
+        value = 'bark'
+        # When
+        actual = Slot.create_slot(key, value)
+        # Then
+        self.assertIsInstance(actual, Slot)
+        self.assertEqual('dog', actual.key)
+        self.assertEqual('bark', actual.value)
+
+    def test_create_slot_key_only(self):
+        # Given
+        key = 'dog'
+        # When
+        actual = Slot.create_slot(key)
+        # Then
+        self.assertIsInstance(actual, Slot)
+        self.assertEqual('dog', actual.key)
+        self.assertEqual(Extant.get_extant(), actual.value)
+
+    def test_create_slot_no_key(self):
+        # Given
+        key = None
+        # When
+        with self.assertRaises(TypeError) as error:
+            Slot.create_slot(key)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('Empty key for slot!', message)
+
+    def test_temp(self):
+        xs = Record.create()
+        xs.add(Attr.create_attr('k', 'v'))
+        xs.add(Attr.create_attr('a', 'b'))
+
+        ys = xs.branch()
+        ys.add(Slot.create_slot(Text.create_from('k'), Text.create_from('b')))
+
+        xs.add(Attr.create_attr(Text.create_from('Foo'), Text.create_from('Bar')))
+        xs.add(Attr.create_attr(Text.create_from('Foo'), Text.create_from('Foo')))
+
+        xs.contains_key('k')
+        ys.contains_key('k')
+        # TODO assert

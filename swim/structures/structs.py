@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any
+from typing import Any, List, Optional, Dict
 
 
 class Item(ABC):
@@ -56,12 +56,22 @@ class Item(ABC):
         """
         return Absent.get_absent()
 
+    @property
+    @abstractmethod
+    def key(self) -> 'Any':
+        ...
+
+    @property
+    @abstractmethod
+    def value(self) -> 'Any':
+        ...
+
 
 class Field(Item):
 
     @property
     @abstractmethod
-    def key(self) -> 'Value':
+    def key(self) -> 'Any':
         ...
 
     @property
@@ -132,7 +142,7 @@ class Value(Item):
         return Value.absent()
 
     @property
-    def length(self) -> int:
+    def size(self) -> int:
         return 0
 
     @staticmethod
@@ -304,22 +314,30 @@ class Extant(Value):
 
 class Slot(Field):
 
-    def __init__(self, key, value):
+    def __init__(self, key: Any, value: Any = Value.extant()) -> None:
         self.__key = key
         self.__value = value
 
     @property
-    def key(self):
+    def key(self) -> Any:
         return self.__key
 
     @property
-    def value(self):
+    def value(self) -> Any:
         return self.__value
 
     @staticmethod
-    def create_slot(key, value=None):
+    def create_slot(key: Any, value: Any = None) -> 'Slot':
+        """
+        Create a slot object from given key and value (optional).
+
+        :param key:             - Key for the slot.
+        :param value:           - Value for the slot. Defaults to Extant.
+        :return:                - Slot object.
+        """
+
         if key is None:
-            raise Exception('Key is empty!')
+            raise TypeError('Empty key for slot!')
 
         if value is None:
             value = Value.extant()
@@ -327,21 +345,55 @@ class Slot(Field):
         return Slot(key, value)
 
 
+class RecordFlags(Enum):
+    """
+    IMMUTABLE(1), ALIASED(2)
+    """
+    IMMUTABLE = 1 << 0
+    ALIASED = 1 << 1
+
+
 class Record(Value):
 
+    @property
+    def size(self) -> int:
+        return self.size
+
+    @abstractmethod
+    def add(self, item) -> bool:
+        ...
+
+    @abstractmethod
+    def get_item(self, index: int) -> 'Value':
+        """
+
+        :param index:
+        :return:
+        """
+        ...
+
+    @abstractmethod
+    def get_items(self) -> List['Value']:
+        """
+
+        :return:
+        """
+        ...
+
     @staticmethod
-    def create():
+    def create() -> 'RecordMap':
+        """
+
+        :return:
+        """
         return RecordMap.create()
 
-    @abstractmethod
-    def add(self, item):
-        ...
+    def add_all(self, items: List['Value']) -> bool:
+        """
 
-    @abstractmethod
-    def get_items(self):
-        ...
-
-    def add_all(self, items):
+        :param items:
+        :return:
+        """
         changed = False
 
         for item in items:
@@ -350,27 +402,29 @@ class Record(Value):
 
         return changed
 
-    def add_slot(self, key, value):
+    def add_slot(self, key: Any, value: Any) -> 'Record':
+        """
 
+        :param key:
+        :param value:
+        :return:
+        """
         if isinstance(key, str):
             key = Text.create_from(key)
 
         if isinstance(value, str):
             value = Text.create_from(value)
 
-        self.add(Slot(key, value))
+        self.add(Slot.create_slot(key, value))
+
         return self
 
-    @property
-    @abstractmethod
-    def size(self):
-        ...
+    def get_headers(self, tag: str) -> Optional['Record']:
+        """
 
-    @property
-    def length(self):
-        return self.size
-
-    def get_headers(self, tag):
+        :param tag:
+        :return:
+        """
         head = self.get_head()
 
         if isinstance(head, Attr) and head.key_equals(tag):
@@ -378,83 +432,170 @@ class Record(Value):
             if isinstance(header, Record):
                 return header
             else:
-                return RecordMap.of(header)
+                return RecordMap.create_record_map(header)
         else:
             return None
 
-    def get_head(self):
+    def get_head(self) -> 'Item':
+        """
+
+        :return:
+        """
         return self.get_item(0)
 
-    @abstractmethod
-    def get_item(self, index):
-        ...
+    def bind(self) -> 'Record':
+        """
 
-    def bind(self):
+        :return:
+        """
         return self
-
-
-class RecordFlags(Enum):
-    IMMUTABLE = 1 << 0
-    ALIASED = 1 << 1
 
 
 class RecordMap(Record):
 
-    def __init__(self, items=None, fields=None, item_count=0, field_count=0, flags=0):
+    def __init__(self, items: List[Item] = None, fields: Dict[str, Item] = None, item_count: int = 0, field_count: int = 0, flags: int = 0) -> None:
         self.items = items
         self.fields = fields
         self.item_count = item_count
         self.field_count = field_count
         self.flags = flags
 
-    def get_items(self):
+    def get_items(self) -> List[Item]:
         return self.items
 
     @staticmethod
-    def create():
-        items = list()
-        return RecordMap(items)
+    def create() -> 'RecordMap':
+        """
 
-    def add(self, item):
+        :return:
+        """
+        items = list()
+        return RecordMap(items, flags=RecordFlags.ALIASED.value)
+
+    def add(self, item: Item) -> bool:
+        """
+
+        :param item:
+        :return:
+        """
         if self.flags & RecordFlags.IMMUTABLE.value:
-            raise AttributeError('immutable')
+            raise TypeError('Cannot add item to immutable record!')
         if self.flags & RecordFlags.ALIASED.value:
             return self.add_aliased(item)
         else:
             return self.add_mutable(item)
 
-    def add_mutable(self, item):
+    def add_mutable(self, item: Item) -> bool:
+        """
+
+        :param item:
+        :return:
+        """
+        self.items = self.items[:]
         self.items.append(item)
         self.item_count = self.item_count + 1
 
         if isinstance(item, Field):
             self.field_count += 1
 
+            if self.fields is not None and self.fields.lengt > self.item_count:
+                self.fields[item.key.value] = item
+            else:
+                self.fields = None
+
         return True
 
-    def add_aliased(self, item):
-        pass
+    def add_aliased(self, item: Item) -> bool:
+        """
+
+        :param item:
+        :return:
+        """
+        self.items = self.items[:]
+        self.items.append(item)
+        self.item_count = self.item_count + 1
+
+        if isinstance(item, Field):
+            self.field_count += 1
+
+        self.fields = None
+        self.flags &= ~RecordFlags.ALIASED.value
+        return True
+
+    def commit(self) -> 'RecordMap':
+        """
+
+        :return:
+        """
+        self.flags |= RecordFlags.IMMUTABLE.value
+        return self
+
+    def contains_key(self, key: Any) -> bool:
+        """
+
+        :param key:
+        :return:
+        """
+        if not isinstance(key, (Value, str)):
+            key = Value.create_from(key)
+
+        if self.field_count != 0:
+            self.__init_hash_table()
+
+            return key in self.fields
+
+        return False
+
+    def branch(self) -> 'RecordMap':
+        """
+
+        :return:
+        """
+        self.flags |= RecordFlags.ALIASED.value
+        return RecordMap(self.items, self.fields, self.item_count, self.field_count, RecordFlags.ALIASED.value)
+
+    def __init_hash_table(self) -> None:
+        """
+
+        :return:
+        """
+        self.fields = dict()
+        for item in self.items:
+            self.fields[item.key.value] = item
 
     @property
-    def size(self):
+    def size(self) -> int:
         return self.item_count
 
     @property
-    def tag(self):
+    def tag(self) -> Optional[str]:
+        """
+
+        :return:
+        """
         if self.field_count > 0:
             item = self.items[0]
             if isinstance(item, Attr):
-                return item.key.value
+                return str(item.key.value)
 
         return None
 
-    def get_item(self, index):
+    def get_item(self, index: int) -> Item:
+        """
+
+        :param index:
+        :return:
+        """
         if 0 <= index < self.item_count:
             return self.items[index]
         else:
             return Item.absent()
 
-    def get_body(self):
+    def get_body(self) -> Item:
+        """
+
+        :return:
+        """
         n = self.item_count
 
         if n > 2:
@@ -465,13 +606,18 @@ class RecordMap(Record):
             if isinstance(item, Value):
                 return item
             else:
-                return RecordMap.of(item)
+                return RecordMap.create_record_map(item)
 
         else:
             return Value.absent()
 
     @staticmethod
-    def of(obj):
+    def create_record_map(obj: Any) -> 'RecordMap':
+        """
+
+        :param obj:
+        :return:
+        """
         array = list()
         item = Item.create_from(obj)
         array.append(item)
@@ -483,25 +629,75 @@ class RecordMap(Record):
 
 class RecordMapView(Record):
 
-    def __init__(self, record, lower, upper):
+    def __init__(self, record: RecordMap, lower: int, upper: int) -> None:
         self.record = record
         self.lower = lower
         self.upper = upper
 
-    def add(self, item):
-        pass
+    def add(self, item: Item, index: int = None) -> bool:
+        """
+
+        :param item:
+        :param index:
+        :return:
+        """
+        if index is None:
+            index = self.size
+
+        if self.record.flags & RecordFlags.IMMUTABLE.value:
+            raise TypeError('Cannot add item to immutable record!')
+        elif index < 0 or index > self.size:
+            raise IndexError(f'Index {index} is out of range!')
+        else:
+            self.add_item(index, item)
+
+        return True
+
+    def add_item(self, index: int, item: Item) -> None:
+        """
+
+        :param index:
+        :param item:
+        :return:
+        """
+        lower = self.lower + index
+        self.record.items = self.record.items[0: lower] + [item] + self.record.items[lower: self.record.size - lower]
+        self.record.fields = None
+        self.record.item_count += 1
+
+        if isinstance(item, Field):
+            self.record.field_count += 1
+
+        self.record.flags = self.record.flags & ~RecordFlags.ALIASED.value
+        self.upper += 1
 
     @property
-    def size(self):
+    def size(self) -> int:
         return self.upper - self.lower
 
-    def get_item(self, index):
-        pass
+    def get_item(self, index: int) -> Item:
+        """
 
-    def get_items(self):
-        pass
+        :param index:
+        :return:
+        """
+        if 0 <= index < self.size:
+            return self.record.items[self.lower + index]
+        else:
+            return Item.absent()
 
-    def branch(self):
+    def get_items(self) -> List[Item]:
+        """
+
+        :return:
+        """
+        return self.record.items[self.lower: self.upper]
+
+    def branch(self) -> RecordMap:
+        """
+
+        :return:
+        """
         size = self.size
         fields_count = 0
         copy_index = self.lower
@@ -522,12 +718,16 @@ class RecordMapView(Record):
 
 class ValueBuilder:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.record = None
         self.value = None
 
-    def add(self, item):
+    def add(self, item: Item) -> bool:
+        """
 
+        :param item:
+        :return:
+        """
         if isinstance(item, Field):
             return self.add_field(item)
         elif isinstance(item, Value):
@@ -535,7 +735,12 @@ class ValueBuilder:
         else:
             raise AssertionError(item)
 
-    def add_field(self, item):
+    def add_field(self, item: Field) -> bool:
+        """
+
+        :param item:
+        :return:
+        """
         if self.record is None:
             self.record = Record.create()
 
@@ -546,7 +751,12 @@ class ValueBuilder:
         self.record.add(item)
         return True
 
-    def add_value(self, item):
+    def add_value(self, item: Value) -> bool:
+        """
+
+        :param item:
+        :return:
+        """
         if self.record is not None:
             self.record.add(item)
         elif self.value is None:
@@ -559,7 +769,11 @@ class ValueBuilder:
 
         return True
 
-    def bind(self):
+    def bind(self) -> Value:
+        """
+
+        :return:
+        """
         if self.record is not None:
             return self.record
         elif self.value is not None:
