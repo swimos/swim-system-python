@@ -463,109 +463,6 @@ class RecordMap(Record):
         self.field_count = field_count
         self.flags = flags
 
-    def get_items(self) -> List[Item]:
-        return self.items
-
-    @staticmethod
-    def create() -> 'RecordMap':
-        """
-
-        :return:
-        """
-        items = list()
-        return RecordMap(items, flags=RecordFlags.ALIASED.value)
-
-    def add(self, item: Item) -> bool:
-        """
-
-        :param item:
-        :return:
-        """
-        if self.flags & RecordFlags.IMMUTABLE.value:
-            raise TypeError('Cannot add item to immutable record!')
-        if self.flags & RecordFlags.ALIASED.value:
-            return self.add_aliased(item)
-        else:
-            return self.add_mutable(item)
-
-    def add_mutable(self, item: Item) -> bool:
-        """
-
-        :param item:
-        :return:
-        """
-        self.items = self.items[:]
-        self.items.append(item)
-        self.item_count = self.item_count + 1
-
-        if isinstance(item, Field):
-            self.field_count += 1
-
-            if self.fields is not None and self.fields.lengt > self.item_count:
-                self.fields[item.key.value] = item
-            else:
-                self.fields = None
-
-        return True
-
-    def add_aliased(self, item: Item) -> bool:
-        """
-
-        :param item:
-        :return:
-        """
-        self.items = self.items[:]
-        self.items.append(item)
-        self.item_count = self.item_count + 1
-
-        if isinstance(item, Field):
-            self.field_count += 1
-
-        self.fields = None
-        self.flags &= ~RecordFlags.ALIASED.value
-        return True
-
-    def commit(self) -> 'RecordMap':
-        """
-
-        :return:
-        """
-        self.flags |= RecordFlags.IMMUTABLE.value
-        return self
-
-    def contains_key(self, key: Any) -> bool:
-        """
-
-        :param key:
-        :return:
-        """
-        if not isinstance(key, (Value, str)):
-            key = Value.create_from(key)
-
-        if self.field_count != 0:
-            self.__init_hash_table()
-
-            return key in self.fields
-
-        return False
-
-    def branch(self) -> 'RecordMap':
-        """
-
-        :return:
-        """
-        self.flags |= RecordFlags.ALIASED.value
-        return RecordMap(self.items, self.fields, self.item_count, self.field_count, RecordFlags.ALIASED.value)
-
-    def __init_hash_table(self) -> None:
-        """
-
-        :return:
-        """
-        self.fields = dict()
-        for item in self.items:
-            self.fields[item.key.value] = item
-
     @property
     def size(self) -> int:
         return self.item_count
@@ -573,8 +470,9 @@ class RecordMap(Record):
     @property
     def tag(self) -> Optional[str]:
         """
+        Return the tag of the RecordMap.
 
-        :return:
+        :return:                - The tag of the RecordMap or None.
         """
         if self.field_count > 0:
             item = self.items[0]
@@ -583,21 +481,57 @@ class RecordMap(Record):
 
         return None
 
+    @staticmethod
+    def create() -> 'RecordMap':
+        """
+        Create an empty RecordMap.
+
+        :return:                - Empty RecordMap.
+        """
+        items = list()
+        return RecordMap(items, flags=RecordFlags.ALIASED.value)
+
+    @staticmethod
+    def create_record_map(obj: Any) -> 'RecordMap':
+        """
+        Create RecordMap and add a given object.
+
+        :param obj:             - Object to add to the new RecordMap.
+        :return:                - RecordMap with an object.
+        """
+        array = list()
+        item = Item.create_from(obj)
+        array.append(item)
+
+        field_count = 1 if isinstance(item, Field) else 0
+
+        return RecordMap(array, None, 1, field_count, 0)
+
     def get_item(self, index: int) -> Item:
         """
+        Return an item with a given index from the RecordMap.
 
-        :param index:
-        :return:
+        :param index:           - The index of the item.
+        :return:                - The item with the given index or Absent if the index is out of bounds.
         """
         if 0 <= index < self.item_count:
             return self.items[index]
         else:
             return Item.absent()
 
+    def get_items(self) -> List[Item]:
+        """
+        Return all items from the RecordMap.
+
+        :return:                - List of all items from the RecordMap.
+        """
+        return self.items
+
     def get_body(self) -> Item:
         """
+        Return the body of the RecordMap.
 
-        :return:
+        :return:                - Value or RecordMap representing the body of the RecordMap.
         """
         n = self.item_count
 
@@ -614,20 +548,101 @@ class RecordMap(Record):
         else:
             return Value.absent()
 
-    @staticmethod
-    def create_record_map(obj: Any) -> 'RecordMap':
+    def add(self, item: Item) -> bool:
         """
+        Add an item to the RecordMap.
 
-        :param obj:
-        :return:
+        :param item:            - Item to add to the RecordMap.
+        :return:                - True if the item was successfully added.
         """
-        array = list()
-        item = Item.create_from(obj)
-        array.append(item)
+        if self.flags & RecordFlags.IMMUTABLE.value:
+            raise TypeError('Cannot add item to immutable record!')
+        if self.flags & RecordFlags.ALIASED.value:
+            return self.__add_aliased(item)
+        else:
+            return self.__add_mutable(item)
 
-        field_count = 1 if isinstance(item, Field) else 0
+    def commit(self) -> 'RecordMap':
+        """
+        Make the RecordMap read-only and return it.
 
-        return RecordMap(array, None, 1, field_count, 0)
+        :return:                - Read-only RecordMap.
+        """
+        self.flags |= RecordFlags.IMMUTABLE.value
+        return self
+
+    def contains_key(self, key: Any) -> bool:
+        """
+        Check if a given key exists in the RecordMap.
+
+        :param key:             - Key to check.
+        :return:                - True if the key exists, False otherwise.
+        """
+        key = Value.create_from(key).value
+
+        if self.field_count != 0:
+            self.__init_hash_table()
+
+            return key in self.fields
+
+        return False
+
+    def branch(self) -> 'RecordMap':
+        """
+        Create a copy of the current RecordMap. The copies reference a shared object
+        until one of them is mutated.
+
+        :return:                - Copy of a RecordMap.
+        """
+        self.flags |= RecordFlags.ALIASED.value
+        return RecordMap(self.items, self.fields, self.item_count, self.field_count, RecordFlags.ALIASED.value)
+
+    def __add_mutable(self, item: Item) -> bool:
+        """
+        Add an item to a mutable RecordMap.
+
+        :param item:            - Item to add to the RecordMap.
+        :return:                - True if the item was successfully added.
+        """
+        self.items = self.items[:]
+        self.items.append(item)
+        self.item_count = self.item_count + 1
+
+        if isinstance(item, Field):
+            self.field_count += 1
+
+            if self.fields is not None:
+                self.fields[item.key.value] = item
+            else:
+                self.fields = None
+
+        return True
+
+    def __add_aliased(self, item: Item) -> bool:
+        """
+        Add an item to an aliased RecordMap.
+
+        :param item:            - Item to add to the RecordMap.
+        :return:                - True if the item was successfully added.
+        """
+        self.items = self.items[:]
+        self.items.append(item)
+        self.item_count = self.item_count + 1
+
+        if isinstance(item, Field):
+            self.field_count += 1
+
+        self.fields = None
+        self.flags &= ~RecordFlags.ALIASED.value
+        return True
+
+    def __init_hash_table(self) -> None:
+        """
+        Create a hashtable and all items from the RecordMap.
+        """
+        self.fields = dict()
+        for item in self.items:
+            self.fields[item.key.value] = item
 
 
 class RecordMapView(Record):
@@ -636,6 +651,10 @@ class RecordMapView(Record):
         self.record = record
         self.lower = lower
         self.upper = upper
+
+    @property
+    def size(self) -> int:
+        return self.upper - self.lower
 
     def add(self, item: Item, index: int = None) -> bool:
         """
@@ -673,10 +692,6 @@ class RecordMapView(Record):
 
         self.record.flags = self.record.flags & ~RecordFlags.ALIASED.value
         self.upper += 1
-
-    @property
-    def size(self) -> int:
-        return self.upper - self.lower
 
     def get_item(self, index: int) -> Item:
         """

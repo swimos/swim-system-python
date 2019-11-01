@@ -1,6 +1,7 @@
 import unittest
 
 from swim import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value
+from swim.structures.structs import RecordFlags
 from test.test_utils import CustomString
 
 
@@ -76,7 +77,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual.get_items()[0], RecordMap)
         self.assertEqual(0, actual.get_items()[0].size)
         self.assertIsInstance(actual.get_items()[1], Bool)
-        self.assertEqual(True, actual.get_items()[1].value)
+        self.assertTrue(actual.get_items()[1].value)
 
     def test_item_concat_zero_record(self):
         # Given
@@ -307,7 +308,7 @@ class TestStructs(unittest.TestCase):
         actual = Value.create_from(obj)
         # Then
         self.assertIsInstance(actual, Num)
-        self.assertEqual(True, actual.value)
+        self.assertTrue(actual.value)
 
     def test_create_value_from_object_invalid(self):
         # Given
@@ -416,15 +417,15 @@ class TestStructs(unittest.TestCase):
         # Given
         boolean = Bool(True)
         # Then
-        self.assertEqual(True, boolean.value)
-        self.assertEqual(True, boolean.get_bool_value())
+        self.assertTrue(boolean.value)
+        self.assertTrue(boolean.get_bool_value())
 
     def test_bool_true(self):
         # Given
         boolean = Bool(False)
         # Then
-        self.assertEqual(False, boolean.value)
-        self.assertEqual(False, boolean.get_bool_value())
+        self.assertFalse(boolean.value)
+        self.assertFalse(boolean.get_bool_value())
 
     def test_create_bool_from_true_once(self):
         # Given
@@ -434,7 +435,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Bool)
         self.assertEqual(Bool.TRUE, actual)
-        self.assertEqual(True, actual.get_bool_value())
+        self.assertTrue(actual.get_bool_value())
 
     def test_create_bool_from_true_twice(self):
         # Given
@@ -445,7 +446,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Bool)
         self.assertEqual(Bool.TRUE, actual)
-        self.assertEqual(True, actual.get_bool_value())
+        self.assertTrue(actual.get_bool_value())
 
     def test_create_bool_from_false_once(self):
         # Given
@@ -455,7 +456,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Bool)
         self.assertEqual(Bool.FALSE, actual)
-        self.assertEqual(False, actual.get_bool_value())
+        self.assertFalse(actual.get_bool_value())
 
     def test_create_bool_from_false_twice(self):
         # Given
@@ -466,7 +467,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Bool)
         self.assertEqual(Bool.FALSE, actual)
-        self.assertEqual(False, actual.get_bool_value())
+        self.assertFalse(actual.get_bool_value())
 
     def test_get_absent_once(self):
         # When
@@ -568,7 +569,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual(1, actual.size)
         self.assertEqual(1, actual.item_count)
         self.assertEqual(item, actual.get_item(0))
-        self.assertEqual(True, actual_response)
+        self.assertTrue(actual_response)
 
     def test_record_add_all_multiple(self):
         # Given
@@ -585,7 +586,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual(first_item, actual.get_item(0))
         self.assertEqual(second_item, actual.get_item(1))
         self.assertEqual(third_item, actual.get_item(2))
-        self.assertEqual(True, actual_response)
+        self.assertTrue(actual_response)
 
     def test_record_add_all_empty(self):
         # Given
@@ -715,4 +716,496 @@ class TestStructs(unittest.TestCase):
         actual = record.bind()
         # Then
         self.assertEqual(record, actual)
-   
+
+    def test_record_map_size_empty(self):
+        # Given
+        record = RecordMap.create()
+        # When
+        actual = record.size
+        # Then
+        self.assertEqual(0, actual)
+
+    def test_record_map_size_one(self):
+        # Given
+        record = RecordMap.create_record_map(Text.create_from('Test'))
+        # When
+        actual = record.size
+        # Then
+        self.assertEqual(1, actual)
+
+    def test_record_map_size_three(self):
+        # Given
+        record = RecordMap.create()
+        record.add(Text.create_from('This'))
+        record.add(Text.create_from('is'))
+        record.add(Text.create_from('test'))
+        # When
+        actual = record.size
+        # Then
+        self.assertEqual(3, actual)
+
+    def test_record_map_tag_attr(self):
+        # Given
+        record = RecordMap.create()
+        record.add(Attr.create_attr('Foo', 'Bar'))
+        # When
+        actual = record.tag
+        # Then
+        self.assertEqual('Foo', actual)
+
+    def test_record_map_tag_slot(self):
+        # Given
+        record = RecordMap.create()
+        record.add(Slot.create_slot('Foo', 'Bar'))
+        # When
+        actual = record.tag
+        # Then
+        self.assertEqual(None, actual)
+
+    def test_record_map_tag_empty(self):
+        # Given
+        record = RecordMap.create()
+        # When
+        actual = record.tag
+        # Then
+        self.assertEqual(None, actual)
+
+    def test_record_map_create(self):
+        # When
+        actual = RecordMap.create()
+        # Then
+        self.assertEqual(0, actual.size)
+        self.assertEqual(RecordFlags.ALIASED.value, actual.flags)
+
+    def test_record_map_create_with_empty(self):
+        # Given
+        item = None
+        # When
+        actual = RecordMap.create_record_map(item)
+        # Then
+        self.assertEqual(1, actual.size)
+        self.assertEqual(0, actual.field_count)
+        self.assertEqual(Extant.get_extant(), actual.get_item(0))
+
+    def test_record_map_create_with_field(self):
+        # Given
+        item = Attr.create_attr('Foo', 'Bar')
+        # When
+        actual = RecordMap.create_record_map(item)
+        # Then
+        self.assertEqual(1, actual.size)
+        self.assertEqual(1, actual.field_count)
+        self.assertEqual(item, actual.get_item(0))
+
+    def test_record_map_create_with_value(self):
+        # Given
+        item = Value.create_from('Baz')
+        # When
+        actual = RecordMap.create_record_map(item)
+        # Then
+        self.assertEqual(1, actual.size)
+        self.assertEqual(0, actual.field_count)
+        self.assertEqual(item, actual.get_item(0))
+
+    def test_record_map_get_item_existing(self):
+        # Given
+        record_map = RecordMap.create()
+        first_item = Attr.create_attr('First', '1st')
+        second_item = Attr.create_attr('Second', '2nd')
+        third_item = Attr.create_attr('Thrid', '3rd')
+        record_map.add(first_item)
+        record_map.add(second_item)
+        record_map.add(third_item)
+        # When
+        actual = record_map.get_item(1)
+        # Then
+        self.assertEqual(second_item, actual)
+
+    def test_record_map_get_item_underflow(self):
+        # Given
+        record_map = RecordMap.create()
+        first_item = Attr.create_attr('First', '1st')
+        second_item = Attr.create_attr('Second', '2nd')
+        record_map.add(first_item)
+        record_map.add(second_item)
+        # When
+        actual = record_map.get_item(-1)
+        # Then
+        self.assertEqual(Absent.get_absent(), actual)
+
+    def test_record_map_get_item_overflow(self):
+        # Given
+        record_map = RecordMap.create()
+        first_item = Attr.create_attr('First', '1st')
+        record_map.add(first_item)
+        # When
+        actual = record_map.get_item(2)
+        # Then
+        self.assertEqual(Absent.get_absent(), actual)
+
+    def test_record_map_get_items_empty(self):
+        # Given
+        record_map = RecordMap.create()
+        # When
+        actual = record_map.get_items()
+        # Then
+        self.assertEqual([], actual)
+
+    def test_record_map_get_items_single(self):
+        # Given
+        record_map = RecordMap.create()
+        first_item = Attr.create_attr('Hello', 'World')
+        record_map.add(first_item)
+        # When
+        actual = record_map.get_items()
+        # Then
+        self.assertEqual([first_item], actual)
+
+    def test_record_map_get_items_multiple(self):
+        # Given
+        record_map = RecordMap.create()
+        first_item = Attr.create_attr('Hello', 'World')
+        second_item = Attr.create_attr('Bye', 'World')
+        record_map.add(first_item)
+        record_map.add(second_item)
+        # When
+        actual = record_map.get_items()
+        # Then
+        self.assertEqual([first_item, second_item], actual)
+
+    def test_record_map_get_body_empty_without_head(self):
+        # Given
+        record_map = RecordMap.create()
+        # When
+        actual = record_map.get_body()
+        # Then
+        self.assertEqual(Absent.get_absent(), actual)
+
+    def test_record_map_get_body_empty_with_head(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.add(Attr.create_attr('Hello', 'World'))
+        # When
+        actual = record_map.get_body()
+        # Then
+        self.assertEqual(Absent.get_absent(), actual)
+
+    def test_record_map_get_body_single_value(self):
+        # Given
+        record_map = RecordMap.create()
+        body = Text.create_from('Moo')
+        record_map.add(Attr.create_attr('Hello', 'World'))
+        record_map.add(body)
+        # When
+        actual = record_map.get_body()
+        # Then
+        self.assertEqual(body, actual)
+
+    def test_record_map_get_body_single_object(self):
+        # Given
+        record_map = RecordMap.create()
+        body = Attr.create_attr('Moo', 'Moo')
+        record_map.add(Attr.create_attr('Hello', 'World'))
+        record_map.add(body)
+        # When
+        actual = record_map.get_body()
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(body, actual.get_item(0))
+
+    def test_record_map_get_body_multiple_(self):
+        # Given
+        record_map = RecordMap.create()
+        first = Attr.create_attr('Moo', 'Moo')
+        second = Attr.create_attr('Boo', 'Boo')
+        record_map.add(Attr.create_attr('Goodbye', 'World'))
+        record_map.add(first)
+        record_map.add(second)
+        # When
+        actual = record_map.get_body()
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(first, actual.get_item(0))
+        self.assertEqual(second, actual.get_item(1))
+
+    def test_record_immutable_map_add(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.flags = RecordFlags.IMMUTABLE.value
+        item = Attr.create_attr('Moo', 'Moo')
+        # When
+        with self.assertRaises(TypeError) as error:
+            record_map.add(item)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('Cannot add item to immutable record!', message)
+
+    def test_record_aliased_map_add(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.flags = RecordFlags.ALIASED.value
+        item = Attr.create_attr('Moo', 'Moo')
+        # When
+        actual_response = record_map.add(item)
+        # Then
+        self.assertTrue(actual_response)
+        self.assertEqual([item], record_map.items)
+        self.assertEqual(1, record_map.item_count)
+        self.assertEqual(1, record_map.field_count)
+        self.assertEqual(0, record_map.flags)
+        self.assertEqual(None, record_map.fields)
+
+    def test_record_mutable_map_add(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.flags = 0
+        item = Attr.create_attr('Foo', 'Foo')
+        # When
+        actual_response = record_map.add(item)
+        # Then
+        self.assertEqual([item], record_map.items)
+        self.assertTrue(actual_response)
+        self.assertEqual(1, record_map.item_count)
+        self.assertEqual(1, record_map.field_count)
+
+    def test_record_map_add_mutable_non_field(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.flags = 0
+        item = Value.create_from('Foo')
+        # When
+        actual_response = record_map.add(item)
+        # Then
+        self.assertEqual([item], record_map.items)
+        self.assertTrue(actual_response)
+        self.assertEqual(1, record_map.item_count)
+        self.assertEqual(0, record_map.field_count)
+
+    def test_record_map_add_mutable_field_with_hashtable_unique(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.flags = 0
+        first_item = Attr.create_attr('Foo', 'Foo')
+        second_item = Attr.create_attr('Moo', 'Moo')
+
+        # When
+        record_map.add(first_item)
+        record_map.contains_key('Foo')
+        record_map.add(second_item)
+        # Then
+        self.assertEqual([first_item, second_item], record_map.items)
+        self.assertEqual(2, record_map.item_count)
+        self.assertEqual(2, record_map.field_count)
+        self.assertEqual({'Foo': first_item, 'Moo': second_item}, record_map.fields)
+
+    def test_record_map_add_mutable_field_with_hashtable_duplicate(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.flags = 0
+        first_item = Attr.create_attr('Boo', 'Foo')
+        second_item = Attr.create_attr('Boo', 'Moo')
+        # When
+        record_map.add(first_item)
+        record_map.add(second_item)
+        record_map.contains_key('Boo')
+        # Then
+        self.assertEqual([first_item, second_item], record_map.items)
+        self.assertEqual(2, record_map.item_count)
+        self.assertEqual(2, record_map.field_count)
+        self.assertEqual({'Boo': second_item}, record_map.fields)
+
+    def test_record_map_add_aliased_non_field(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.flags = 2
+        item = Value.create_from('Boo')
+        # When
+        actual_response = record_map.add(item)
+        # Then
+        self.assertEqual([item], record_map.items)
+        self.assertEqual(True, actual_response)
+        self.assertEqual(1, record_map.item_count)
+        self.assertEqual(0, record_map.field_count)
+
+    def test_record_map_commit_mutable(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.flags = 0
+        # When
+        actual = record_map.commit()
+        # Then
+        self.assertEqual(record_map, actual)
+        self.assertEqual(RecordFlags.IMMUTABLE.value, actual.flags)
+
+    def test_record_map_commit_aliased(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.flags = 2
+        # When
+        actual = record_map.commit()
+        # Then
+        self.assertEqual(record_map, actual)
+        self.assertEqual(3, actual.flags)
+
+    def test_record_map_commit_immutable(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.flags = 1
+        # When
+        actual = record_map.commit()
+        # Then
+        self.assertEqual(record_map, actual)
+        self.assertEqual(1, actual.flags)
+
+    def test_record_map_contains_key_value(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.add(Attr.create_attr('Foo', 'Poo'))
+        record_map.add(Attr.create_attr('Moo', 'Boo'))
+        # When
+        actual = record_map.contains_key(Text.create_from('Moo'))
+        # Then
+        self.assertTrue(actual)
+
+    def test_record_map_contains_key_string(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.add(Attr.create_attr('Foo', 'Poo'))
+        record_map.add(Attr.create_attr('Moo', 'Boo'))
+        # When
+        actual = record_map.contains_key('Foo')
+        # Then
+        self.assertTrue(actual)
+
+    def test_record_map_contains_key_duplicate(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.add(Attr.create_attr('Foo', 'Poo'))
+        record_map.add(Attr.create_attr('Foo', 'Boo'))
+        # When
+        actual = record_map.contains_key('Foo')
+        # Then
+        self.assertTrue(actual)
+
+    def test_record_map_contains_key_false(self):
+        # Given
+        record_map = RecordMap.create()
+        record_map.add(Attr.create_attr('Foo', 'Poo'))
+        record_map.add(Attr.create_attr('Moo', 'Boo'))
+        # When
+        actual = record_map.contains_key('Poo')
+        # Then
+        self.assertFalse(actual)
+
+    def test_record_map_contains_key_field_count_empty(self):
+        # Given
+        record_map = RecordMap.create()
+        # When
+        actual = record_map.contains_key('Poo')
+        # Then
+        self.assertFalse(actual)
+
+    def test_record_map_branch_empty(self):
+        # Given
+        original_record = Record.create()
+        original_record.flags = 0
+        # When
+        copy_record = original_record.branch()
+        # Then
+        self.assertEqual(original_record.items, copy_record.items)
+        self.assertEqual(original_record.fields, copy_record.fields)
+        self.assertEqual(original_record.item_count, copy_record.item_count)
+        self.assertEqual(original_record.field_count, copy_record.field_count)
+        self.assertEqual(2, original_record.flags)
+        self.assertEqual(original_record.flags, copy_record.flags)
+
+    def test_record_map_branch_single(self):
+        # Given
+        original_record = Record.create()
+        original_record.flags = 0
+        original_record.add(Attr.create_attr('Foo', 'Bar'))
+        # When
+        copy_record = original_record.branch()
+        # Then
+        self.assertEqual(2, original_record.flags)
+        self.assertEqual(original_record.items, copy_record.items)
+        self.assertEqual(original_record.fields, copy_record.fields)
+        self.assertEqual(1, copy_record.item_count)
+        self.assertEqual(1, copy_record.field_count)
+
+    def test_record_map_branch_multiple(self):
+        # Given
+        original_record = Record.create()
+        original_record.flags = 0
+        original_record.add(Attr.create_attr('Foo', 'Bar'))
+        original_record.add(Attr.create_attr('Baz', 'Qux'))
+        # When
+        copy_record = original_record.branch()
+        # Then
+        self.assertEqual(2, original_record.flags)
+        self.assertEqual(original_record.items, copy_record.items)
+        self.assertEqual(original_record.fields, copy_record.fields)
+        self.assertEqual(2, copy_record.item_count)
+        self.assertEqual(2, copy_record.field_count)
+
+    def test_record_map_branch_with_hashtable(self):
+        # Given
+        original_record = Record.create()
+        original_record.flags = 0
+        original_record.add(Attr.create_attr('Bar', 'Baz'))
+        original_record.contains_key('Bar')
+        # When
+        copy_record = original_record.branch()
+        # Then
+        self.assertIsNotNone(copy_record.fields)
+        self.assertEqual(original_record.items, copy_record.items)
+        self.assertEqual(original_record.fields, copy_record.fields)
+        self.assertEqual(1, copy_record.item_count)
+        self.assertEqual(1, copy_record.field_count)
+
+    def test_record_map_branch_mutate_original(self):
+        # Given
+        original_record = Record.create()
+        original_record.add(Attr.create_attr('K', 'V'))
+        original_record.add(Attr.create_attr('A', 'B'))
+        # When
+        original_record.contains_key('K')
+        copy_record = original_record.branch()
+        original_record.add(Attr.create_attr(Text.create_from('P'), Text.create_from('V')))
+        original_record.contains_key('K')
+        # Then
+        self.assertEqual(0, original_record.flags)
+        self.assertEqual(2, copy_record.flags)
+        self.assertNotEqual(original_record.items, copy_record.items)
+        self.assertEqual(3, original_record.item_count)
+        self.assertEqual(2, copy_record.item_count)
+        self.assertEqual(3, original_record.field_count)
+        self.assertEqual(2, copy_record.field_count)
+        self.assertIsNotNone(original_record.fields)
+        self.assertIsNotNone(copy_record.fields)
+        self.assertEqual(3, len(original_record.fields))
+        self.assertEqual(2, len(copy_record.fields))
+
+    def test_record_map_branch_mutate_copy(self):
+        # Given
+        original_record = Record.create()
+        original_record.add(Attr.create_attr('F', 'L'))
+        original_record.add(Attr.create_attr('M', 'S'))
+        # When
+        original_record.contains_key('P')
+        copy_record = original_record.branch()
+        copy_record.add(Attr.create_attr(Text.create_from('P'), Text.create_from('V')))
+        copy_record.add(Attr.create_attr(Text.create_from('T'), Text.create_from('B')))
+        copy_record.contains_key('H')
+        # Then
+        self.assertEqual(2, original_record.flags)
+        self.assertEqual(0, copy_record.flags)
+        self.assertNotEqual(original_record.items, copy_record.items)
+        self.assertEqual(2, original_record.item_count)
+        self.assertEqual(4, copy_record.item_count)
+        self.assertEqual(2, original_record.field_count)
+        self.assertEqual(4, copy_record.field_count)
+        self.assertIsNotNone(original_record.fields)
+        self.assertIsNotNone(copy_record.fields)
+        self.assertEqual(2, len(original_record.fields))
+        self.assertEqual(4, len(copy_record.fields))
