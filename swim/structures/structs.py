@@ -656,48 +656,12 @@ class RecordMapView(Record):
     def size(self) -> int:
         return self.upper - self.lower
 
-    def add(self, item: Item, index: int = None) -> bool:
-        """
-
-        :param item:
-        :param index:
-        :return:
-        """
-        if index is None:
-            index = self.size
-
-        if self.record.flags & RecordFlags.IMMUTABLE.value:
-            raise TypeError('Cannot add item to immutable record!')
-        elif index < 0 or index > self.size:
-            raise IndexError(f'Index {index} is out of range!')
-        else:
-            self.add_item(index, item)
-
-        return True
-
-    def add_item(self, index: int, item: Item) -> None:
-        """
-
-        :param index:
-        :param item:
-        :return:
-        """
-        lower = self.lower + index
-        self.record.items = self.record.items[0: lower] + [item] + self.record.items[lower: self.record.size - lower]
-        self.record.fields = None
-        self.record.item_count += 1
-
-        if isinstance(item, Field):
-            self.record.field_count += 1
-
-        self.record.flags = self.record.flags & ~RecordFlags.ALIASED.value
-        self.upper += 1
-
     def get_item(self, index: int) -> Item:
         """
+        Return an item with a given index from the RecordMapView.
 
-        :param index:
-        :return:
+        :param index:           - The index of the item.
+        :return:                - The item with the given index or Absent if the index is out of bounds.
         """
         if 0 <= index < self.size:
             return self.record.items[self.lower + index]
@@ -706,15 +670,37 @@ class RecordMapView(Record):
 
     def get_items(self) -> List[Item]:
         """
+        Return all items from the RecordMapView.
 
-        :return:
+        :return:                - List of all items from the RecordMapView.
         """
         return self.record.items[self.lower: self.upper]
 
+    def add(self, item: Item, index: int = None) -> bool:
+        """
+         Add an item to the underlying RecordMap at a given index.
+
+         :param item:           - Item to add to the RecordMapView.
+         :param index:          - Index of the position at which the item should be added.
+         :return:               - True if the item was successfully added.
+         """
+        if index is None:
+            index = self.size
+
+        if self.record.flags & RecordFlags.IMMUTABLE.value:
+            raise TypeError('Cannot add item to immutable record!')
+        elif index < 0 or index > self.size:
+            raise IndexError(f'Index {index} is out of range!')
+        else:
+            self.__add_item(index, item)
+
+        return True
+
     def branch(self) -> RecordMap:
         """
+        Create a copy of the underlying RecordMap.
 
-        :return:
+        :return:                - Copy of the underlying RecordMap.
         """
         size = self.size
         fields_count = 0
@@ -733,6 +719,24 @@ class RecordMapView(Record):
 
         return RecordMap(new_array, None, size, fields_count, 0)
 
+    def __add_item(self, index: int, item: Item) -> None:
+        """
+        Add an item to the underlying RecordMapView.
+
+        :param index:           - Index of the position at which the item should be added.
+        :param item:            - Item to add to the RecordMapView.
+        """
+        lower = self.lower + index
+        self.record.items = self.record.items[0: lower] + [item] + self.record.items[lower: self.record.size - lower]
+        self.record.fields = None
+        self.record.item_count += 1
+
+        if isinstance(item, Field):
+            self.record.field_count += 1
+
+        self.record.flags = self.record.flags & ~RecordFlags.ALIASED.value
+        self.upper += 1
+
 
 class ValueBuilder:
 
@@ -742,22 +746,37 @@ class ValueBuilder:
 
     def add(self, item: Item) -> bool:
         """
+        Add an item to the ValueBuilder.
 
-        :param item:
-        :return:
+        :param item:            - Item to add to the ValueBuilder.
+        :return:                - True if the item was successfully added.
         """
         if isinstance(item, Field):
-            return self.add_field(item)
+            return self.__add_field(item)
         elif isinstance(item, Value):
-            return self.add_value(item)
+            return self.__add_value(item)
         else:
-            raise AssertionError(item)
+            raise TypeError(f'Item of type {type(item)} is not supported by the Value Builder')
 
-    def add_field(self, item: Field) -> bool:
+    def bind(self) -> Value:
         """
+        Return the contents of the ValueBuilder as a Value object.
 
-        :param item:
-        :return:
+        :return:                - The built Value from the ValueBuilder.
+        """
+        if self.record is not None:
+            return self.record
+        elif self.value is not None:
+            return self.value
+        else:
+            return Value.absent()
+
+    def __add_field(self, item: Field) -> bool:
+        """
+        Add a field to the ValueBuilder.
+
+        :param item:            - Field to add to the ValueBuilder.
+        :return:                - True if the Field was successfully added.
         """
         if self.record is None:
             self.record = Record.create()
@@ -769,11 +788,12 @@ class ValueBuilder:
         self.record.add(item)
         return True
 
-    def add_value(self, item: Value) -> bool:
+    def __add_value(self, item: Value) -> bool:
         """
+        Add a Value to the ValueBuilder.
 
-        :param item:
-        :return:
+        :param item:            - Value to add to the ValueBuilder.
+        :return:                - True if the Value was successfully added.
         """
         if self.record is not None:
             self.record.add(item)
@@ -786,15 +806,3 @@ class ValueBuilder:
             self.record.add(item)
 
         return True
-
-    def bind(self) -> Value:
-        """
-
-        :return:
-        """
-        if self.record is not None:
-            return self.record
-        elif self.value is not None:
-            return self.value
-        else:
-            return Value.absent()
