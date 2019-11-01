@@ -551,17 +551,168 @@ class TestStructs(unittest.TestCase):
         message = error.exception.args[0]
         self.assertEqual('Empty key for slot!', message)
 
-    def test_temp(self):
-        xs = Record.create()
-        xs.add(Attr.create_attr('k', 'v'))
-        xs.add(Attr.create_attr('a', 'b'))
+    def test_record_create(self):
+        # When
+        actual = Record.create()
+        # Then
+        self.assertIsInstance(actual, RecordMap)
 
-        ys = xs.branch()
-        ys.add(Slot.create_slot(Text.create_from('k'), Text.create_from('b')))
+    def test_record_add_all_single(self):
+        # Given
+        actual = Record.create()
+        item = Text.create_from('Foo')
+        items = [item]
+        # When
+        actual_response = actual.add_all(items)
+        # Then
+        self.assertEqual(1, actual.size)
+        self.assertEqual(1, actual.item_count)
+        self.assertEqual(item, actual.get_item(0))
+        self.assertEqual(True, actual_response)
 
-        xs.add(Attr.create_attr(Text.create_from('Foo'), Text.create_from('Bar')))
-        xs.add(Attr.create_attr(Text.create_from('Foo'), Text.create_from('Foo')))
+    def test_record_add_all_multiple(self):
+        # Given
+        actual = Record.create()
+        first_item = Text.create_from('Foo')
+        second_item = Text.create_from('Bar')
+        third_item = Text.create_from('Baz')
+        items = [first_item, second_item, third_item]
+        # When
+        actual_response = actual.add_all(items)
+        # Then
+        self.assertEqual(3, actual.size)
+        self.assertEqual(3, actual.item_count)
+        self.assertEqual(first_item, actual.get_item(0))
+        self.assertEqual(second_item, actual.get_item(1))
+        self.assertEqual(third_item, actual.get_item(2))
+        self.assertEqual(True, actual_response)
 
-        xs.contains_key('k')
-        ys.contains_key('k')
-        # TODO assert
+    def test_record_add_all_empty(self):
+        # Given
+        actual = Record.create()
+        items = []
+        # When
+        actual_response = actual.add_all(items)
+        # Then
+        self.assertEqual(0, actual.size)
+        self.assertEqual(0, actual.item_count)
+        self.assertEqual(False, actual_response)
+
+    def test_record_add_slot_key_item_value_item(self):
+        # Given
+        actual = Record.create()
+        key = Text.create_from('Good')
+        value = Text.create_from('Dog')
+        # When
+        actual = actual.add_slot(key, value)
+        # Then
+        self.assertEqual(1, actual.size)
+        self.assertIsInstance(actual, Record)
+        self.assertIsInstance(actual.get_item(0), Slot)
+        self.assertEqual(key, actual.get_item(0).key)
+        self.assertEqual(value, actual.get_item(0).value)
+
+    def test_record_add_slot_key_string_value_item(self):
+        # Given
+        actual = Record.create()
+        key = 'Baz'
+        value = Text.create_from('Qux')
+        # When
+        actual = actual.add_slot(key, value)
+        # Then
+        self.assertEqual(1, actual.size)
+        self.assertIsInstance(actual, Record)
+        self.assertIsInstance(actual.get_item(0), Slot)
+        self.assertEqual('Baz', actual.get_item(0).key.value)
+        self.assertEqual('Qux', actual.get_item(0).value.value)
+
+    def test_record_add_slot_key_item_value_string(self):
+        # Given
+        actual = Record.create()
+        key = Text.create_from('Foo')
+        value = 'Bar'
+        # When
+        actual = actual.add_slot(key, value)
+        # Then
+        self.assertEqual(1, actual.size)
+        self.assertIsInstance(actual, Record)
+        self.assertIsInstance(actual.get_item(0), Slot)
+        self.assertEqual('Foo', actual.get_item(0).key.value)
+        self.assertEqual('Bar', actual.get_item(0).value.value)
+
+    def test_record_add_slot_key_string_value_string(self):
+        # Given
+        actual = Record.create()
+        key = 'Wibble'
+        value = 'Wobble'
+        # When
+        actual = actual.add_slot(key, value)
+        # Then
+        self.assertEqual(1, actual.size)
+        self.assertIsInstance(actual, Record)
+        self.assertIsInstance(actual.get_item(0), Slot)
+        self.assertEqual('Wibble', actual.get_item(0).key.value)
+        self.assertEqual('Wobble', actual.get_item(0).value.value)
+
+    def test_record_get_headers_record(self):
+        # Given
+        record = Record.create()
+        body = Record.create()
+        body.add_slot('Foo', 'Bar')
+        record.add(Attr.create_attr(Text.create_from('cat'), body))
+        # When
+        actual = record.get_headers('cat')
+        # Then
+        self.assertIsInstance(actual, Record)
+        self.assertEqual(1, actual.size)
+        self.assertEqual('Foo', actual.get_item(0).key.value)
+        self.assertEqual('Bar', actual.get_item(0).value.value)
+
+    def test_record_get_headers_object(self):
+        # Given
+        record = Record.create()
+        body = Slot.create_slot('Baz', 'Qux')
+        record.add(Attr.create_attr(Text.create_from('dog'), body))
+        # When
+        actual = record.get_headers('dog')
+        # Then
+        self.assertIsInstance(actual, Record)
+        self.assertEqual(1, actual.size)
+        self.assertEqual('Baz', actual.get_item(0).key)
+        self.assertEqual('Qux', actual.get_item(0).value)
+
+    def test_record_get_headers_none(self):
+        # Given
+        record = Record.create()
+        body = Slot.create_slot('Hello', 'World')
+        record.add(Attr.create_attr(Text.create_from('mouse'), body))
+        # When
+        actual = record.get_headers('bird')
+        # Then
+        self.assertIsNone(actual)
+
+    def test_record_get_head(self):
+        # Given
+        record = Record.create()
+        body = Slot.create_slot('Hello', 'World')
+        first_item = Attr.create_attr(Text.create_from('bird'), body)
+        second_item = Attr.create_attr(Text.create_from('frog'), body)
+        record.add(first_item)
+        record.add(second_item)
+        # When
+        actual = record.get_head()
+        # Then
+        self.assertEqual(first_item, actual)
+        self.assertNotEqual(second_item, actual)
+
+    def test_record_bind(self):
+        # Given
+        record = Record.create()
+        body = Slot.create_slot('Hello', 'Friend')
+        first_item = Attr.create_attr(Text.create_from('dog'), body)
+        record.add(first_item)
+        # When
+        actual = record.bind()
+        # Then
+        self.assertEqual(record, actual)
+   

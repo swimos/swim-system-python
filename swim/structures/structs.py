@@ -355,9 +355,13 @@ class RecordFlags(Enum):
 
 class Record(Value):
 
-    @property
-    def size(self) -> int:
-        return self.size
+    @staticmethod
+    def create() -> 'RecordMap':
+        """
+        Create a new RecordMap.
+        :return:                - The newly crated RecordMap.
+        """
+        return RecordMap.create()
 
     @abstractmethod
     def add(self, item) -> bool:
@@ -366,33 +370,28 @@ class Record(Value):
     @abstractmethod
     def get_item(self, index: int) -> 'Value':
         """
+        Return an item with a given index from the Record.
 
-        :param index:
-        :return:
+        :param index:           - The index of the item.
+        :return:                - The item with the given index.
         """
         ...
 
     @abstractmethod
     def get_items(self) -> List['Value']:
         """
+        Return all items from the Record.
 
-        :return:
+        :return:                - List of all items from the Record.
         """
         ...
 
-    @staticmethod
-    def create() -> 'RecordMap':
-        """
-
-        :return:
-        """
-        return RecordMap.create()
-
     def add_all(self, items: List['Value']) -> bool:
         """
+        Add a list of items to the Record.
 
-        :param items:
-        :return:
+        :param items:           - List of items to be added.
+        :return:                - True if at least one item has been added. False otherwise.
         """
         changed = False
 
@@ -404,10 +403,11 @@ class Record(Value):
 
     def add_slot(self, key: Any, value: Any) -> 'Record':
         """
+        Add a Slot to the Record.
 
-        :param key:
-        :param value:
-        :return:
+        :param key:             - Key for the slot object.
+        :param value:           - Value for the slot object.
+        :return:                - The current Record with the added Slot.
         """
         if isinstance(key, str):
             key = Text.create_from(key)
@@ -421,9 +421,10 @@ class Record(Value):
 
     def get_headers(self, tag: str) -> Optional['Record']:
         """
+        Return a Record of all headers for a given tag.
 
-        :param tag:
-        :return:
+        :param tag:             - Tag of the header Record.
+        :return:                - Record of all headers or None.
         """
         head = self.get_head()
 
@@ -438,15 +439,17 @@ class Record(Value):
 
     def get_head(self) -> 'Item':
         """
+        Return the first item from the Record if it exists.
 
-        :return:
+        :return:                - First item in the Record.
         """
         return self.get_item(0)
 
     def bind(self) -> 'Record':
         """
+        Return a Record object.
 
-        :return:
+        :return:                - Return itself.
         """
         return self
 
