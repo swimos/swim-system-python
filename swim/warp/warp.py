@@ -7,7 +7,7 @@ from swim.structures.structs import Item, Record, Attr, Value, Num, RecordMap
 
 class Envelope(ABC):
 
-    def __init__(self, node_uri, lane_uri, tag, form, body: Value = Value.absent()):
+    def __init__(self, node_uri: str, lane_uri: str, tag: str, form: 'Form', body: Item = Value.absent()) -> None:
         self.node_uri = node_uri
         self.lane_uri = lane_uri
         self.tag = tag
@@ -78,7 +78,7 @@ class Envelope(ABC):
 
 class LinkAddressedEnvelope(Envelope):
 
-    def __init__(self, node_uri, lane_uri, prio, rate, tag, form, body: Value = Value.absent()):
+    def __init__(self, node_uri: str, lane_uri: str, prio: float, rate: float, tag: str, form: 'Form', body: Item = Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, tag, form, body)
         self.prio = prio
         self.rate = rate
@@ -86,37 +86,37 @@ class LinkAddressedEnvelope(Envelope):
 
 class LaneAddressedEnvelope(Envelope):
 
-    def __init__(self, node_uri, lane_uri, tag, form, body=Value.absent()):
+    def __init__(self, node_uri: str, lane_uri: str, tag: str, form: 'Form', body=Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, tag, form, body)
 
 
 class SyncRequest(LinkAddressedEnvelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Value = Value.absent()) -> None:
+    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Item = Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, prio, rate, tag='sync', form=SyncRequestForm(), body=body)
 
 
 class LinkedResponse(LinkAddressedEnvelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Value = Value.absent()) -> None:
+    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Item = Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, prio, rate, tag='linked', form=LinkedResponseForm(), body=body)
 
 
 class SyncedResponse(LaneAddressedEnvelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, body: Value = Value.absent()) -> None:
+    def __init__(self, node_uri: str, lane_uri: str, body: Item = Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, tag='synced', form=SyncedResponseForm(), body=body)
 
 
 class CommandMessage(LaneAddressedEnvelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, body: Value = Value.absent()) -> None:
+    def __init__(self, node_uri: str, lane_uri: str, body: Item = Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, tag='command', form=CommandMessageForm(), body=body)
 
 
 class EventMessage(LaneAddressedEnvelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, body: Value = Value.absent()) -> None:
+    def __init__(self, node_uri: str, lane_uri: str, body: Item = Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, tag='event', form=EventMessageForm(), body=body)
 
 
@@ -124,25 +124,52 @@ class Form(ABC):
 
     @property
     @abstractmethod
-    def tag(self):
+    def tag(self) -> str:
+        """
+        Return the tag associated with the given Form object.
+
+        :return:                - Name of the tag as string value.
+        """
+        ...
+
+    @abstractmethod
+    def mold(self, envelope: 'Envelope') -> 'Value':
+        """
+        Create a value object from a given Envelope.
+
+        :param envelope:        - Envelope to convert to Value object.
+        :return:                - Value object representing the Envelope.
+        """
         ...
 
     @abstractmethod
     def cast(self, item: RecordMap) -> 'Envelope':
-        ...
+        """
+        Create an Envelope object from a RecordMap.
 
-    @abstractmethod
-    def mold(self, envelope: 'Envelope') -> Value:
+        :param item:            - RecordMap to convert to Envelope.
+        :return:                - Envelope object created from the RecordMap.
+        """
         ...
 
 
 class LinkAddressedForm(Form):
 
     @abstractmethod
-    def create_from(self, node_uri, lane_uri, prio, rate, body):
+    def create_envelope_from(self, node_uri: str, lane_uri: str, prio: float, rate: float, body: 'Item') -> 'Envelope':
+        """
+        Create an Envelope object corresponding to the given LinkAddressedForm.
+
+        :param node_uri:        - Node URI of the Envelope.
+        :param lane_uri:        - Lane URI of the Envelope.
+        :param prio:            - Priority of the Envelope.
+        :param rate:            - Rate of the Envelope.
+        :param body:            - Body of the Envelope.
+        :return:                - Envelope corresponding to the LinkAddressedForm.
+        """
         ...
 
-    def mold(self, envelope: 'LinkAddressedEnvelope') -> Value:
+    def mold(self, envelope: 'LinkAddressedEnvelope') -> 'Value':
 
         if envelope is not None:
 
@@ -161,8 +188,7 @@ class LinkAddressedForm(Form):
         else:
             return Item.extant()
 
-    def cast(self, item):
-        value = item
+    def cast(self, value: RecordMap) -> 'Envelope':
         headers = value.get_headers(self.tag)
         node_uri = None
         lane_uri = None
@@ -186,16 +212,22 @@ class LinkAddressedForm(Form):
 
         if node_uri is not None and lane_uri is not None:
             body = value.get_body()
-            return self.create_from(node_uri, lane_uri, prio, rate, body)
+            return self.create_envelope_from(node_uri, lane_uri, prio, rate, body)
 
 
 class LaneAddressedForm(Form):
 
     @abstractmethod
-    def create_from(self, node_uri, lane_uri, body):
+    def create_envelope_from(self, node_uri, lane_uri, body) -> 'Envelope':
+        """
+        :param node_uri:        - Node URI of the Envelope.
+        :param lane_uri:        - Lane URI of the Envelope.
+        :param body:            - Body of the Envelope.
+        :return:                - Envelope corresponding to the LaneAddressedForm.
+        """
         ...
 
-    def mold(self, envelope: 'LaneAddressedEnvelope') -> Value:
+    def mold(self, envelope: 'LaneAddressedEnvelope') -> 'Value':
 
         if envelope is not None:
             headers = Record.create().add_slot('node', envelope.node_uri).add_slot('lane', envelope.lane_uri)
@@ -203,7 +235,7 @@ class LaneAddressedForm(Form):
         else:
             return Item.extant()
 
-    def cast(self, item):
+    def cast(self, item) -> 'Envelope':
         value = item
         headers = value.get_headers(self.tag)
         node_uri = None
@@ -222,54 +254,54 @@ class LaneAddressedForm(Form):
 
         if node_uri is not None and lane_uri is not None:
             body = value.get_body()
-            return self.create_from(node_uri, lane_uri, body)
+            return self.create_envelope_from(node_uri, lane_uri, body)
 
 
 class SyncedResponseForm(LaneAddressedForm):
 
     @property
-    def tag(self):
+    def tag(self) -> str:
         return 'synced'
 
-    def create_from(self, node_uri, lane_uri, body):
+    def create_envelope_from(self, node_uri, lane_uri, body) -> 'Envelope':
         return SyncedResponse(node_uri, lane_uri, body=body)
 
 
 class SyncRequestForm(LinkAddressedForm):
 
     @property
-    def tag(self):
+    def tag(self) -> str:
         return 'sync'
 
-    def create_from(self, node_uri, lane_uri, prio, rate, body):
+    def create_envelope_from(self, node_uri, lane_uri, prio, rate, body) -> 'Envelope':
         return SyncRequest(node_uri, lane_uri, prio, rate, body=body)
 
 
 class LinkedResponseForm(LinkAddressedForm):
 
     @property
-    def tag(self):
+    def tag(self) -> str:
         return 'linked'
 
-    def create_from(self, node_uri, lane_uri, prio, rate, body):
+    def create_envelope_from(self, node_uri, lane_uri, prio, rate, body) -> 'Envelope':
         return LinkedResponse(node_uri, lane_uri, prio, rate, body=body)
 
 
 class CommandMessageForm(LaneAddressedForm):
 
     @property
-    def tag(self):
+    def tag(self) -> str:
         return 'command'
 
-    def create_from(self, node_uri, lane_uri, body):
+    def create_envelope_from(self, node_uri, lane_uri, body) -> 'Envelope':
         return CommandMessage(node_uri, lane_uri, body=body)
 
 
 class EventMessageForm(LaneAddressedForm):
 
     @property
-    def tag(self):
+    def tag(self) -> str:
         return 'event'
 
-    def create_from(self, node_uri, lane_uri, body):
+    def create_envelope_from(self, node_uri, lane_uri, body) -> 'Envelope':
         return EventMessage(node_uri, lane_uri, body)

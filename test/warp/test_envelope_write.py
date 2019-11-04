@@ -404,7 +404,8 @@ class TestWriters(unittest.TestCase):
         envelope = CommandMessage('/unit/foo', 'shoppingCart',
                                   body=RecordMap.create_record_map(
                                       Attr.create_attr(Text.create_from('remove'),
-                                                       RecordMap.create_record_map(Slot.create_slot(Text.create_from('key'), Text.create_from('FromClientLink'))))))
+                                                       RecordMap.create_record_map(
+                                                           Slot.create_slot(Text.create_from('key'), Text.create_from('FromClientLink'))))))
         expected = '@command(node:"/unit/foo",lane:shoppingCart)@remove(key:FromClientLink)'
 
         # When
