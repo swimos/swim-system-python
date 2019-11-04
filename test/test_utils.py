@@ -1,3 +1,6 @@
+from swim import Item
+
+
 class CustomString:
     def __init__(self, value):
         self.value = value
@@ -7,3 +10,13 @@ class CustomString:
 
     def __str__(self):
         return f'CustomString({self.value})'
+
+
+class CustomItem(Item):
+    @property
+    def key(self) -> 'Any':
+        return 'MockKey'
+
+    @property
+    def value(self) -> 'Any':
+        return 'MockVale'

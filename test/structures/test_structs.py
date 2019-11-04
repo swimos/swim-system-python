@@ -1,8 +1,7 @@
 import unittest
 
-from swim import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value
-from swim.structures.structs import RecordFlags
-from test.test_utils import CustomString
+from swim import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value, RecordFlags, RecordMapView, ValueBuilder
+from test.test_utils import CustomString, CustomItem
 
 
 class TestStructs(unittest.TestCase):
@@ -307,7 +306,7 @@ class TestStructs(unittest.TestCase):
         # When
         actual = Value.create_from(obj)
         # Then
-        self.assertIsInstance(actual, Num)
+        self.assertIsInstance(actual, Bool)
         self.assertTrue(actual.value)
 
     def test_create_value_from_object_invalid(self):
@@ -1209,3 +1208,398 @@ class TestStructs(unittest.TestCase):
         self.assertIsNotNone(copy_record.fields)
         self.assertEqual(2, len(original_record.fields))
         self.assertEqual(4, len(copy_record.fields))
+
+    def test_record_map_view(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('A', 'B'))
+        record.add(Attr.create_attr('C', 'D'))
+        record.add(Attr.create_attr('E', 'F'))
+        record.add(Attr.create_attr('G', 'H'))
+        # When
+        actual = RecordMapView(record, 1, 3)
+        # Then
+        self.assertEqual(2, actual.size)
+        self.assertEqual(1, actual.lower)
+        self.assertEqual(3, actual.upper)
+
+    def test_record_map_view_get_item_existing(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('Z', 'X'))
+        record.add(Attr.create_attr('Y', 'W'))
+        record.add(Attr.create_attr('P', 'L'))
+        record.add(Attr.create_attr('M', 'N'))
+        # When
+        actual = RecordMapView(record, 1, 3)
+        # Then
+        self.assertEqual('W', actual.get_item(0).value)
+        self.assertEqual('L', actual.get_item(1).value)
+
+    def test_record_map_view_get_item_underflow(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('G', 'V'))
+        record.add(Attr.create_attr('H', 'B'))
+        record.add(Attr.create_attr('J', 'N'))
+        record.add(Attr.create_attr('K', 'M'))
+        # When
+        actual = RecordMapView(record, 1, 3)
+        # Then
+        self.assertEqual(Absent.get_absent(), actual.get_item(-1).value)
+
+    def test_record_map_view_get_item_overflow(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('F', 'V'))
+        record.add(Attr.create_attr('Y', 'B'))
+        record.add(Attr.create_attr('U', 'N'))
+        record.add(Attr.create_attr('I', 'M'))
+        # When
+        actual = RecordMapView(record, 1, 3)
+        # Then
+        self.assertEqual(Absent.get_absent(), actual.get_item(3).value)
+
+    def test_record_map_view_get_items_none(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('U', 'N'))
+        record.add(Attr.create_attr('I', 'M'))
+        # When
+        actual = RecordMapView(record, 4, 5)
+        # Then
+        self.assertEqual([], actual.get_items())
+
+    def test_record_map_view_get_items_single(self):
+        # Given
+        record = Record.create()
+        first = Attr.create_attr('U', 'N')
+        second = Attr.create_attr('A', 'N')
+        third = Attr.create_attr('I', 'M')
+        record.add(first)
+        record.add(second)
+        record.add(third)
+        # When
+        actual = RecordMapView(record, 1, 2)
+        # Then
+        self.assertEqual([second], actual.get_items())
+
+    def test_record_map_view_get_items_multiple(self):
+        # Given
+        record = Record.create()
+        first = Attr.create_attr('A', 'K')
+        second = Attr.create_attr('K', 'P')
+        third = Attr.create_attr('Q', 'F')
+        record.add(first)
+        record.add(second)
+        record.add(third)
+        # When
+        actual = RecordMapView(record, 1, 3)
+        # Then
+        self.assertEqual([second, third], actual.get_items())
+
+    def test_record_map_view_immutable_add(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('L', 'K'))
+        record.add(Attr.create_attr('T', 'P'))
+        record.add(Attr.create_attr('R', 'F'))
+        new_item = Attr.create_attr('New', 'Item')
+        record.flags = 1
+        record_map_view = RecordMapView(record, 1, 3)
+        # When
+        with self.assertRaises(TypeError) as error:
+            record_map_view.add(new_item, 2)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('Cannot add item to immutable record!', message)
+
+    def test_record_map_view_out_of_bounds_add(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('T', 'K'))
+        record.add(Attr.create_attr('I', 'P'))
+        record.add(Attr.create_attr('M', 'F'))
+        new_item = Attr.create_attr('Foo', 'Bar')
+        record_map_view = RecordMapView(record, 1, 3)
+        # When
+        with self.assertRaises(IndexError) as error:
+            record_map_view.add(new_item, 5)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual(f'Index 5 is out of range!', message)
+
+    def test_record_map_view_add_field(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('T', 'K'))
+        record.add(Attr.create_attr('C', 'P'))
+        record.add(Attr.create_attr('M', 'F'))
+        new_item = Attr.create_attr('Field', 'Item')
+        record_map_view = RecordMapView(record, 1, 3)
+        # When
+        actual_response = record_map_view.add(new_item, 2)
+        # Then
+        self.assertTrue(actual_response)
+        self.assertEqual(3, record_map_view.size)
+        self.assertEqual(4, record_map_view.upper)
+        self.assertEqual(1, record_map_view.lower)
+        self.assertEqual(new_item, record_map_view.get_item(2))
+        self.assertEqual(4, record_map_view.record.item_count)
+        self.assertEqual(4, record_map_view.record.field_count)
+        self.assertEqual(0, record_map_view.record.flags)
+        self.assertEqual(None, record_map_view.record.fields)
+
+    def test_record_map_view_add_value(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('T', 'K'))
+        record.add(Attr.create_attr('T', 'P'))
+        new_item = Text.create_from('Text')
+        record_map_view = RecordMapView(record, 0, 2)
+        # When
+        actual_response = record_map_view.add(new_item, 1)
+        # Then
+        self.assertTrue(actual_response)
+        self.assertEqual(3, record_map_view.size)
+        self.assertEqual(3, record_map_view.upper)
+        self.assertEqual(0, record_map_view.lower)
+        self.assertEqual(new_item, record_map_view.get_item(1))
+        self.assertEqual(3, record_map_view.record.item_count)
+        self.assertEqual(2, record_map_view.record.field_count)
+        self.assertEqual(0, record_map_view.record.flags)
+        self.assertEqual(None, record_map_view.record.fields)
+
+    def test_record_map_view_add_none_index(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('B', 'H'))
+        record.add(Attr.create_attr('E', 'R'))
+        new_item = Text.create_from('Foo')
+        record_map_view = RecordMapView(record, 1, 2)
+        # When
+        actual_response = record_map_view.add(new_item)
+        # Then
+        self.assertTrue(actual_response)
+        self.assertEqual(2, record_map_view.size)
+        self.assertEqual(3, record_map_view.upper)
+        self.assertEqual(1, record_map_view.lower)
+        self.assertEqual(new_item, record_map_view.get_item(1))
+
+    def test_record_map_view_branch_empty(self):
+        # Given
+        record = Record.create()
+        record.add(Attr.create_attr('Q', 'H'))
+        record.add(Attr.create_attr('W', 'R'))
+        record_map_view = RecordMapView(record, 0, 0)
+        # When
+        actual = record_map_view.branch()
+        # Then
+        self.assertEqual(0, actual.size)
+        self.assertEqual(0, actual.field_count)
+        self.assertIsInstance(actual, RecordMap)
+        self.assertNotEqual(record_map_view.record.items, actual.items)
+        self.assertEqual([], actual.items)
+        self.assertEqual(None, actual.fields)
+
+    def test_record_map_view_branch_single(self):
+        # Given
+        record = Record.create()
+        first = Attr.create_attr('R', 'H')
+        second = Attr.create_attr('Y', 'R')
+        record.add(first)
+        record.add(second)
+        record_map_view = RecordMapView(record, 0, 1)
+        # When
+        actual = record_map_view.branch()
+        # Then
+        self.assertEqual(1, actual.size)
+        self.assertEqual(1, actual.field_count)
+        self.assertIsInstance(actual, RecordMap)
+        self.assertNotEqual(record_map_view.record.items, actual.items)
+        self.assertEqual([first], actual.items)
+        self.assertEqual(None, actual.fields)
+
+    def test_record_map_view_branch_multiple_fields(self):
+        # Given
+        record = Record.create()
+        first = Attr.create_attr('T', 'H')
+        second = Attr.create_attr('E', 'R')
+        third = Attr.create_attr('P', 'Q')
+        record.add(first)
+        record.add(second)
+        record.add(third)
+        record_map_view = RecordMapView(record, 0, 2)
+        # When
+        actual = record_map_view.branch()
+        # Then
+        self.assertEqual(2, actual.size)
+        self.assertEqual(2, actual.field_count)
+        self.assertIsInstance(actual, RecordMap)
+        self.assertNotEqual(record_map_view.record.items, actual.items)
+        self.assertEqual([first, second], actual.items)
+        self.assertEqual(None, actual.fields)
+
+    def test_record_map_view_branch_multiple_values(self):
+        # Given
+        record = Record.create()
+        second = Text.create_from('Bar')
+        third = Text.create_from('Baz')
+        fourth = Text.create_from('Qux')
+        record.add(Text.create_from('Foo'))
+        record.add(second)
+        record.add(third)
+        record.add(fourth)
+        record_map_view = RecordMapView(record, 1, 4)
+        # When
+        actual = record_map_view.branch()
+        # Then
+        self.assertEqual(3, actual.size)
+        self.assertEqual(0, actual.field_count)
+        self.assertIsInstance(actual, RecordMap)
+        self.assertNotEqual(record_map_view.record.items, actual.items)
+        self.assertEqual([second, third, fourth], actual.items)
+        self.assertEqual(None, actual.fields)
+
+    def test_record_map_view_branch_multiple_values_and_fields(self):
+        # Given
+        record = Record.create()
+        first = Text.create_from('Bar')
+        second = Attr.create_attr('E', 'R')
+        third = Text.create_from('Baz')
+        fourth = Attr.create_attr('P', 'Q')
+        record.add(first)
+        record.add(second)
+        record.add(third)
+        record.add(fourth)
+        record_map_view = RecordMapView(record, 0, 3)
+        # When
+        actual = record_map_view.branch()
+        # Then
+        self.assertEqual(3, actual.size)
+        self.assertEqual(1, actual.field_count)
+        self.assertIsInstance(actual, RecordMap)
+        self.assertNotEqual(record_map_view.record.items, actual.items)
+        self.assertEqual([first, second, third], actual.items)
+        self.assertEqual(None, actual.fields)
+
+    def test_value_builder_add_field_to_empty_record(self):
+        # Given
+        value_builder = ValueBuilder()
+        item = Attr.create_attr('Foo', 'Boo')
+        # When
+        actual_response = value_builder.add(item)
+        # Then
+        self.assertTrue(actual_response)
+        self.assertEqual(1, value_builder.record.size)
+        self.assertEqual(None, value_builder.value)
+
+    def test_value_builder_add_field_existing_record(self):
+        # Given
+        value_builder = ValueBuilder()
+        value_builder.add(Attr.create_attr('Baz', 'Qux'))
+        item = Attr.create_attr('Foo', 'Boo')
+        # When
+        actual_response = value_builder.add(item)
+        # Then
+        self.assertTrue(actual_response)
+        self.assertEqual(2, value_builder.record.size)
+        self.assertEqual(None, value_builder.value)
+
+    def test_value_builder_add_field_to_empty_record_and_existing_value(self):
+        # Given
+        value_builder = ValueBuilder()
+        value_builder.add(Text.create_from('Baz'))
+        item = Attr.create_attr('Moo', 'Cow')
+        # When
+        actual_response = value_builder.add(item)
+        # Then
+        self.assertTrue(actual_response)
+        self.assertEqual(2, value_builder.record.size)
+        self.assertEqual(None, value_builder.value)
+        self.assertIsInstance(value_builder.record.get_item(0), Text)
+        self.assertIsInstance(value_builder.record.get_item(1), Attr)
+
+    def test_value_builder_add_value_to_existing_record(self):
+        # Given
+        value_builder = ValueBuilder()
+        value_builder.add(Attr.create_attr('Moo', 'Cow'))
+        value_builder.add(Attr.create_attr('Boo', 'Ghost'))
+        item = Text.create_from('Baz')
+        # When
+        actual_response = value_builder.add(item)
+        # Then
+        self.assertTrue(actual_response)
+        self.assertEqual(3, value_builder.record.size)
+        self.assertEqual(None, value_builder.value)
+        self.assertIsInstance(value_builder.record.get_item(0), Attr)
+        self.assertIsInstance(value_builder.record.get_item(1), Attr)
+        self.assertIsInstance(value_builder.record.get_item(2), Text)
+
+    def test_value_builder_add_value_to_empty_record_and_value(self):
+        # Given
+        value_builder = ValueBuilder()
+        item = Text.create_from('Bar')
+        # When
+        actual_response = value_builder.add(item)
+        # Then
+        self.assertTrue(actual_response)
+        self.assertEqual(None, value_builder.record)
+        self.assertEqual('Bar', value_builder.value.value)
+
+    def test_value_builder_add_value_to_empty_record_exiting_value(self):
+        # Given
+        value_builder = ValueBuilder()
+        value_builder.add(Text.create_from('Bar'))
+        value_builder.add(Text.create_from('Boo'))
+        value_builder.add(Text.create_from('Foo'))
+        item = Text.create_from('Moo')
+        # When
+        actual_response = value_builder.add(item)
+        # Then
+        self.assertTrue(actual_response)
+        self.assertEqual(4, value_builder.record.size)
+        self.assertEqual(None, value_builder.value)
+        self.assertIsInstance(value_builder.record.get_item(0), Text)
+        self.assertIsInstance(value_builder.record.get_item(1), Text)
+
+    def test_value_builder_add_not_supported(self):
+        # Given
+        value_builder = ValueBuilder()
+        item = CustomItem()
+        # When
+        with self.assertRaises(TypeError) as error:
+            value_builder.add(item)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual(f'Item of type CustomItem is not supported by the Value Builder', message)
+
+    def test_value_builder_bind_with_record(self):
+        # Given
+        value_builder = ValueBuilder()
+        attr = Attr.create_attr('Foo', 'Bar')
+        value_builder.add(attr)
+        # When
+        actual = value_builder.bind()
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(1, actual.size)
+        self.assertEqual(attr, actual.get_item(0))
+
+    def test_value_builder_bind_with_value(self):
+        # Given
+        value_builder = ValueBuilder()
+        value = Text.create_from('Foo')
+        value_builder.add(value)
+        # When
+        actual = value_builder.bind()
+        # Then
+        self.assertEqual(value, actual)
+
+    def test_value_builder_bind_with_empty_record_and_value(self):
+        # Given
+        value_builder = ValueBuilder()
+        # When
+        actual = value_builder.bind()
+        # Then
+        self.assertEqual(Absent.get_absent(), actual)

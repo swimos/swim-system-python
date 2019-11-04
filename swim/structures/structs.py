@@ -160,10 +160,10 @@ class Value(Item):
             return obj
         elif isinstance(obj, str):
             return Text.create_from(obj)
-        elif isinstance(obj, (float, int)):
-            return Num.create_from(obj)
         elif isinstance(obj, bool):
             return Bool.create_from(obj)
+        elif isinstance(obj, (float, int)):
+            return Num.create_from(obj)
         else:
             raise TypeError(f'{str(obj)} cannot be converted to Value!')
 
@@ -756,7 +756,7 @@ class ValueBuilder:
         elif isinstance(item, Value):
             return self.__add_value(item)
         else:
-            raise TypeError(f'Item of type {type(item)} is not supported by the Value Builder')
+            raise TypeError(f'Item of type {type(item).__name__} is not supported by the Value Builder')
 
     def bind(self) -> Value:
         """
