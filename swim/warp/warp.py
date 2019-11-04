@@ -17,6 +17,16 @@ class Envelope(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def body(self) -> Value:
+        """
+        Return the body associated with the given Envelope object.
+
+        :return:                - The body of the given Envelope.
+        """
+        ...
+
     @abstractmethod
     def get_form(self) -> 'Form':
         """
@@ -90,17 +100,21 @@ class Envelope(ABC):
 
 class SyncRequest(Envelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Value = Value.absent()):
+    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Value = Value.absent()) -> None:
         self.node_uri = node_uri
         self.lane_uri = lane_uri
         self.prio = prio
         self.rate = rate
-        self.body = body
+        self.__body = body
         self.form = SyncRequestForm()
 
     @property
     def tag(self) -> str:
         return 'sync'
+
+    @property
+    def body(self) -> Value:
+        return self.__body
 
     def get_form(self) -> 'Form':
         return self.form
@@ -108,15 +122,19 @@ class SyncRequest(Envelope):
 
 class SyncedResponse(Envelope):
 
-    def __init__(self, node_uri, lane_uri, body=Value.absent()):
+    def __init__(self, node_uri: str, lane_uri: str, body: Value = Value.absent()) -> None:
         self.node_uri = node_uri
         self.lane_uri = lane_uri
-        self.body = body
+        self.__body = body
         self.form = SyncedResponseForm()
 
     @property
     def tag(self) -> str:
         return 'synced'
+
+    @property
+    def body(self) -> Value:
+        return self.__body
 
     def get_form(self) -> 'Form':
         return self.form
@@ -124,17 +142,21 @@ class SyncedResponse(Envelope):
 
 class LinkedResponse(Envelope):
 
-    def __init__(self, node_uri, lane_uri, prio=0.0, rate=0.0, body=Value.absent()):
+    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Value = Value.absent()) -> None:
         self.node_uri = node_uri
         self.lane_uri = lane_uri
         self.prio = prio
         self.rate = rate
-        self.body = body
+        self.__body = body
         self.form = LinkedResponseForm()
 
     @property
     def tag(self) -> str:
         return 'linked'
+
+    @property
+    def body(self) -> Value:
+        return self.__body
 
     def get_form(self) -> 'Form':
         return self.form
@@ -142,15 +164,19 @@ class LinkedResponse(Envelope):
 
 class CommandMessage(Envelope):
 
-    def __init__(self, node_uri, lane_uri, body=Value.absent()):
+    def __init__(self, node_uri: str, lane_uri: str, body: Value = Value.absent()) -> None:
         self.node_uri = node_uri
         self.lane_uri = lane_uri
-        self.body = body
+        self.__body = body
         self.form = CommandMessageForm()
 
     @property
     def tag(self) -> str:
         return 'command'
+
+    @property
+    def body(self) -> Value:
+        return self.__body
 
     def get_form(self) -> 'Form':
         return self.form
@@ -158,15 +184,19 @@ class CommandMessage(Envelope):
 
 class EventMessage(Envelope):
 
-    def __init__(self, node_uri, lane_uri, body=Value.absent()):
+    def __init__(self, node_uri: str, lane_uri: str, body: Value = Value.absent()) -> None:
         self.node_uri = node_uri
         self.lane_uri = lane_uri
-        self.body = body
+        self.__body = body
         self.form = EventMessageForm()
 
     @property
     def tag(self) -> str:
         return 'event'
+
+    @property
+    def body(self) -> Value:
+        return self.__body
 
     def get_form(self) -> 'Form':
         return self.form
