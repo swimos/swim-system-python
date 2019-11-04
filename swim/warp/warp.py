@@ -36,22 +36,6 @@ class Envelope(ABC):
         """
         ...
 
-    async def to_recon(self) -> str:
-        """
-        Create a Recon message in string format representing this Envelope.
-
-        :return:                - Recon message in string format from this Envelope.
-        """
-        return await Recon.to_string(self.to_value())
-
-    def to_value(self) -> Value:
-        """
-        Create a Swim value object representing this Envelope.
-
-        :return:                - Swim value object from this Envelope.
-        """
-        return self.get_form().mold(self)
-
     @staticmethod
     async def parse_recon(recon_message: str) -> 'Envelope':
         """
@@ -96,6 +80,22 @@ class Envelope(ABC):
             return CommandMessageForm()
         else:
             raise TypeError(f'Invalid form tag: {tag}')
+
+    async def to_recon(self) -> str:
+        """
+        Create a Recon message in string format representing this Envelope.
+
+        :return:                - Recon message in string format from this Envelope.
+        """
+        return await Recon.to_string(self.to_value())
+
+    def to_value(self) -> Value:
+        """
+        Create a Swim value object representing this Envelope.
+
+        :return:                - Swim value object from this Envelope.
+        """
+        return self.get_form().mold(self)
 
 
 class SyncRequest(Envelope):
@@ -220,6 +220,10 @@ class Form(ABC):
 
 class LinkAddressedForm(Form):
 
+    @abstractmethod
+    def create_from(self, node_uri, lane_uri, prio, rate, body):
+        ...
+
     def mold(self, envelope) -> Value:
 
         if envelope is not None:
@@ -238,10 +242,6 @@ class LinkAddressedForm(Form):
             return Attr.create_attr(self.tag, headers).concat(envelope.body)
         else:
             return Item.extant()
-
-    @abstractmethod
-    def create_from(self, node_uri, lane_uri, prio, rate, body):
-        ...
 
     def cast(self, item):
         value = item
@@ -273,6 +273,10 @@ class LinkAddressedForm(Form):
 
 class LaneAddressedForm(Form):
 
+    @abstractmethod
+    def create_from(self, node_uri, lane_uri, body):
+        ...
+
     def mold(self, envelope) -> Value:
 
         if envelope is not None:
@@ -280,10 +284,6 @@ class LaneAddressedForm(Form):
             return Attr.create_attr(self.tag, headers).concat(envelope.body)
         else:
             return Item.extant()
-
-    @abstractmethod
-    def create_from(self, node_uri, lane_uri, body):
-        ...
 
     def cast(self, item):
         value = item
