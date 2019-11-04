@@ -70,7 +70,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual(0.0, actual.rate)
         self.assertEqual('sync', actual.tag)
         self.assertEqual(Absent.get_absent(), actual.body)
-        self.assertIsInstance(actual.get_form(), SyncRequestForm)
+        self.assertIsInstance(actual.form, SyncRequestForm)
 
     def test_sync_request_existing_body(self):
         # Given
@@ -88,7 +88,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual(2.0, actual.rate)
         self.assertEqual('sync', actual.tag)
         self.assertEqual(body, actual.body)
-        self.assertIsInstance(actual.get_form(), SyncRequestForm)
+        self.assertIsInstance(actual.form, SyncRequestForm)
 
     def test_synced_response_empty_body(self):
         # Given
@@ -101,7 +101,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('bar_synced_lane', actual.lane_uri)
         self.assertEqual('synced', actual.tag)
         self.assertEqual(Absent.get_absent(), actual.body)
-        self.assertIsInstance(actual.get_form(), SyncedResponseForm)
+        self.assertIsInstance(actual.form, SyncedResponseForm)
 
     def test_synced_response_existing_body(self):
         # Given
@@ -115,7 +115,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('bar_synced_lane', actual.lane_uri)
         self.assertEqual('synced', actual.tag)
         self.assertEqual(body, actual.body)
-        self.assertIsInstance(actual.get_form(), SyncedResponseForm)
+        self.assertIsInstance(actual.form, SyncedResponseForm)
 
     def test_linked_response_empty_body(self):
         # Given
@@ -128,7 +128,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('bar_linked_lane', actual.lane_uri)
         self.assertEqual('linked', actual.tag)
         self.assertEqual(Absent.get_absent(), actual.body)
-        self.assertIsInstance(actual.get_form(), LinkedResponseForm)
+        self.assertIsInstance(actual.form, LinkedResponseForm)
 
     def test_linked_response_existing_body(self):
         # Given
@@ -144,7 +144,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('bar_linked_lane', actual.lane_uri)
         self.assertEqual('linked', actual.tag)
         self.assertEqual(body, actual.body)
-        self.assertIsInstance(actual.get_form(), LinkedResponseForm)
+        self.assertIsInstance(actual.form, LinkedResponseForm)
 
     def test_command_message_empty_body(self):
         # Given
@@ -157,7 +157,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('bar_command_lane', actual.lane_uri)
         self.assertEqual('command', actual.tag)
         self.assertEqual(Absent.get_absent(), actual.body)
-        self.assertIsInstance(actual.get_form(), CommandMessageForm)
+        self.assertIsInstance(actual.form, CommandMessageForm)
 
     def test_command_message_existing_body(self):
         # Given
@@ -171,7 +171,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('bar_command_lane', actual.lane_uri)
         self.assertEqual('command', actual.tag)
         self.assertEqual(body, actual.body)
-        self.assertIsInstance(actual.get_form(), CommandMessageForm)
+        self.assertIsInstance(actual.form, CommandMessageForm)
 
     def test_event_message_empty_body(self):
         # Given
@@ -184,7 +184,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('bar_event_lane', actual.lane_uri)
         self.assertEqual('event', actual.tag)
         self.assertEqual(Absent.get_absent(), actual.body)
-        self.assertIsInstance(actual.get_form(), EventMessageForm)
+        self.assertIsInstance(actual.form, EventMessageForm)
 
     def test_event_message_existing_body(self):
         # Given
@@ -198,4 +198,4 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('bar_event_lane', actual.lane_uri)
         self.assertEqual('event', actual.tag)
         self.assertEqual(body, actual.body)
-        self.assertIsInstance(actual.get_form(), EventMessageForm)
+        self.assertIsInstance(actual.form, EventMessageForm)

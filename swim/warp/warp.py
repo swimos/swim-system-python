@@ -7,34 +7,12 @@ from swim.structures.structs import Item, Record, Attr, Value, Num, RecordMap
 
 class Envelope(ABC):
 
-    @property
-    @abstractmethod
-    def tag(self) -> str:
-        """
-        Return the tag associated with the given Envelope object.
-
-        :return:                - Name of the tag as string value.
-        """
-        ...
-
-    @property
-    @abstractmethod
-    def body(self) -> Value:
-        """
-        Return the body associated with the given Envelope object.
-
-        :return:                - The body of the given Envelope.
-        """
-        ...
-
-    @abstractmethod
-    def get_form(self) -> 'Form':
-        """
-        Return the Form object associated with the given Envelope object.
-
-        :return:                - Swim Form object.
-        """
-        ...
+    def __init__(self, node_uri, lane_uri, tag, form, body: Value = Value.absent()):
+        self.node_uri = node_uri
+        self.lane_uri = lane_uri
+        self.tag = tag
+        self.form = form
+        self.body = body
 
     @staticmethod
     async def parse_recon(recon_message: str) -> 'Envelope':
@@ -95,111 +73,51 @@ class Envelope(ABC):
 
         :return:                - Swim value object from this Envelope.
         """
-        return self.get_form().mold(self)
+        return self.form.mold(self)
 
 
-class SyncRequest(Envelope):
+class LinkAddressedEnvelope(Envelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Value = Value.absent()) -> None:
-        self.node_uri = node_uri
-        self.lane_uri = lane_uri
+    def __init__(self, node_uri, lane_uri, prio, rate, tag, form, body: Value = Value.absent()):
+        super().__init__(node_uri, lane_uri, tag, form, body)
         self.prio = prio
         self.rate = rate
-        self.__body = body
-        self.form = SyncRequestForm()
-
-    @property
-    def tag(self) -> str:
-        return 'sync'
-
-    @property
-    def body(self) -> Value:
-        return self.__body
-
-    def get_form(self) -> 'Form':
-        return self.form
 
 
-class SyncedResponse(Envelope):
+class LaneAddressedEnvelope(Envelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, body: Value = Value.absent()) -> None:
-        self.node_uri = node_uri
-        self.lane_uri = lane_uri
-        self.__body = body
-        self.form = SyncedResponseForm()
-
-    @property
-    def tag(self) -> str:
-        return 'synced'
-
-    @property
-    def body(self) -> Value:
-        return self.__body
-
-    def get_form(self) -> 'Form':
-        return self.form
+    def __init__(self, node_uri, lane_uri, tag, form, body=Value.absent()):
+        super().__init__(node_uri, lane_uri, tag, form, body)
 
 
-class LinkedResponse(Envelope):
+class SyncRequest(LinkAddressedEnvelope):
 
     def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Value = Value.absent()) -> None:
-        self.node_uri = node_uri
-        self.lane_uri = lane_uri
-        self.prio = prio
-        self.rate = rate
-        self.__body = body
-        self.form = LinkedResponseForm()
-
-    @property
-    def tag(self) -> str:
-        return 'linked'
-
-    @property
-    def body(self) -> Value:
-        return self.__body
-
-    def get_form(self) -> 'Form':
-        return self.form
+        super().__init__(node_uri, lane_uri, prio, rate, tag='sync', form=SyncRequestForm(), body=body)
 
 
-class CommandMessage(Envelope):
+class LinkedResponse(LinkAddressedEnvelope):
+
+    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Value = Value.absent()) -> None:
+        super().__init__(node_uri, lane_uri, prio, rate, tag='linked', form=LinkedResponseForm(), body=body)
+
+
+class SyncedResponse(LaneAddressedEnvelope):
 
     def __init__(self, node_uri: str, lane_uri: str, body: Value = Value.absent()) -> None:
-        self.node_uri = node_uri
-        self.lane_uri = lane_uri
-        self.__body = body
-        self.form = CommandMessageForm()
-
-    @property
-    def tag(self) -> str:
-        return 'command'
-
-    @property
-    def body(self) -> Value:
-        return self.__body
-
-    def get_form(self) -> 'Form':
-        return self.form
+        super().__init__(node_uri, lane_uri, tag='synced', form=SyncedResponseForm(), body=body)
 
 
-class EventMessage(Envelope):
+class CommandMessage(LaneAddressedEnvelope):
 
     def __init__(self, node_uri: str, lane_uri: str, body: Value = Value.absent()) -> None:
-        self.node_uri = node_uri
-        self.lane_uri = lane_uri
-        self.__body = body
-        self.form = EventMessageForm()
+        super().__init__(node_uri, lane_uri, tag='command', form=CommandMessageForm(), body=body)
 
-    @property
-    def tag(self) -> str:
-        return 'event'
 
-    @property
-    def body(self) -> Value:
-        return self.__body
+class EventMessage(LaneAddressedEnvelope):
 
-    def get_form(self) -> 'Form':
-        return self.form
+    def __init__(self, node_uri: str, lane_uri: str, body: Value = Value.absent()) -> None:
+        super().__init__(node_uri, lane_uri, tag='event', form=EventMessageForm(), body=body)
 
 
 class Form(ABC):
@@ -210,11 +128,11 @@ class Form(ABC):
         ...
 
     @abstractmethod
-    def cast(self, item):
+    def cast(self, item: RecordMap) -> 'Envelope':
         ...
 
     @abstractmethod
-    def mold(self, envelope) -> Value:
+    def mold(self, envelope: 'Envelope') -> Value:
         ...
 
 
@@ -224,7 +142,7 @@ class LinkAddressedForm(Form):
     def create_from(self, node_uri, lane_uri, prio, rate, body):
         ...
 
-    def mold(self, envelope) -> Value:
+    def mold(self, envelope: 'LinkAddressedEnvelope') -> Value:
 
         if envelope is not None:
 
@@ -277,7 +195,7 @@ class LaneAddressedForm(Form):
     def create_from(self, node_uri, lane_uri, body):
         ...
 
-    def mold(self, envelope) -> Value:
+    def mold(self, envelope: 'LaneAddressedEnvelope') -> Value:
 
         if envelope is not None:
             headers = Record.create().add_slot('node', envelope.node_uri).add_slot('lane', envelope.lane_uri)
