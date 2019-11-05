@@ -1,5 +1,6 @@
 import math
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from swim.recon.recon import Recon
 from swim.structures.structs import Item, Record, Attr, Value, Num, RecordMap
@@ -169,7 +170,7 @@ class LinkAddressedForm(Form):
         """
         ...
 
-    def mold(self, envelope: 'LinkAddressedEnvelope') -> 'Value':
+    def mold(self, envelope: Optional['LinkAddressedEnvelope']) -> 'Value':
 
         if envelope is not None:
 
@@ -188,7 +189,7 @@ class LinkAddressedForm(Form):
         else:
             return Item.extant()
 
-    def cast(self, value: RecordMap) -> 'Envelope':
+    def cast(self, value: RecordMap) -> Optional['Envelope']:
         headers = value.get_headers(self.tag)
         node_uri = None
         lane_uri = None
@@ -227,7 +228,7 @@ class LaneAddressedForm(Form):
         """
         ...
 
-    def mold(self, envelope: 'LaneAddressedEnvelope') -> 'Value':
+    def mold(self, envelope: Optional['LaneAddressedEnvelope']) -> 'Value':
 
         if envelope is not None:
             headers = Record.create().add_slot('node', envelope.node_uri).add_slot('lane', envelope.lane_uri)
@@ -235,7 +236,7 @@ class LaneAddressedForm(Form):
         else:
             return Item.extant()
 
-    def cast(self, item) -> 'Envelope':
+    def cast(self, item: 'RecordMap') -> Optional['Envelope']:
         value = item
         headers = value.get_headers(self.tag)
         node_uri = None
