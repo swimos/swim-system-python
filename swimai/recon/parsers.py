@@ -6,34 +6,6 @@ from swimai.structures.structs import ValueBuilder, Text, Bool, Attr, Value, Rec
 
 class ReconParser:
 
-    async def parse_block_string(self, recon_string):
-        message = InputMessage(recon_string)
-        return await self.parse_block(message)
-
-    async def parse_block(self, message):
-        return await BlockParser.parse(message=message, parser=self)
-
-    async def parse_block_expression(self, message):
-        return await self.parse_attr_expression(message)
-
-    async def parse_attr_expression(self, message, builder=None):
-        return await AttrExpressionParser.parse(message=message, parser=self, builder=builder)
-
-    async def parse_record(self, message, builder):
-        return await RecordParser.parse(message=message, parser=self, builder=builder)
-
-    async def parse_string(self, message):
-        return await StringParser.parse(message=message, parser=self)
-
-    async def parse_number(self, message):
-        return await NumberParser.parse(message=message, parser=self)
-
-    async def parse_literal(self, message, builder=None):
-        return await LiteralParser.parse(message=message, parser=self, builder=builder)
-
-
-class ReconStructureParser(ReconParser):
-
     @staticmethod
     async def create_ident(value):
         if isinstance(value, str):
@@ -64,8 +36,33 @@ class ReconStructureParser(ReconParser):
     async def create_number(value):
         return Num.create_from(value)
 
+    async def parse_block_string(self, recon_string):
+        message = InputMessage(recon_string)
+        return await self.parse_block(message)
+
+    async def parse_block(self, message):
+        return await BlockParser.parse(message=message, parser=self)
+
+    async def parse_block_expression(self, message):
+        return await self.parse_attr_expression(message)
+
+    async def parse_record(self, message, builder):
+        return await RecordParser.parse(message=message, parser=self, builder=builder)
+
+    async def parse_attr_expression(self, message, builder=None):
+        return await AttrExpressionParser.parse(message=message, parser=self, builder=builder)
+
     async def parse_attr(self, message):
         return await AttrParser.parse(message=message, parser=self)
+
+    async def parse_string(self, message):
+        return await StringParser.parse(message=message, parser=self)
+
+    async def parse_number(self, message):
+        return await NumberParser.parse(message=message, parser=self)
+
+    async def parse_literal(self, message, builder=None):
+        return await LiteralParser.parse(message=message, parser=self, builder=builder)
 
     async def parse_ident(self, message):
         return await IdentParser.parse(message=message, parser=self)

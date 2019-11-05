@@ -232,6 +232,60 @@ class TestUtils(unittest.TestCase):
         self.assertFalse(actual)
 
     @async_test
+    async def test_is_valid_ident(self):
+        # Given
+        value = 'test1'
+        # When
+        actual = await ReconUtils.is_ident(value)
+        # Then
+        self.assertTrue(actual)
+
+    @async_test
+    async def test_is_invalid_ident_empty(self):
+        # Given
+        value = ''
+        # When
+        actual = await ReconUtils.is_ident(value)
+        # Then
+        self.assertFalse(actual)
+
+    @async_test
+    async def test_is_invalid_ident_invalid_start_char(self):
+        # Given
+        value = '1test'
+        # When
+        actual = await ReconUtils.is_ident(value)
+        # Then
+        self.assertFalse(actual)
+
+    @async_test
+    async def test_is_invalid_ident_invalid_middle_char(self):
+        # Given
+        value = 'test$test'
+        # When
+        actual = await ReconUtils.is_ident(value)
+        # Then
+        self.assertFalse(actual)
+
+    @async_test
+    async def test_is_invalid_ident_invalid_end_char(self):
+        # Given
+        value = 'test$'
+        # When
+        actual = await ReconUtils.is_ident(value)
+        # Then
+        self.assertFalse(actual)
+
+    @async_test
+    async def test_is_invalid_ident_invalid_all_chars(self):
+        # Given
+        value = '^%&*'
+        # When
+        actual = await ReconUtils.is_ident(value)
+        # Then
+        self.assertFalse(actual)
+
+    @async_test
     async def test_is_valid_space_char_space(self):
         # Given
         character = ' '

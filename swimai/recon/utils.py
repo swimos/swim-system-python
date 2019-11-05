@@ -35,6 +35,26 @@ class ReconUtils:
             return False
 
     @staticmethod
+    async def is_ident(value: str) -> bool:
+        """
+        Check if a string value is a valid identifier.
+
+        :param value:      - Value to check.
+        :return:           - True if the value is valid identifier, False otherwise.
+        """
+        if len(value) == 0:
+            return False
+
+        if not await ReconUtils.is_ident_start_char(value[0]):
+            return False
+
+        for char in value:
+            if not await ReconUtils.is_ident_char(char):
+                return False
+
+        return True
+
+    @staticmethod
     async def is_space(char: (str, int)) -> bool:
         """
         Check if a character is a space character.

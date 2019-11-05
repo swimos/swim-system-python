@@ -2,8 +2,8 @@ import unittest
 
 from aiounittest import async_test
 from swimai import Recon, RecordMap, Attr, Text, Slot
-from swimai.recon.parsers import ReconStructureParser
-from swimai.recon.writers import ReconStructureWriter
+from swimai.recon.parsers import ReconParser
+from swimai.recon.writers import ReconWriter
 
 
 class TestRecon(unittest.TestCase):
@@ -34,36 +34,36 @@ class TestRecon(unittest.TestCase):
         # Then
         self.assertEqual('@remove(key:foo)', actual)
 
-    def test_get_structure_writer_once(self):
+    def test_get_writer_once(self):
         # When
-        actual = Recon.get_structure_writer()
+        actual = Recon.get_writer()
         # Then
-        self.assertIsInstance(actual, ReconStructureWriter)
-        self.assertEqual(Recon.get_structure_writer(), actual)
+        self.assertIsInstance(actual, ReconWriter)
+        self.assertEqual(Recon.get_writer(), actual)
 
-    def test_get_structure_writer_multiple(self):
+    def test_get_writer_multiple(self):
         # Given
-        expected = Recon.get_structure_writer()
+        expected = Recon.get_writer()
         # When
-        actual = Recon.get_structure_writer()
+        actual = Recon.get_writer()
         # Then
-        self.assertIsInstance(actual, ReconStructureWriter)
+        self.assertIsInstance(actual, ReconWriter)
         self.assertEqual(expected, actual)
-        self.assertEqual(Recon.get_structure_writer(), actual)
+        self.assertEqual(Recon.get_writer(), actual)
 
-    def get_structure_parser_once(self):
+    def get_parser_once(self):
         # When
-        actual = Recon.get_structure_parser()
+        actual = Recon.get_parser()
         # Then
-        self.assertIsInstance(actual, ReconStructureParser)
-        self.assertEqual(Recon.get_structure_parser(), actual)
+        self.assertIsInstance(actual, ReconParser)
+        self.assertEqual(Recon.get_parser(), actual)
 
-    def get_structure_parser_multiple(self):
+    def get_parser_multiple(self):
         # Given
-        expected = Recon.get_structure_parser()
+        expected = Recon.get_parser()
         # When
-        actual = Recon.get_structure_parser()
+        actual = Recon.get_parser()
         # Then
-        self.assertIsInstance(actual, ReconStructureParser)
+        self.assertIsInstance(actual, ReconParser)
         self.assertEqual(expected, actual)
-        self.assertEqual(Recon.get_structure_parser(), actual)
+        self.assertEqual(Recon.get_parser(), actual)

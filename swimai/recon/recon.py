@@ -1,12 +1,12 @@
-from swimai.structures.structs import Value, Item
-from swimai.recon.parsers import ReconStructureParser
-from swimai.recon.writers import ReconStructureWriter
+from swimai.structures.structs import Value
+from swimai.recon.parsers import ReconParser
+from swimai.recon.writers import ReconWriter
 
 
 class Recon:
     # Singletons
-    structure_writer = None
-    structure_parser = None
+    writer = None
+    parser = None
 
     @staticmethod
     async def parse(recon_string: str) -> 'Value':
@@ -16,7 +16,7 @@ class Recon:
         :param recon_string:        - Recon message in string format.
         :return:                    - Swim structure object representing the Recon message.
         """
-        return await Recon.get_structure_parser().parse_block_string(recon_string)
+        return await Recon.get_parser().parse_block_string(recon_string)
 
     @staticmethod
     async def to_string(item: 'Value') -> str:
@@ -26,30 +26,30 @@ class Recon:
         :param item:               - Swim structure object.
         :return:                   - Recon message in string format representing the Swim structure object.
         """
-        return await Recon.get_structure_writer().write_item(item)
+        return await Recon.get_writer().write_item(item)
 
     @staticmethod
-    def get_structure_writer() -> 'ReconStructureWriter':
+    def get_writer() -> 'ReconWriter':
         """
         Get a Recon writer if one already exists.
         Otherwise, instantiate a new one.
 
         :return:        - Recon writer.
         """
-        if Recon.structure_writer is None:
-            Recon.structure_writer = ReconStructureWriter()
+        if Recon.writer is None:
+            Recon.writer = ReconWriter()
 
-        return Recon.structure_writer
+        return Recon.writer
 
     @staticmethod
-    def get_structure_parser() -> 'ReconStructureParser':
+    def get_parser() -> 'ReconParser':
         """
         Get a Recon parser if one already exists.
         Otherwise, instantiate a new one.
 
         :return:        - Recon parser.
         """
-        if Recon.structure_parser is None:
-            Recon.structure_parser = ReconStructureParser()
+        if Recon.parser is None:
+            Recon.parser = ReconParser()
 
-        return Recon.structure_parser
+        return Recon.parser
