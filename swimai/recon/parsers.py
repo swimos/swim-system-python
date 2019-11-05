@@ -1,7 +1,7 @@
 from abc import ABC
 
-from swim.recon.utils import ReconUtils
-from swim.structures.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num
+from swimai.recon.utils import ReconUtils
+from swimai.structures.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num
 
 
 class Parser(ABC):

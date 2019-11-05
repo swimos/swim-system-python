@@ -3,9 +3,9 @@ import concurrent.futures
 from threading import Thread
 import websockets
 
-from swim.client.downlinks.value_downlink import ValueDownlink
-from swim.client.downlinks.ws_connection import WSConnection
-from swim.warp.warp import CommandMessage
+from swimai.client.downlinks.value_downlink import ValueDownlink
+from swimai.client.downlinks.ws_connection import WSConnection
+from swimai.warp.warp import CommandMessage
 
 
 class SwimClient:

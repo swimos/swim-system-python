@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from swim.recon.utils import ReconUtils
-from swim.structures.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant, Bool
+from swimai.recon.utils import ReconUtils
+from swimai.structures.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant, Bool
 
 
 class Writer(ABC):

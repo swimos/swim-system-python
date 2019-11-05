@@ -1,4 +1,4 @@
-from swim import Item
+from swimai import Item
 
 
 class CustomString:

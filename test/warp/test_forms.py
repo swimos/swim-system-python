@@ -1,8 +1,8 @@
 import math
 import unittest
 
-from swim import Value, Text, RecordMap, Slot, Attr, Num
-from swim.warp.warp import SyncedResponseForm, SyncedResponse, SyncRequestForm, SyncRequest, LinkedResponseForm, CommandMessageForm, \
+from swimai import Value, Text, RecordMap, Slot, Attr, Num
+from swimai.warp.warp import SyncedResponseForm, SyncedResponse, SyncRequestForm, SyncRequest, LinkedResponseForm, CommandMessageForm, \
     EventMessageForm, LinkedResponse, CommandMessage, EventMessage
 
 

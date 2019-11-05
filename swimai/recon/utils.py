@@ -1,7 +1,10 @@
+from typing import Optional
+
+
 class ReconUtils:
 
     @staticmethod
-    async def is_ident_start_char(char):
+    async def is_ident_start_char(char: (str, int)) -> bool:
         """
         Check if a character is a valid first character of an identifier.
         Valid start characters for identifiers: [A-Za-z_]
@@ -17,7 +20,7 @@ class ReconUtils:
             return False
 
     @staticmethod
-    async def is_ident_char(char):
+    async def is_ident_char(char: (str, int)) -> bool:
         """
         Check if a character is a valid character of an identifier.
         Valid characters for identifiers: [A-Za-z_-]
@@ -32,7 +35,7 @@ class ReconUtils:
             return False
 
     @staticmethod
-    async def is_space(char):
+    async def is_space(char: (str, int)) -> bool:
         """
         Check if a character is a space character.
 
@@ -46,7 +49,7 @@ class ReconUtils:
             return False
 
     @staticmethod
-    async def is_digit(char):
+    async def is_digit(char: (str, int)) -> bool:
         """
        Check if a character is a digit.
 
@@ -60,7 +63,7 @@ class ReconUtils:
             return False
 
     @staticmethod
-    async def to_ord(char):
+    async def to_ord(char: (str, int)) -> Optional[int]:
         """
         Convert a character to its integer representation.
 

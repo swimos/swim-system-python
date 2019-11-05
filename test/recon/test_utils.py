@@ -1,8 +1,7 @@
 import unittest
 
 from aiounittest import async_test
-
-from swim.recon.utils import ReconUtils
+from swimai.recon.utils import ReconUtils
 
 
 class TestUtils(unittest.TestCase):
@@ -92,6 +91,15 @@ class TestUtils(unittest.TestCase):
     async def test_is_invalid_ident_start_char_dollar(self):
         # Given
         character = '$'
+        # When
+        actual = await ReconUtils.is_ident_start_char(character)
+        # Then
+        self.assertFalse(actual)
+
+    @async_test
+    async def test_is_invalid_ident_start_char_empty(self):
+        # Given
+        character = ''
         # When
         actual = await ReconUtils.is_ident_start_char(character)
         # Then
@@ -215,6 +223,15 @@ class TestUtils(unittest.TestCase):
         self.assertFalse(actual)
 
     @async_test
+    async def test_is_invalid_ident_char_empty(self):
+        # Given
+        character = ''
+        # When
+        actual = await ReconUtils.is_ident_char(character)
+        # Then
+        self.assertFalse(actual)
+
+    @async_test
     async def test_is_valid_space_char_space(self):
         # Given
         character = ' '
@@ -245,6 +262,15 @@ class TestUtils(unittest.TestCase):
     async def test_is_invalid_space_char_letter(self):
         # Given
         character = 'l'
+        # When
+        actual = await ReconUtils.is_space(character)
+        # Then
+        self.assertFalse(actual)
+
+    @async_test
+    async def test_is_invalid_space_char_empty(self):
+        # Given
+        character = ''
         # When
         actual = await ReconUtils.is_space(character)
         # Then
@@ -303,3 +329,39 @@ class TestUtils(unittest.TestCase):
         actual = await ReconUtils.is_digit(character)
         # Then
         self.assertFalse(actual)
+
+    @async_test
+    async def test_is_invalid_digit_char_empty(self):
+        # Given
+        character = ''
+        # When
+        actual = await ReconUtils.is_digit(character)
+        # Then
+        self.assertFalse(actual)
+
+    @async_test
+    async def test_to_ord_str(self):
+        # Given
+        character = 'p'
+        # When
+        actual = await ReconUtils.to_ord(character)
+        # Then
+        self.assertEqual(112, actual)
+
+    @async_test
+    async def test_to_ord_int(self):
+        # Given
+        character = 3
+        # When
+        actual = await ReconUtils.to_ord(character)
+        # Then
+        self.assertEqual(3, actual)
+
+    @async_test
+    async def test_to_ord_other(self):
+        # Given
+        character = 3.12
+        # When
+        actual = await ReconUtils.to_ord(character)
+        # Then
+        self.assertEqual(None, actual)

@@ -2,8 +2,8 @@ import asyncio
 from collections import Callable
 import inspect
 
-from swim.structures.structs import Absent
-from swim.warp.warp import SyncRequest, CommandMessage, Envelope
+from swimai.structures.structs import Absent
+from swimai.warp.warp import SyncRequest, CommandMessage, Envelope
 
 
 class ValueDownlink:

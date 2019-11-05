@@ -1,6 +1,6 @@
 import unittest
 
-from swim import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value, RecordFlags, RecordMapView, ValueBuilder
+from swimai import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value, RecordFlags, RecordMapView, ValueBuilder
 from test.test_utils import CustomString, CustomItem
 
 

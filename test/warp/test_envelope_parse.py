@@ -2,7 +2,7 @@ import asyncio
 import unittest
 
 from aiounittest import async_test
-from swim.warp.warp import Envelope
+from swimai.warp.warp import Envelope
 
 
 class TestParser(unittest.TestCase):

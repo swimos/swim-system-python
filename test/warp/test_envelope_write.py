@@ -2,8 +2,8 @@ import asyncio
 import unittest
 
 from aiounittest import async_test
-from swim import Num, Text, RecordMap, Attr, Slot, Extant, Bool
-from swim.warp.warp import SyncRequest, SyncedResponse, EventMessage, LinkedResponse, CommandMessage
+from swimai import Num, Text, RecordMap, Attr, Slot, Extant, Bool
+from swimai.warp.warp import SyncRequest, SyncedResponse, EventMessage, LinkedResponse, CommandMessage
 
 
 class TestWriters(unittest.TestCase):

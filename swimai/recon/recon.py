@@ -1,5 +1,6 @@
-from swim.recon.parsers import ReconStructureParser
-from swim.recon.writers import ReconStructureWriter
+from swimai.structures.structs import Value
+from swimai.recon.parsers import ReconStructureParser
+from swimai.recon.writers import ReconStructureWriter
 
 
 class Recon:
@@ -8,7 +9,7 @@ class Recon:
     structure_parser = None
 
     @staticmethod
-    async def parse(recon_string):
+    async def parse(recon_string: str) -> 'Value':
         """
         Parse a Recon message in string format and return a Swim structure object.
 

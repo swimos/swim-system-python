@@ -1,7 +1,7 @@
 import unittest
 
-from swim import Absent, Text
-from swim.warp.warp import Envelope, SyncRequestForm, SyncedResponseForm, LinkedResponseForm, EventMessageForm, CommandMessageForm, SyncRequest, \
+from swimai import Absent, Text
+from swimai.warp.warp import Envelope, SyncRequestForm, SyncedResponseForm, LinkedResponseForm, EventMessageForm, CommandMessageForm, SyncRequest, \
     SyncedResponse, LinkedResponse, CommandMessage, EventMessage
 
 

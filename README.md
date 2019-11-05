@@ -7,6 +7,7 @@ The **Swim System** Python implementation provides a standalone set of
 frameworks for building massively real-time streaming WARP clients.
 <br>
 ## Installation
+`pip install swimai`
 ## Usage
 
 ## Development
