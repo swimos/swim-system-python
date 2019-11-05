@@ -1,4 +1,4 @@
-from swimai.structures.structs import Value
+from swimai.structures.structs import Value, Item
 from swimai.recon.parsers import ReconStructureParser
 from swimai.recon.writers import ReconStructureWriter
 
@@ -19,7 +19,7 @@ class Recon:
         return await Recon.get_structure_parser().parse_block_string(recon_string)
 
     @staticmethod
-    async def to_string(item):
+    async def to_string(item: 'Value') -> str:
         """
         Parse a Swim structure object to a Recon string.
 
@@ -29,7 +29,7 @@ class Recon:
         return await Recon.get_structure_writer().write_item(item)
 
     @staticmethod
-    def get_structure_writer():
+    def get_structure_writer() -> 'ReconStructureWriter':
         """
         Get a Recon writer if one already exists.
         Otherwise, instantiate a new one.
@@ -42,7 +42,7 @@ class Recon:
         return Recon.structure_writer
 
     @staticmethod
-    def get_structure_parser():
+    def get_structure_parser() -> 'ReconStructureParser':
         """
         Get a Recon parser if one already exists.
         Otherwise, instantiate a new one.

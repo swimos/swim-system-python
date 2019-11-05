@@ -1,17 +1,87 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from swimai.recon.utils import ReconUtils
 from swimai.structures.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num
 
 
+class ReconParser:
+
+    async def parse_block_string(self, recon_string):
+        message = InputMessage(recon_string)
+        return await self.parse_block(message)
+
+    async def parse_block(self, message):
+        return await BlockParser.parse(message=message, parser=self)
+
+    async def parse_block_expression(self, message):
+        return await self.parse_attr_expression(message)
+
+    async def parse_attr_expression(self, message, builder=None):
+        return await AttrExpressionParser.parse(message=message, parser=self, builder=builder)
+
+    async def parse_record(self, message, builder):
+        return await RecordParser.parse(message=message, parser=self, builder=builder)
+
+    async def parse_string(self, message):
+        return await StringParser.parse(message=message, parser=self)
+
+    async def parse_number(self, message):
+        return await NumberParser.parse(message=message, parser=self)
+
+    async def parse_literal(self, message, builder=None):
+        return await LiteralParser.parse(message=message, parser=self, builder=builder)
+
+
+class ReconStructureParser(ReconParser):
+
+    @staticmethod
+    async def create_ident(value):
+        if isinstance(value, str):
+            if value == 'true':
+                return Bool.create_from(True)
+            elif value == 'false':
+                return Bool.create_from(False)
+
+        return Text.create_from(value)
+
+    @staticmethod
+    async def create_attr(key, value=Value.extant()):
+        return Attr.create_attr(key, value)
+
+    @staticmethod
+    async def create_record_builder():
+        return Record.create()
+
+    @staticmethod
+    async def create_value_builder():
+        return ValueBuilder()
+
+    @staticmethod
+    async def create_slot(key, value=None):
+        return Slot.create_slot(key, value)
+
+    @staticmethod
+    async def create_number(value):
+        return Num.create_from(value)
+
+    async def parse_attr(self, message):
+        return await AttrParser.parse(message=message, parser=self)
+
+    async def parse_ident(self, message):
+        return await IdentParser.parse(message=message, parser=self)
+
+
 class Parser(ABC):
-    pass
+    @staticmethod
+    @abstractmethod
+    async def parse():
+        ...
 
 
 class BlockParser(Parser):
 
     @staticmethod
-    async def parse(message, parser, key_output=None, value_output=None, builder=None):
+    async def parse(message=None, parser=None, builder=None, key_output=None, value_output=None):
 
         char = message.head()
 
@@ -45,7 +115,7 @@ class BlockParser(Parser):
             char = message.head()
             if char == ',' or char == ';':
                 message.step()
-                await BlockParser.parse(message, parser, builder=builder)
+                await BlockParser.parse(message, parser, builder)
 
             return builder.bind()
 
@@ -53,119 +123,11 @@ class BlockParser(Parser):
             builder.add(key_output)
             return builder.bind()
 
-    @staticmethod
-    async def parse_block(message, parser):
-        return await BlockParser.parse(message, parser)
-
-
-class ReconParser:
-
-    async def parse_attr(self, message):
-        return await AttrParser.parse_attr(message, self)
-
-    async def parse_ident(self, message):
-        return await IdentParser.parse_ident(message, self)
-
-    async def parse_string(self, message):
-        return await StringParser.parse_string(message, self)
-
-    async def parse_number(self, message):
-        return await NumberParser.parse_number(message, self)
-
-    async def parse_block_string(self, recon_string):
-        message = InputMessage(recon_string)
-        return await self.parse_block(message)
-
-    async def parse_block(self, message):
-        return await BlockParser.parse_block(message, self)
-
-    async def parse_block_expression(self, message):
-        return await self.parse_lambda_func(message)
-
-    async def parse_record(self, message, builder):
-        return await RecordParser.parse_record(message, self, builder=builder)
-
-    async def parse_lambda_func(self, message):
-        return await LambdaFuncParser.parse_lambda_func(message, self)
-
-    async def parse_conditional_operator(self, message, builder):
-        return await ConditionalOperatorParser.parse_conditional_operator(message, self, builder)
-
-    async def parse_or_operator(self, message, builder):
-        return await OrOperatorParser.parse_or_operator(message, self, builder)
-
-    async def parse_and_operator(self, message, builder):
-        return await AndOperatorParser.parse_and_operator(message, self, builder)
-
-    async def parse_bitwise_or_operator(self, message, builder):
-        return await BitwiseOrOperatorParser.parse_bitwise_or_operator(message, self, builder)
-
-    async def parse_bitwise_xor_operator(self, message, builder):
-        return await BitwiseXorOperatorParser.parse_bitwise_xor_operator(message, self, builder)
-
-    async def parse_bitwise_and_operator(self, message, builder):
-        return await BitwiseAndOperator.parse_bitwise_and_operator(message, self, builder)
-
-    async def parse_comparison_operator(self, message, builder):
-        return await ComparisonOperatorParser.parse_comparison_operator(message, self, builder)
-
-    async def parse_attr_expression(self, message, builder):
-        return await AttrExpressionParser.parse_attr_expression(message, self, builder)
-
-    async def parse_additive_operator(self, message, builder):
-        return await AdditiveOperatorParser.parse_additive_operator(message, self, builder)
-
-    async def parse_multiplicative_operator(self, message, builder):
-        return await MultiplicativeOperatorParser.parse_multiplicative_operator(message, self, builder)
-
-    async def parse_prefix_operator(self, message, builder):
-        return await PrefixOperatorParser.parse_prefix_operator(message, self, builder)
-
-    async def parse_invoke_operator(self, message, builder):
-        return await InvokeOperatorParser.parse_invoke_operator(message, self, builder)
-
-    async def parse_primary(self, message, builder):
-        return await PrimaryParser.parse_primary(message, self, builder)
-
-    async def parse_literal(self, message, builder):
-        return await LiteralParser.parse_literal(message, self, builder)
-
-
-class ReconStructureParser(ReconParser):
-
-    async def create_ident(self, value):
-        if isinstance(value, str):
-            if value == 'true':
-                return Bool.create_from(True)
-            elif value == 'false':
-                return Bool.create_from(False)
-
-        return Text.create_from(value)
-
-    async def create_attr(self, key, value=Value.extant()):
-        return Attr.create_attr(key, value)
-
-    async def create_record_builder(self):
-        return Record.create()
-
-    async def create_value_builder(self):
-        return ValueBuilder()
-
-    async def create_slot(self, key, value=None):
-        return Slot.create_slot(key, value)
-
-    async def create_number(self, value):
-        return Num.create_from(value)
-
 
 class RecordParser(Parser):
 
     @staticmethod
-    async def parse_record(message, parser, builder=None):
-        return await RecordParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, key_output=None, value_output=None, builder=None):
+    async def parse(message=None, parser=None, builder=None, key_output=None, value_output=None):
         char = message.head()
 
         if char == '{':
@@ -197,133 +159,17 @@ class RecordParser(Parser):
 
             if char == ',' or char == ';':
                 message.step()
-                await RecordParser.parse_record(message, parser, builder)
+                await RecordParser.parse(message, parser, builder)
 
             elif char == '}':
                 message.step()
                 return builder
 
 
-class LambdaFuncParser(Parser):
-
-    @staticmethod
-    async def parse_lambda_func(message, parser):
-        return await LambdaFuncParser.parse(message, parser)
-
-    @staticmethod
-    async def parse(message, parser, output=None, builder=None):
-        if output is None:
-            output = await parser.parse_conditional_operator(message, builder=builder)
-
-        return output
-
-
-class ConditionalOperatorParser(Parser):
-
-    @staticmethod
-    async def parse_conditional_operator(message, parser, builder):
-        return await ConditionalOperatorParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, if_output=None, then_output=None, else_output=None, builder=None):
-        if if_output is None:
-            if_output = await parser.parse_or_operator(message, builder)
-
-        return if_output
-
-
-class OrOperatorParser(Parser):
-
-    @staticmethod
-    async def parse_or_operator(message, parser, builder):
-        return await OrOperatorParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, lhs_output=None, rhs_output=None, builder=None):
-        if lhs_output is None:
-            lhs_output = await parser.parse_and_operator(message, builder)
-
-        return lhs_output
-
-
-class AndOperatorParser(Parser):
-
-    @staticmethod
-    async def parse_and_operator(message, parser, builder):
-        return await AndOperatorParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, lhs_output=None, rhs_output=None, builder=None):
-        if lhs_output is None:
-            lhs_output = await parser.parse_bitwise_or_operator(message, builder)
-
-        return lhs_output
-
-
-class BitwiseOrOperatorParser(Parser):
-
-    @staticmethod
-    async def parse_bitwise_or_operator(message, parser, builder):
-        return await BitwiseOrOperatorParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, lhs_output=None, rhs_output=None, builder=None):
-        if lhs_output is None:
-            lhs_output = await parser.parse_bitwise_xor_operator(message, builder)
-
-        return lhs_output
-
-
-class BitwiseXorOperatorParser(Parser):
-
-    @staticmethod
-    async def parse_bitwise_xor_operator(message, parser, builder):
-        return await BitwiseXorOperatorParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, lhs_output=None, rhs_output=None, builder=None):
-        if lhs_output is None:
-            lhs_output = await parser.parse_bitwise_and_operator(message, builder)
-
-        return lhs_output
-
-
-class BitwiseAndOperator(Parser):
-
-    @staticmethod
-    async def parse_bitwise_and_operator(message, parser, builder):
-        return await BitwiseAndOperator.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, lhs_output=None, rhs_output=None, builder=None):
-        if lhs_output is None:
-            lhs_output = await parser.parse_comparison_operator(message, builder)
-
-        return lhs_output
-
-
-class ComparisonOperatorParser(Parser):
-
-    @staticmethod
-    async def parse_comparison_operator(message, parser, builder):
-        return await ComparisonOperatorParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, lhs_output=None, operator_output=None, rhs_output=None, builder=None):
-        if lhs_output is None:
-            lhs_output = await parser.parse_attr_expression(message, builder)
-
-        return lhs_output
-
-
 class AttrExpressionParser(Parser):
 
     @staticmethod
-    async def parse_attr_expression(message, parser, builder):
-        return await AttrExpressionParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, field_output=None, value_output=None, builder=None):
+    async def parse(message=None, parser=None, builder=None, field_output=None, value_output=None):
 
         char = message.head()
 
@@ -339,13 +185,13 @@ class AttrExpressionParser(Parser):
 
             builder.add(field_output)
 
-            await AttrExpressionParser.parse(message, parser, builder=builder)
+            await AttrExpressionParser.parse(message, parser, builder)
 
             return builder
 
         elif await ReconUtils.is_ident_start_char(char) or char == '"' or await ReconUtils.is_digit(char) or char == '-':
             if value_output is None:
-                value_output = await parser.parse_additive_operator(message, None)
+                value_output = await parser.parse_literal(message)
 
             if builder is None:
                 builder = await parser.create_value_builder()
@@ -358,21 +204,17 @@ class AttrExpressionParser(Parser):
                 builder = await parser.create_record_builder()
 
             if value_output is None:
-                await parser.parse_additive_operator(message, builder)
+                await parser.parse_literal(message, builder)
 
             if message.is_cont():
                 if message.head() == '@':
-                    await AttrExpressionParser.parse(message, parser, builder=builder)
+                    await AttrExpressionParser.parse(message, parser, builder)
 
 
 class AttrParser(Parser):
 
     @staticmethod
-    async def parse_attr(message, parser):
-        return await AttrParser.parse(message, parser)
-
-    @staticmethod
-    async def parse(message, parser, key_output=None, value_output=None):
+    async def parse(message=None, parser=None, key_output=None, value_output=None):
 
         char = message.head()
         if char == '@':
@@ -408,11 +250,7 @@ class AttrParser(Parser):
 class IdentParser(Parser):
 
     @staticmethod
-    async def parse_ident(message, parser):
-        return await IdentParser.parse(message, parser)
-
-    @staticmethod
-    async def parse(message, parser, output=None):
+    async def parse(message=None, parser=None, output=None):
 
         char = message.head()
 
@@ -433,11 +271,7 @@ class IdentParser(Parser):
 class StringParser(Parser):
 
     @staticmethod
-    async def parse_string(message, parser):
-        return await StringParser.parse(message, parser)
-
-    @staticmethod
-    async def parse(message, parser, output=None):
+    async def parse(message=None, parser=None, output=None):
         char = message.head()
 
         while await ReconUtils.is_space(char):
@@ -462,11 +296,7 @@ class StringParser(Parser):
 class NumberParser(Parser):
 
     @staticmethod
-    async def parse_number(message, parser):
-        return await NumberParser.parse(message, parser)
-
-    @staticmethod
-    async def parse(message, parser, value_output=None, sign_output=1):
+    async def parse(message=None, parser=None, value_output=None, sign_output=1):
 
         char = message.head()
 
@@ -486,7 +316,7 @@ class NumberParser(Parser):
 
         if message.is_cont():
             if char == '.':
-                return await DecimalParser.parse_decimal(message, parser, value_output, sign_output)
+                return await DecimalParser.parse(message, parser, value_output, sign_output)
             else:
                 return await parser.create_number(value_output)
         else:
@@ -496,7 +326,7 @@ class NumberParser(Parser):
 class DecimalParser(Parser):
 
     @staticmethod
-    async def parse_decimal(message, parser, value_output=None, sign_output=None):
+    async def parse(message=None, parser=None, value_output=None, sign_output=None):
         builder = ''
 
         if sign_output < 0 and value_output is None:
@@ -506,11 +336,6 @@ class DecimalParser(Parser):
                 value_output = 0
 
             builder += str(value_output)
-
-        return await DecimalParser.parse(message, parser, builder)
-
-    @staticmethod
-    async def parse(message, parser, builder):
 
         char = message.head()
 
@@ -532,116 +357,10 @@ class DecimalParser(Parser):
                 return await parser.create_number(float(builder))
 
 
-class AdditiveOperatorParser(Parser):
-
-    @staticmethod
-    async def parse_additive_operator(message, parser, builder):
-        return await AdditiveOperatorParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, lhs_output=None, operator_output=None, rhs_output=None, builder=None):
-        if lhs_output is None:
-            lhs_output = await parser.parse_multiplicative_operator(message, builder)
-
-            char = message.head()
-
-            if char == '+':
-                pass
-            else:
-                return lhs_output
-
-
-class MultiplicativeOperatorParser(Parser):
-
-    @staticmethod
-    async def parse_multiplicative_operator(message, parser, builder):
-        return await MultiplicativeOperatorParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, lhs_output=None, operator_output=None, rhs_output=None, builder=None):
-        if lhs_output is None:
-            lhs_output = await parser.parse_prefix_operator(message, builder)
-
-            char = message.head()
-
-            if char == '*':
-                pass
-            elif char == '/':
-                pass
-            elif char == '%':
-                pass
-            else:
-                return lhs_output
-
-
-class PrefixOperatorParser(Parser):
-
-    @staticmethod
-    async def parse_prefix_operator(message, parser, builder):
-        return await PrefixOperatorParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, operator_output=None, rhs_output=None, builder=None):
-
-        char = message.head()
-
-        if char == '!':
-            pass
-        elif char == '~':
-            pass
-        elif char == '+':
-            pass
-        else:
-            return await parser.parse_invoke_operator(message, builder)
-
-
-class InvokeOperatorParser(Parser):
-
-    @staticmethod
-    async def parse_invoke_operator(message, parser, builder):
-        return await InvokeOperatorParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, expr_output=None, args_output=None, builder=None):
-        if expr_output is None:
-            expr_output = await parser.parse_primary(message, builder)
-
-            char = message.head()
-
-            if char == '(':
-                pass
-            else:
-                return expr_output
-
-
-class PrimaryParser(Parser):
-
-    @staticmethod
-    async def parse_primary(message, parser, builder):
-        return await PrimaryParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, expr_output=None, builder=None):
-
-        char = message.head()
-
-        if char == '(':
-            pass
-        else:
-            if expr_output is None:
-                expr_output = await parser.parse_literal(message, builder)
-
-            return expr_output
-
-
 class LiteralParser(Parser):
 
     @staticmethod
-    async def parse_literal(message, parser, builder):
-        return await LiteralParser.parse(message, parser, builder=builder)
-
-    @staticmethod
-    async def parse(message, parser, value_output=None, builder=None):
+    async def parse(message=None, parser=None, value_output=None, builder=None):
         char = message.head()
 
         if char == '(':
