@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from swimai.recon.utils import ReconUtils
+from swimai.recon.utils import ReconUtils, OutputMessage
 from swimai.structures.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant, Bool
 
 
@@ -196,41 +196,3 @@ class IdentWriter(Writer):
             await output.append(value)
 
         return output
-
-
-class OutputMessage:
-
-    def __init__(self):
-        self.message = ''
-
-    @staticmethod
-    async def create(chars=None):
-        instance = OutputMessage()
-
-        if chars:
-            await instance.append(chars)
-
-        return instance
-
-    @property
-    def value(self):
-        return self.message
-
-    @property
-    def size(self):
-        return len(self.message)
-
-    @property
-    def last_char(self):
-        return self.message[-1]
-
-    async def append(self, chars):
-
-        if isinstance(chars, str):
-            self.message = self.message + chars
-        elif isinstance(chars, (float, int)):
-            self.message = self.message + str(chars)
-        elif isinstance(chars, OutputMessage):
-            self.message = self.message + chars.value
-        else:
-            raise TypeError(f'Item of type {type(chars).__name__} cannot be added to the OutputMessage!')

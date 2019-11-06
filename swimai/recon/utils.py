@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import Optional, Union
 
 
 class ReconUtils:
 
     @staticmethod
-    async def is_ident_start_char(char: (str, int)) -> bool:
+    async def is_ident_start_char(char: Union[str, int]) -> bool:
         """
         Check if a character is a valid first character of an identifier.
         Valid start characters for identifiers: [A-Za-z_]
@@ -20,7 +20,7 @@ class ReconUtils:
             return False
 
     @staticmethod
-    async def is_ident_char(char: (str, int)) -> bool:
+    async def is_ident_char(char: Union[str, int]) -> bool:
         """
         Check if a character is a valid character of an identifier.
         Valid characters for identifiers: [A-Za-z_-]
@@ -55,7 +55,7 @@ class ReconUtils:
         return True
 
     @staticmethod
-    async def is_space(char: (str, int)) -> bool:
+    async def is_space(char: Union[str, int]) -> bool:
         """
         Check if a character is a space character.
 
@@ -69,7 +69,7 @@ class ReconUtils:
             return False
 
     @staticmethod
-    async def is_digit(char: (str, int)) -> bool:
+    async def is_digit(char: Union[str, int]) -> bool:
         """
        Check if a character is a digit.
 
@@ -83,7 +83,7 @@ class ReconUtils:
             return False
 
     @staticmethod
-    async def to_ord(char: (str, int)) -> Optional[int]:
+    async def to_ord(char: Union[str, int]) -> Optional[int]:
         """
         Convert a character to its integer representation.
 
@@ -96,3 +96,65 @@ class ReconUtils:
             return char
         else:
             return None
+
+
+class OutputMessage:
+
+    def __init__(self) -> None:
+        self.message = ''
+
+    @staticmethod
+    async def create(chars: str = None) -> 'OutputMessage':
+        instance = OutputMessage()
+
+        if chars:
+            await instance.append(chars)
+
+        return instance
+
+    @property
+    def value(self) -> str:
+        return self.message
+
+    @property
+    def size(self) -> int:
+        return len(self.message)
+
+    @property
+    def last_char(self) -> str:
+        return self.message[-1]
+
+    async def append(self, chars) -> None:
+
+        if isinstance(chars, str):
+            self.message = self.message + chars
+        elif isinstance(chars, (float, int)):
+            self.message = self.message + str(chars)
+        elif isinstance(chars, OutputMessage):
+            self.message = self.message + chars.value
+        else:
+            raise TypeError(f'Item of type {type(chars).__name__} cannot be added to the OutputMessage!')
+
+
+class InputMessage:
+
+    def __init__(self, message: str) -> None:
+        self.message = message
+        self.index = 0
+
+    def head(self) -> str:
+
+        if self.is_cont():
+            return self.message[self.index]
+        else:
+            return ''
+
+    def step(self) -> str:
+        self.index = self.index + 1
+        return self.head()
+
+    def is_cont(self) -> bool:
+        if self.index >= len(self.message):
+            return False
+        else:
+            return True

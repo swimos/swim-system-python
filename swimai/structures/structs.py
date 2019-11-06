@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Optional, Dict, Union
 
 
 class Item(ABC):
@@ -213,15 +213,15 @@ class Text(Value):
 
 class Num(Value):
 
-    def __init__(self, value: (int, float)) -> None:
+    def __init__(self, value: Union[int, float]) -> None:
         self.__value = value
 
     @property
-    def value(self) -> (int, float):
+    def value(self) -> Union[int, float]:
         return self.__value
 
     @staticmethod
-    def create_from(obj: (float, int)) -> 'Num':
+    def create_from(obj: Union[float, int]) -> 'Num':
         """
         Create Num object from a compatible object.
 
@@ -231,7 +231,7 @@ class Num(Value):
 
         return Num(obj)
 
-    def get_num_value(self) -> (int, float):
+    def get_num_value(self) -> Union[int, float]:
         """
         Return the value of the Num object as integer or float.
 
