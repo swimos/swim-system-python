@@ -2,8 +2,8 @@ import asyncio
 import unittest
 
 from aiounittest import async_test
-from swimai import Num, Text, RecordMap, Attr, Slot, Extant, Bool
-from swimai.warp.warp import SyncRequest, SyncedResponse, EventMessage, LinkedResponse, CommandMessage
+from swimai.structures import Num, Text, RecordMap, Attr, Slot, Extant, Bool
+from swimai.warp import SyncRequest, SyncedResponse, EventMessage, LinkedResponse, CommandMessage
 
 
 class TestWriters(unittest.TestCase):
@@ -405,7 +405,8 @@ class TestWriters(unittest.TestCase):
                                   body=RecordMap.create_record_map(
                                       Attr.create_attr(Text.create_from('remove'),
                                                        RecordMap.create_record_map(
-                                                           Slot.create_slot(Text.create_from('key'), Text.create_from('FromClientLink'))))))
+                                                           Slot.create_slot(Text.create_from('key'),
+                                                                            Text.create_from('FromClientLink'))))))
         expected = '@command(node:"/unit/foo",lane:shoppingCart)@remove(key:FromClientLink)'
 
         # When
@@ -530,7 +531,8 @@ class TestWriters(unittest.TestCase):
         body.add(Slot.create_slot(Text.create_from('friend'), friend))
 
         envelope = EventMessage('/this/is/spam', 'hello', body=body)
-        expected = '@event(node:"/this/is/spam",lane:hello)@Person{name:Par,age:11,salary:-5.9,friend:@Person{name:"Sam/Spam",age:1,salary:22}}'
+        person = '@Person{name:Par,age:11,salary:-5.9,friend:@Person{name:"Sam/Spam",age:1,salary:22}}'
+        expected = '@event(node:"/this/is/spam",lane:hello)' + person
 
         # When
         responses = await asyncio.gather(envelope.to_recon())

@@ -1,9 +1,9 @@
 import asyncio
-from collections import Callable
 import inspect
 
-from swimai.structures.structs import Absent
-from swimai.warp.warp import SyncRequest, CommandMessage, Envelope
+from collections import Callable
+from swimai.structures import Absent
+from swimai.warp import SyncRequest, CommandMessage, Envelope
 
 
 class ValueDownlink:
@@ -104,7 +104,8 @@ class ValueDownlink:
         if inspect.iscoroutinefunction(self.execute_did_set):
             self.client.schedule_task(self.execute_did_set, self.value, old_value)
         else:
-            self.client.loop.run_in_executor(self.client.get_pool_executor(), self.execute_did_set, self.value, old_value)
+            self.client.loop.run_in_executor(self.client.get_pool_executor(), self.execute_did_set, self.value,
+                                             old_value)
 
     async def send_message(self, message):
         await self.linked.wait()

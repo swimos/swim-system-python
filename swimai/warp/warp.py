@@ -2,8 +2,8 @@ import math
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from swimai.recon.recon import Recon
-from swimai.structures.structs import Item, Record, Attr, Value, Num, RecordMap
+from swimai.recon import Recon
+from swimai.structures import Item, Record, Attr, Value, Num, RecordMap
 
 
 class Envelope(ABC):
@@ -16,7 +16,7 @@ class Envelope(ABC):
         self.body = body
 
     @staticmethod
-    async def parse_recon(recon_message: str) -> 'Envelope':
+    async def parse_recon(recon_message: str) -> Optional['Envelope']:
         """
         Parse a Recon message in string format into an Envelope.
 
@@ -24,7 +24,8 @@ class Envelope(ABC):
         :return:                - Envelope from the Recon message.
         """
         value = await Recon.parse(recon_message)
-        return Envelope.create_from_value(value)
+        if isinstance(value, RecordMap):
+            return Envelope.create_from_value(value)
 
     @staticmethod
     def create_from_value(value: RecordMap) -> 'Envelope':
@@ -79,7 +80,8 @@ class Envelope(ABC):
 
 class LinkAddressedEnvelope(Envelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, prio: float, rate: float, tag: str, form: 'Form', body: Item = Value.absent()) -> None:
+    def __init__(self, node_uri: str, lane_uri: str, prio: float, rate: float, tag: str, form: 'Form',
+                 body: Item = Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, tag, form, body)
         self.prio = prio
         self.rate = rate
@@ -93,13 +95,15 @@ class LaneAddressedEnvelope(Envelope):
 
 class SyncRequest(LinkAddressedEnvelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Item = Value.absent()) -> None:
+    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0,
+                 body: Item = Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, prio, rate, tag='sync', form=SyncRequestForm(), body=body)
 
 
 class LinkedResponse(LinkAddressedEnvelope):
 
-    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0, body: Item = Value.absent()) -> None:
+    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0,
+                 body: Item = Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, prio, rate, tag='linked', form=LinkedResponseForm(), body=body)
 
 

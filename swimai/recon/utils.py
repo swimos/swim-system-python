@@ -83,7 +83,7 @@ class ReconUtils:
             return False
 
     @staticmethod
-    async def to_ord(char: Union[str, int]) -> Optional[int]:
+    async def to_ord(char: Any) -> Optional[int]:
         """
         Convert a character to its integer representation.
 
@@ -113,7 +113,10 @@ class OutputMessage:
 
     @property
     def last_char(self) -> str:
-        return self.message[-1]
+        if self.size > 0:
+            return self.message[-1]
+        else:
+            return ''
 
     @staticmethod
     async def create(chars: str = None) -> 'OutputMessage':

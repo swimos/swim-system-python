@@ -1,4 +1,5 @@
-from swimai import Item
+from typing import Any
+from swimai.structures import Item
 
 
 class CustomString:

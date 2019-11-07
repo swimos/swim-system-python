@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Union, Any
 
-from swimai.recon.utils import ReconUtils, InputMessage, OutputMessage
-from swimai.structures.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num, RecordMap, Item
+from .utils import ReconUtils, InputMessage, OutputMessage
+from swimai.structures import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num, RecordMap, Item
 
 
 class ReconParser:
@@ -46,7 +46,8 @@ class ReconParser:
     async def parse_block_expression(self, message: 'InputMessage') -> 'Value':
         return await self.parse_attr_expression(message)
 
-    async def parse_attr_expression(self, message: 'InputMessage', builder: Union[RecordMap, ValueBuilder] = None) -> 'Value':
+    async def parse_attr_expression(self, message: 'InputMessage',
+                                    builder: Union[RecordMap, ValueBuilder] = None) -> 'Value':
         return await AttrExpressionParser.parse(message=message, parser=self, builder=builder)
 
     async def parse_attr(self, message: 'InputMessage') -> 'Attr':
@@ -83,8 +84,9 @@ class Parser(ABC):
 class BlockParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, builder: Union[RecordMap, ValueBuilder] = None,
-                    key_output: 'Value' = None, value_output: 'Value' = None) -> 'Value':
+    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+                    builder: Union[RecordMap, ValueBuilder] = None, key_output: 'Value' = None,
+                    value_output: 'Value' = None) -> 'Value':
 
         char = message.head()
 
@@ -130,8 +132,9 @@ class BlockParser(Parser):
 class RecordParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, builder: Union[RecordMap, ValueBuilder] = None,
-                    key_output: 'Value' = None, value_output: 'Value' = None) -> 'Value':
+    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+                    builder: Union[RecordMap, ValueBuilder] = None, key_output: 'Value' = None,
+                    value_output: 'Value' = None) -> 'Value':
 
         char = message.head()
 
@@ -174,8 +177,9 @@ class RecordParser(Parser):
 class AttrExpressionParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, builder: Union[RecordMap, ValueBuilder] = None,
-                    field_output: 'Value' = None, value_output: 'Value' = None) -> 'Value':
+    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+                    builder: Union[RecordMap, ValueBuilder] = None, field_output: 'Value' = None,
+                    value_output: 'Value' = None) -> 'Value':
 
         char = message.head()
 
@@ -195,7 +199,8 @@ class AttrExpressionParser(Parser):
 
             return builder.bind()
 
-        elif await ReconUtils.is_ident_start_char(char) or char == '"' or await ReconUtils.is_digit(char) or char == '-':
+        elif await ReconUtils.is_ident_start_char(char) or char == '"' or await ReconUtils.is_digit(
+                char) or char == '-':
             if value_output is None:
                 value_output = await parser.parse_literal(message)
 
@@ -220,7 +225,8 @@ class AttrExpressionParser(Parser):
 class AttrParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, key_output: 'Value' = None, value_output: 'Value' = None) -> 'Attr':
+    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, key_output: 'Value' = None,
+                    value_output: 'Value' = None) -> 'Attr':
 
         char = message.head()
         if char == '@':
@@ -256,7 +262,8 @@ class AttrParser(Parser):
 class IdentParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, output: 'OutputMessage' = None) -> 'Value':
+    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+                    output: 'OutputMessage' = None) -> 'Value':
 
         char = message.head()
 
@@ -277,7 +284,8 @@ class IdentParser(Parser):
 class StringParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, output: 'OutputMessage' = None) -> 'Text':
+    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+                    output: 'OutputMessage' = None) -> 'Text':
 
         char = message.head()
 
@@ -303,7 +311,8 @@ class StringParser(Parser):
 class NumberParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, value_output: int = None, sign_output: int = 1) -> Num:
+    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, value_output: int = None,
+                    sign_output: int = 1) -> Num:
 
         char = message.head()
 
@@ -333,7 +342,8 @@ class NumberParser(Parser):
 class DecimalParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, value_output: int = None, sign_output: int = None) -> 'Num':
+    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, value_output: int = None,
+                    sign_output: int = None) -> 'Num':
 
         builder = ''
 
@@ -368,8 +378,8 @@ class DecimalParser(Parser):
 class LiteralParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, builder: Union[RecordMap, ValueBuilder] = None,
-                    value_output: int = None) -> Value:
+    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+                    builder: Union[RecordMap, ValueBuilder] = None, value_output: int = None) -> Value:
 
         char = message.head()
 

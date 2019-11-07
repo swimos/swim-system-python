@@ -1,9 +1,8 @@
 import unittest
 
 from aiounittest import async_test
-from swimai import Recon, RecordMap, Attr, Text, Slot
-from swimai.recon.parsers import ReconParser
-from swimai.recon.writers import ReconWriter
+from swimai.structures import RecordMap, Attr, Text, Slot
+from swimai.recon import Recon, ReconParser, ReconWriter
 
 
 class TestRecon(unittest.TestCase):

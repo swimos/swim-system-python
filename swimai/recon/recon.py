@@ -1,6 +1,6 @@
 from swimai.structures.structs import Value
-from swimai.recon.parsers import ReconParser
-from swimai.recon.writers import ReconWriter
+from .parsers import ReconParser
+from .writers import ReconWriter
 
 
 class Recon:

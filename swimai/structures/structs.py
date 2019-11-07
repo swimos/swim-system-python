@@ -456,7 +456,8 @@ class Record(Value):
 
 class RecordMap(Record):
 
-    def __init__(self, items: List[Item] = None, fields: Dict[str, Item] = None, item_count: int = 0, field_count: int = 0, flags: int = 0) -> None:
+    def __init__(self, items: List[Item] = None, fields: Dict[str, Item] = None, item_count: int = 0,
+                 field_count: int = 0, flags: int = 0) -> None:
         self.items = items
         self.fields = fields
         self.item_count = item_count

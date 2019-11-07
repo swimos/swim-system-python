@@ -1,7 +1,8 @@
 import unittest
 
-from swimai import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value, RecordFlags, RecordMapView, ValueBuilder
-from test.test_utils import CustomString, CustomItem
+from swimai.structures import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value, \
+    RecordFlags, RecordMapView, ValueBuilder
+from test.utils import CustomString, CustomItem
 
 
 class TestStructs(unittest.TestCase):

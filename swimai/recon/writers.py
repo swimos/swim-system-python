@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Union, List
 
-from swimai.recon.utils import ReconUtils, OutputMessage
-from swimai.structures.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant, Bool, Item
+from .utils import ReconUtils, OutputMessage
+from swimai.structures import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant, Bool, Item
 
 
 class ReconWriter:
@@ -80,7 +80,8 @@ class Writer(ABC):
 class BlockWriter(Writer):
 
     @staticmethod
-    async def write(items: List[Value] = None, writer: 'ReconWriter' = None, first: 'bool' = False, in_braces: bool = False) -> 'OutputMessage':
+    async def write(items: List[Value] = None, writer: 'ReconWriter' = None, first: 'bool' = False,
+                    in_braces: bool = False) -> 'OutputMessage':
         output = await OutputMessage.create()
 
         for item in items:

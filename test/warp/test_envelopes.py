@@ -1,8 +1,8 @@
 import unittest
 
-from swimai import Absent, Text
-from swimai.warp.warp import Envelope, SyncRequestForm, SyncedResponseForm, LinkedResponseForm, EventMessageForm, CommandMessageForm, SyncRequest, \
-    SyncedResponse, LinkedResponse, CommandMessage, EventMessage
+from swimai.structures import Absent, Text
+from swimai.warp import Envelope, SyncRequestForm, SyncedResponseForm, LinkedResponseForm, EventMessageForm, \
+    CommandMessageForm, SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage
 
 
 class TestEnvelopes(unittest.TestCase):

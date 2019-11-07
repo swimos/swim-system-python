@@ -2,7 +2,7 @@ import asyncio
 import unittest
 
 from aiounittest import async_test
-from swimai.warp.warp import Envelope
+from swimai.warp import Envelope
 
 
 class TestParser(unittest.TestCase):
@@ -503,7 +503,8 @@ class TestParser(unittest.TestCase):
     @async_test
     async def test_parse_event_body_nested(self):
         # Given
-        message = '@event(node: "bar/baz/2", lane: "foo/bar")@Person{name:Par,age:11,salary:5.9,friend:@Person{name:Foo,age:18,salary:99.9}'
+        person = '@Person{name:Par,age:11,salary:5.9,friend:@Person{name:Foo,age:18,salary:99.9}'
+        message = '@event(node: "bar/baz/2", lane: "foo/bar")' + person
         # When
         requests = await asyncio.gather(Envelope.parse_recon(message))
         actual = requests[0]
