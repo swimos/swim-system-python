@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Union, Any
 
 from swimai.recon.utils import ReconUtils, InputMessage, OutputMessage
-from swimai.structures.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num, RecordMap
+from swimai.structures.structs import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num, RecordMap, Item
 
 
 class ReconParser:
@@ -71,7 +71,12 @@ class ReconParser:
 class Parser(ABC):
     @staticmethod
     @abstractmethod
-    async def parse():
+    async def parse() -> 'Item':
+        """
+        Parse a message into its Item object representation.
+
+        :return:                - Item object.
+        """
         ...
 
 
@@ -215,7 +220,7 @@ class AttrExpressionParser(Parser):
 class AttrParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, key_output: 'Value' = None, value_output: 'Value' = None):
+    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, key_output: 'Value' = None, value_output: 'Value' = None) -> 'Attr':
 
         char = message.head()
         if char == '@':

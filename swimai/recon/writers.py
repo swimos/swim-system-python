@@ -1,45 +1,53 @@
 from abc import ABC, abstractmethod
+from typing import Union, List
 
 from swimai.recon.utils import ReconUtils, OutputMessage
-from swimai.structures.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant, Bool
+from swimai.structures.structs import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant, Bool, Item
 
 
 class ReconWriter:
 
     @staticmethod
-    async def write_text(value):
+    async def write_text(value: str) -> 'OutputMessage':
         if await ReconUtils.is_ident(value):
             return await IdentWriter.write(value=value)
         else:
             return await StringWriter.write(value=value)
 
     @staticmethod
-    async def write_number(value):
+    async def write_number(value: Union[int, float]) -> 'OutputMessage':
         return await NumberWriter.write(value=value)
 
     @staticmethod
-    async def write_bool(value):
+    async def write_bool(value: bool) -> 'OutputMessage':
         return await BoolWriter.write(value=value)
 
-    async def write_item(self, item):
+    @staticmethod
+    async def write_absent() -> 'OutputMessage':
+        return await OutputMessage.create()
+
+    async def write_item(self, item: 'Item') -> 'str':
 
         if isinstance(item, Field):
             if isinstance(item, Attr):
-                return await self.write_attr(item.key, item.value)
+                output = await self.write_attr(item.key, item.value)
+                return output.message
             elif isinstance(item, Slot):
-                return await self.write_slot(item.key, item.value)
+                output = await self.write_slot(item.key, item.value)
+                return output.message
         elif isinstance(item, Value):
-            return await self.write_value(item)
+            output = await self.write_value(item)
+            return output.message
 
         raise AttributeError(f'No Recon serialization for {item}')
 
-    async def write_attr(self, key, value):
-        return await AttrWriter.write(key=key, value=value, writer=self)
+    async def write_attr(self, key: 'Value', value: 'Value') -> 'OutputMessage':
+        return await AttrWriter.write(key=key, writer=self, value=value)
 
-    async def write_slot(self, key, value):
+    async def write_slot(self, key: 'Value', value: 'Value') -> 'OutputMessage':
         return await SlotWriter.write(key=key, writer=self, value=value)
 
-    async def write_value(self, value):
+    async def write_value(self, value: Value) -> 'OutputMessage':
         if isinstance(value, Record):
             return await self.write_record(value)
         elif isinstance(value, Text):
@@ -51,28 +59,28 @@ class ReconWriter:
         elif isinstance(value, Absent):
             return await self.write_absent()
 
-    async def write_record(self, record):
+    async def write_record(self, record: 'Record') -> 'OutputMessage':
         if record.size > 0:
-            return await BlockWriter.write(items=record.items, writer=self, first=True)
-        else:
-            return OutputMessage.create('{}')
-
-    async def write_absent(self):
-        # no-op
-        pass
+            message = await BlockWriter.write(items=record.get_items(), writer=self, first=True)
+            return message
 
 
 class Writer(ABC):
     @staticmethod
     @abstractmethod
-    async def write():
+    async def write() -> 'OutputMessage':
+        """
+        Write an Item object into its string representation.
+
+        :return:                - OutputMessage containing the string representation of the Item object.
+        """
         ...
 
 
 class BlockWriter(Writer):
 
     @staticmethod
-    async def write(items=None, writer=None, first=None, in_braces=False):
+    async def write(items: List[Value] = None, writer: 'ReconWriter' = None, first: 'bool' = False, in_braces: bool = False) -> 'OutputMessage':
         output = await OutputMessage.create()
 
         for item in items:
@@ -99,13 +107,13 @@ class BlockWriter(Writer):
         if in_braces:
             await output.append('}')
 
-        return output.value
+        return output
 
 
 class AttrWriter(Writer):
 
     @staticmethod
-    async def write(key=None, writer=None, value=None):
+    async def write(key: 'Value' = None, writer: 'ReconWriter' = None, value: 'Value' = None) -> 'OutputMessage':
 
         output = await OutputMessage.create('@')
 
@@ -131,7 +139,7 @@ class AttrWriter(Writer):
 class SlotWriter(Writer):
 
     @staticmethod
-    async def write(key=None, writer=None, value=None):
+    async def write(key: Value = None, writer: 'ReconWriter' = None, value: 'Value' = None) -> 'OutputMessage':
         output = await OutputMessage.create()
 
         key_text = await writer.write_value(key)
@@ -152,7 +160,7 @@ class SlotWriter(Writer):
 class StringWriter(Writer):
 
     @staticmethod
-    async def write(value=None):
+    async def write(value: str = None) -> 'OutputMessage':
         output = await OutputMessage.create('"')
 
         if value:
@@ -166,7 +174,7 @@ class StringWriter(Writer):
 class NumberWriter(Writer):
 
     @staticmethod
-    async def write(value=None):
+    async def write(value: Union[int, float] = None) -> 'OutputMessage':
         output = await OutputMessage().create()
 
         if value:
@@ -178,7 +186,7 @@ class NumberWriter(Writer):
 class BoolWriter(Writer):
 
     @staticmethod
-    async def write(value=None):
+    async def write(value: bool = None) -> 'OutputMessage':
 
         if value:
             return await OutputMessage.create('true')
@@ -189,7 +197,7 @@ class BoolWriter(Writer):
 class IdentWriter(Writer):
 
     @staticmethod
-    async def write(value=None):
+    async def write(value: str = None) -> 'OutputMessage':
         output = await OutputMessage.create()
 
         if value:

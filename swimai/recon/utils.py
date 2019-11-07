@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 
 class ReconUtils:
@@ -103,15 +103,6 @@ class OutputMessage:
     def __init__(self) -> None:
         self.message = ''
 
-    @staticmethod
-    async def create(chars: str = None) -> 'OutputMessage':
-        instance = OutputMessage()
-
-        if chars:
-            await instance.append(chars)
-
-        return instance
-
     @property
     def value(self) -> str:
         return self.message
@@ -124,16 +115,35 @@ class OutputMessage:
     def last_char(self) -> str:
         return self.message[-1]
 
-    async def append(self, chars) -> None:
+    @staticmethod
+    async def create(chars: str = None) -> 'OutputMessage':
+        """
+        Create an OutputMessage instance and initialise its message.
 
-        if isinstance(chars, str):
-            self.message = self.message + chars
-        elif isinstance(chars, (float, int)):
-            self.message = self.message + str(chars)
-        elif isinstance(chars, OutputMessage):
-            self.message = self.message + chars.value
+        :param chars:           - Initial value of the message.
+        :return:                - OutputMessage instance.
+        """
+        instance = OutputMessage()
+
+        if chars:
+            await instance.append(chars)
+
+        return instance
+
+    async def append(self, obj: Any) -> None:
+        """
+        Append the string representation of an object to the current message.
+
+        :param obj:           - Object to append to the message.
+        """
+        if isinstance(obj, str):
+            self.message = self.message + obj
+        elif isinstance(obj, (float, int)):
+            self.message = self.message + str(obj)
+        elif isinstance(obj, OutputMessage):
+            self.message = self.message + obj.value
         else:
-            raise TypeError(f'Item of type {type(chars).__name__} cannot be added to the OutputMessage!')
+            raise TypeError(f'Item of type {type(obj).__name__} cannot be added to the OutputMessage!')
 
 
 class InputMessage:
@@ -143,17 +153,31 @@ class InputMessage:
         self.index = 0
 
     def head(self) -> str:
+        """
+        Get the character at the front of the InputMessage pointed by the message index.
 
+        :return:                - The current head character of the InputMessage.
+        """
         if self.is_cont():
             return self.message[self.index]
         else:
             return ''
 
     def step(self) -> str:
+        """
+        Move the head index forward by one.
+
+        :return:                - The new head character of the InputMessage.
+        """
         self.index = self.index + 1
         return self.head()
 
     def is_cont(self) -> bool:
+        """
+        Check if there are any characters left in front of the InputMessage index.
+
+        :return:                - False if the index is pointing at the last character or beyond, True otherwise.
+        """
         if self.index >= len(self.message):
             return False
         else:
