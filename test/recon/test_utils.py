@@ -1,7 +1,7 @@
 import unittest
 
 from aiounittest import async_test
-from swimai.recon import ReconUtils, OutputMessage
+from swimai.recon import ReconUtils, OutputMessage, InputMessage
 from test.utils import CustomString
 
 
@@ -510,7 +510,7 @@ class TestUtils(unittest.TestCase):
             await output_message.append(chars)
         # Then
         message = error.exception.args[0]
-        self.assertEqual(f'Item of type CustomString cannot be added to the OutputMessage!', message)
+        self.assertEqual(f'Item of type CustomString cannot be added to Message!', message)
 
     @async_test
     async def test_output_message_append_str_to_existing(self):
@@ -565,6 +565,19 @@ class TestUtils(unittest.TestCase):
         self.assertEqual('e', output_message.last_char)
 
     @async_test
+    async def test_output_message_append_input_message_to_existing(self):
+        # Given
+        output_message = await OutputMessage.create('input_')
+        chars = await InputMessage.create('message')
+        # When
+        await output_message.append(chars)
+        # Then
+        self.assertIsInstance(output_message, OutputMessage)
+        self.assertEqual('input_message', output_message.value)
+        self.assertEqual(13, output_message.size)
+        self.assertEqual('e', output_message.last_char)
+
+    @async_test
     async def test_output_message_append_invalid_to_existing(self):
         # Given
         output_message = await OutputMessage.create('bar')
@@ -574,7 +587,99 @@ class TestUtils(unittest.TestCase):
             await output_message.append(chars)
         # Then
         message = error.exception.args[0]
-        self.assertEqual(f'Item of type CustomString cannot be added to the OutputMessage!', message)
+        self.assertEqual(f'Item of type CustomString cannot be added to Message!', message)
+
+    @async_test
+    async def test_input_message_create_empty(self):
+        pass
+
+    @async_test
+    async def test_input_message_create_single(self):
+        pass
+
+    @async_test
+    async def test_input_message_create_multiple(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_str_to_empty(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_float_to_empty(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_int_to_empty(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_output_message_to_empty(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_invalid_to_empty(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_str_to_existing(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_float_to_existing(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_int_to_existing(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_input_message_to_existing(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_output_message_to_existing(self):
+        pass
+
+    @async_test
+    async def test_input_message_append_invalid_to_existing(self):
+        pass
+
+    @async_test
+    async def test_input_message_skip_spaces_none(self):
+        # Given
+        message = await InputMessage.create('foo')
+        # When
+        await message.skip_spaces(message)
+        # Then
+        self.assertEqual(message.head, 'f')
+
+    @async_test
+    async def test_input_message_skip_spaces_single(self):
+        # Given
+        message = await InputMessage.create(' bar')
+        # When
+        await message.skip_spaces(message)
+        # Then
+        self.assertEqual(message.head, 'b')
+
+    @async_test
+    async def test_input_message_skip_spaces_multiple(self):
+        # Given
+        message = await InputMessage.create('    qux')
+        # When
+        await message.skip_spaces(message)
+        # Then
+        self.assertEqual(message.head, 'q')
+
+    @async_test
+    async def test_input_message_skip_spaces_spaces_only(self):
+        # Given
+        message = await InputMessage.create('    ')
+        # When
+        await message.skip_spaces(message)
+        # Then
+        self.assertEqual(message.head, '')
 
     def test_input_message_head_empty(self):
         pass
@@ -585,20 +690,23 @@ class TestUtils(unittest.TestCase):
     def test_input_message_head_not_continuous(self):
         pass
 
-    def test_step_message_once(self):
+    def test_input_message_is_continuous_empty(self):
         pass
 
-    def test_step_message_twice(self):
+    def test_input_message_is_continuous_existing_true(self):
         pass
 
-    def test_step_message_out_of_bound(self):
+    def test_input_message_is_continuous_existing_false(self):
         pass
 
-    def test_step_all(self):
+    def test_input_message_step_once(self):
         pass
 
-    def test_is_cont_empty(self):
+    def test_input_message_step_twice(self):
         pass
 
-    def test_is_cont_existing(self):
+    def test_input_message_step_out_of_bound(self):
+        pass
+
+    def test_input_message_step_all(self):
         pass

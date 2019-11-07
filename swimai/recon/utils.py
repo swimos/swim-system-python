@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Optional, Union, Any
 
 
@@ -97,13 +98,8 @@ class ReconUtils:
         else:
             return None
 
-    @staticmethod
-    async def skip_spaces(char, message):
-        while await ReconUtils.is_space(char):
-            char = message.step()
 
-
-class OutputMessage:
+class Message(ABC):
 
     def __init__(self) -> None:
         self.message = ''
@@ -115,6 +111,32 @@ class OutputMessage:
     @property
     def size(self) -> int:
         return len(self.message)
+
+    @staticmethod
+    @abstractmethod
+    async def create(chars: str) -> 'Message':
+        ...
+
+    async def append(self, obj: Any) -> None:
+        """
+        Append the string representation of an object to the current message.
+
+        :param obj:           - Object to append to the message.
+        """
+        if isinstance(obj, str):
+            self.message = self.message + obj
+        elif isinstance(obj, (float, int)):
+            self.message = self.message + str(obj)
+        elif isinstance(obj, (OutputMessage, InputMessage)):
+            self.message = self.message + obj.value
+        else:
+            raise TypeError(f'Item of type {type(obj).__name__} cannot be added to Message!')
+
+
+class OutputMessage(Message):
+
+    def __init__(self) -> None:
+        super().__init__()
 
     @property
     def last_char(self) -> str:
@@ -138,48 +160,52 @@ class OutputMessage:
 
         return instance
 
-    async def append(self, obj: Any) -> None:
-        """
-        Append the string representation of an object to the current message.
 
-        :param obj:           - Object to append to the message.
-        """
-        if isinstance(obj, str):
-            self.message = self.message + obj
-        elif isinstance(obj, (float, int)):
-            self.message = self.message + str(obj)
-        elif isinstance(obj, OutputMessage):
-            self.message = self.message + obj.value
-        else:
-            raise TypeError(f'Item of type {type(obj).__name__} cannot be added to the OutputMessage!')
+class InputMessage(Message):
 
-
-class InputMessage:
-
-    def __init__(self, message: str) -> None:
-        self.message = message
+    def __init__(self) -> None:
+        super().__init__()
         self.index = 0
 
+    @staticmethod
+    async def create(chars: str = None) -> 'InputMessage':
+        """
+        Create an OutputMessage instance and initialise its message.
+
+        :param chars:           - Initial value of the message.
+        :return:                - OutputMessage instance.
+        """
+        instance = InputMessage()
+
+        if chars:
+            await instance.append(chars)
+
+        return instance
+
+    @staticmethod
+    async def skip_spaces(message: 'InputMessage') -> None:
+        """
+        Moves the head of the message to the next non-space character.
+
+        :param message:     - InputMessage object.
+        """
+        char = message.head
+        while await ReconUtils.is_space(char):
+            char = message.step()
+            
+    @property
     def head(self) -> str:
         """
         Get the character at the front of the InputMessage pointed by the message index.
 
         :return:                - The current head character of the InputMessage.
         """
-        if self.is_cont():
+        if self.is_cont:
             return self.message[self.index]
         else:
             return ''
 
-    def step(self) -> str:
-        """
-        Move the head index forward by one.
-
-        :return:                - The new head character of the InputMessage.
-        """
-        self.index = self.index + 1
-        return self.head()
-
+    @property
     def is_cont(self) -> bool:
         """
         Check if there are any characters left in front of the InputMessage index.
@@ -190,3 +216,12 @@ class InputMessage:
             return False
         else:
             return True
+
+    def step(self) -> str:
+        """
+        Move the head index forward by one.
+
+        :return:                - The new head character of the InputMessage.
+        """
+        self.index = self.index + 1
+        return self.head

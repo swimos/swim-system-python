@@ -1,7 +1,7 @@
 import asyncio
 import inspect
 
-from collections import Callable
+from collections.abc import Callable
 from swimai.structures import Absent
 from swimai.warp import SyncRequest, CommandMessage, Envelope
 

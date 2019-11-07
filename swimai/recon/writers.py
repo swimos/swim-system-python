@@ -128,6 +128,8 @@ class AttrWriter(Writer):
             await output.append('(')
 
             value_text = await writer.write_value(value)
+            if value.size == 0:
+                return output
 
             if value_text:
                 await output.append(value_text)

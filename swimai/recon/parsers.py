@@ -37,7 +37,7 @@ class ReconParser:
         return Num.create_from(value)
 
     async def parse_block_string(self, recon_string: str) -> 'Value':
-        message = InputMessage(recon_string)
+        message = await InputMessage.create(recon_string)
         return await self.parse_block(message)
 
     async def parse_block(self, message: 'InputMessage') -> 'Value':
@@ -88,9 +88,7 @@ class BlockParser(Parser):
                     builder: Union[RecordMap, ValueBuilder] = None, key_output: 'Value' = None,
                     value_output: 'Value' = None) -> 'Value':
 
-        char = message.head()
-
-        await ReconUtils.skip_spaces(char, message)
+        await message.skip_spaces(message)
 
         if builder is None:
             builder = await parser.create_value_builder()
@@ -98,23 +96,23 @@ class BlockParser(Parser):
         if key_output is None:
             key_output = await parser.parse_block_expression(message)
 
-        char = message.head()
+        char = message.head
 
-        await ReconUtils.skip_spaces(char, message)
+        await message.skip_spaces(message)
 
-        if message.is_cont():
+        if message.is_cont:
 
             if char == ':':
-                char = message.step()
+                message.step()
 
-            await ReconUtils.skip_spaces(char, message)
+            await message.skip_spaces(message)
 
             if value_output is None:
                 value_output = await parser.parse_block_expression(message)
 
             builder.add(await parser.create_slot(key_output, value_output))
 
-            char = message.head()
+            char = message.head
             if char == ',' or char == ';':
                 message.step()
                 await BlockParser.parse(message, parser, builder)
@@ -133,20 +131,20 @@ class RecordParser(Parser):
                     builder: Union[RecordMap, ValueBuilder] = None, key_output: 'Value' = None,
                     value_output: 'Value' = None) -> 'Value':
 
-        char = message.head()
+        char = message.head
 
         if char == '{':
-            char = message.step()
+            message.step()
 
-        await ReconUtils.skip_spaces(char, message)
+        await message.skip_spaces(message)
 
         if key_output is None:
             key_output = await parser.parse_block_expression(message)
 
-        await ReconUtils.skip_spaces(char, message)
+        await message.skip_spaces(message)
 
-        if message.is_cont():
-            if message.head() == ':':
+        if message.is_cont:
+            if message.head == ':':
                 message.step()
 
                 if value_output is None:
@@ -157,8 +155,8 @@ class RecordParser(Parser):
             else:
                 builder.add(key_output)
 
-        if message.is_cont():
-            char = message.head()
+        if message.is_cont:
+            char = message.head
 
             if char == ',' or char == ';':
                 message.step()
@@ -176,8 +174,8 @@ class AttrExpressionParser(Parser):
                     builder: Union[RecordMap, ValueBuilder] = None, field_output: 'Value' = None,
                     value_output: 'Value' = None) -> 'Value':
 
-        char = message.head()
-        await ReconUtils.skip_spaces(char, message)
+        char = message.head
+        await message.skip_spaces(message)
 
         if char == '@':
 
@@ -217,7 +215,7 @@ class AttrParser(Parser):
     async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, key_output: 'Value' = None,
                     value_output: 'Value' = None) -> 'Attr':
 
-        char = message.head()
+        char = message.head
 
         if char == '@':
             char = message.step()
@@ -230,19 +228,19 @@ class AttrParser(Parser):
                 if key_output is None:
                     key_output = await parser.parse_ident(message)
 
-                if message.head() == '(' and message.is_cont():
+                if message.head == '(' and message.is_cont:
                     message.step()
                 else:
                     return await parser.create_attr(key_output)
 
-                if message.head() == ')':
+                if message.head == ')':
                     message.step()
                     return await parser.create_attr(key_output)
                 else:
                     if value_output is None:
                         value_output = await parser.parse_block(message)
 
-                if message.head() == ')':
+                if message.head == ')':
                     message.step()
                     return await parser.create_attr(key_output, value_output)
 
@@ -255,7 +253,7 @@ class IdentParser(Parser):
     async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
                     output: 'OutputMessage' = None) -> 'Value':
 
-        char = message.head()
+        char = message.head
 
         if await ReconUtils.is_ident_start_char(char):
             if output is None:
@@ -277,9 +275,9 @@ class StringParser(Parser):
     async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
                     output: 'OutputMessage' = None) -> 'Text':
 
-        char = message.head()
+        char = message.head
 
-        await ReconUtils.skip_spaces(char, message)
+        await message.skip_spaces(message)
 
         if char == '"':
 
@@ -288,7 +286,7 @@ class StringParser(Parser):
 
             char = message.step()
 
-            while char != '"' and message.is_cont():
+            while char != '"' and message.is_cont:
                 await output.append(char)
                 char = message.step()
 
@@ -303,7 +301,7 @@ class NumberParser(Parser):
     async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, value_output: int = None,
                     sign_output: int = 1) -> Num:
 
-        char = message.head()
+        char = message.head
 
         if char == '-':
             sign_output = -1
@@ -315,11 +313,11 @@ class NumberParser(Parser):
             value_output = sign_output * int(char)
             char = message.step()
 
-            while message.is_cont() and await ReconUtils.is_digit(char):
+            while message.is_cont and await ReconUtils.is_digit(char):
                 value_output = 10 * value_output + sign_output * int(char)
                 char = message.step()
 
-        if message.is_cont():
+        if message.is_cont:
             if char == '.':
                 return await DecimalParser.parse(message, parser, value_output, sign_output)
             else:
@@ -344,20 +342,20 @@ class DecimalParser(Parser):
 
             builder += str(value_output)
 
-        char = message.head()
+        char = message.head
 
         if char == '.':
             builder += '.'
             message.step()
 
-            if message.is_cont():
-                char = message.head()
+            if message.is_cont:
+                char = message.head
 
                 if await ReconUtils.is_digit(char):
                     builder += char
                     char = message.step()
 
-                while message.is_cont() and await ReconUtils.is_digit(char):
+                while message.is_cont and await ReconUtils.is_digit(char):
                     builder += char
                     char = message.step()
 
@@ -370,7 +368,7 @@ class LiteralParser(Parser):
     async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
                     builder: Union[RecordMap, ValueBuilder] = None, value_output: int = None) -> Value:
 
-        char = message.head()
+        char = message.head
 
         if char == '(':
             pass
