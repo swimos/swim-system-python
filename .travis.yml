@@ -1,16 +1,19 @@
 dist: xenial
 language: python
 python:
-- '3.7'
+    - '3.7'
 install:
-- pip install -r requirements.txt
+    - pip install -r requirements.txt
+    - pip install flake8
 script:
-- python -m unittest
+    - flake8 . --exclude=examples --count --select=E9,F63,F7,F82 --show-source --statistics
+    - flake8 . --exclude=examples --count --select=E501 --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+    - python -m unittest
 deploy:
-  provider: pypi
-  user: __token__
-  password:
-    secure: 6CUvFZvKvcDC3B3sYfi/BJL7TIzCuSFnZ8wxegERGqyAQ/ibJKhQuyxvx12o9YKCU5VSKrdJGiIlCxHzNB/r4NOtTsGNdhVDmGZIpRpPPrVJgVUed5PO/ujkk579+POSnajT9gSRNYwN/ke4ze9xwHftgoUlMhLGmqGGpM1CjCt/We1GqQjw4LX7wBIfZFAC2EtXyeueVI96+g66zGQW6gSOpqhF45QzSIIF5nQinb0oZdRQWFakd6Xp9r17mrMsPjYYWs8tydWF84oUqq6RH8j1J0ui4uvvRwbb8LIY8JCAR20A213z6g9v/OyAJB/i7nS1Jpr74IveyI96Cts2BtP0T/GLd9j9RuUiXVtZqc/w6M6+GkELQwqFq1cbNdzfRkKGrdlB3AzONUa/o6OljaHr0Wnk0BkEMDYDove6BbwlHNSe/ZhPl3J+dQ7beyMdUYHv/qaAq4AoX7FqOB8TtRweLi2M6adLVV8ju2Qz4LmjkkU0FMlJa1Hk3633e+h5XWTW8duldQvouP4jwa7gdjbNLonqfYBot2aqQj9O1bhBYG8l+7rB/ZaijutMZleJfGGLH9BbI1n9h1o7fGt6eqaonqqAu8m6scTZJXRtYgWai9oWh/Yq2u3t+s66QRel+UY6g8/TcBaJ00tLm5V2VsiZYD8Q4L3oa5zwqDgfPS8=
-  distributions: sdist bdist_wheel
-  on:
-    tags: true
+    provider: pypi
+    user: __token__
+    password:
+        secure: 6CUvFZvKvcDC3B3sYfi/BJL7TIzCuSFnZ8wxegERGqyAQ/ibJKhQuyxvx12o9YKCU5VSKrdJGiIlCxHzNB/r4NOtTsGNdhVDmGZIpRpPPrVJgVUed5PO/ujkk579+POSnajT9gSRNYwN/ke4ze9xwHftgoUlMhLGmqGGpM1CjCt/We1GqQjw4LX7wBIfZFAC2EtXyeueVI96+g66zGQW6gSOpqhF45QzSIIF5nQinb0oZdRQWFakd6Xp9r17mrMsPjYYWs8tydWF84oUqq6RH8j1J0ui4uvvRwbb8LIY8JCAR20A213z6g9v/OyAJB/i7nS1Jpr74IveyI96Cts2BtP0T/GLd9j9RuUiXVtZqc/w6M6+GkELQwqFq1cbNdzfRkKGrdlB3AzONUa/o6OljaHr0Wnk0BkEMDYDove6BbwlHNSe/ZhPl3J+dQ7beyMdUYHv/qaAq4AoX7FqOB8TtRweLi2M6adLVV8ju2Qz4LmjkkU0FMlJa1Hk3633e+h5XWTW8duldQvouP4jwa7gdjbNLonqfYBot2aqQj9O1bhBYG8l+7rB/ZaijutMZleJfGGLH9BbI1n9h1o7fGt6eqaonqqAu8m6scTZJXRtYgWai9oWh/Yq2u3t+s66QRel+UY6g8/TcBaJ00tLm5V2VsiZYD8Q4L3oa5zwqDgfPS8=
+    distributions: sdist bdist_wheel
+    on:
+        tags: true

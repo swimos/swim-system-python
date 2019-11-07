@@ -97,6 +97,11 @@ class ReconUtils:
         else:
             return None
 
+    @staticmethod
+    async def skip_spaces(char, message):
+        while await ReconUtils.is_space(char):
+            char = message.step()
+
 
 class OutputMessage:
 

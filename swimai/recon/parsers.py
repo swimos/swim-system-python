@@ -90,8 +90,7 @@ class BlockParser(Parser):
 
         char = message.head()
 
-        while await ReconUtils.is_space(char):
-            char = message.step()
+        await ReconUtils.skip_spaces(char, message)
 
         if builder is None:
             builder = await parser.create_value_builder()
@@ -101,16 +100,14 @@ class BlockParser(Parser):
 
         char = message.head()
 
-        while await ReconUtils.is_space(char):
-            char = message.step()
+        await ReconUtils.skip_spaces(char, message)
 
         if message.is_cont():
 
             if char == ':':
                 char = message.step()
 
-            while await ReconUtils.is_space(char):
-                char = message.step()
+            await ReconUtils.skip_spaces(char, message)
 
             if value_output is None:
                 value_output = await parser.parse_block_expression(message)
@@ -141,14 +138,12 @@ class RecordParser(Parser):
         if char == '{':
             char = message.step()
 
-        while await ReconUtils.is_space(char):
-            char = message.step()
+        await ReconUtils.skip_spaces(char, message)
 
         if key_output is None:
             key_output = await parser.parse_block_expression(message)
 
-        while await ReconUtils.is_space(char):
-            char = message.step()
+        await ReconUtils.skip_spaces(char, message)
 
         if message.is_cont():
             if message.head() == ':':
@@ -182,11 +177,10 @@ class AttrExpressionParser(Parser):
                     value_output: 'Value' = None) -> 'Value':
 
         char = message.head()
-
-        while await ReconUtils.is_space(char):
-            char = message.step()
+        await ReconUtils.skip_spaces(char, message)
 
         if char == '@':
+
             if field_output is None:
                 field_output = await parser.parse_attr(message)
 
@@ -201,6 +195,7 @@ class AttrExpressionParser(Parser):
 
         elif await ReconUtils.is_ident_start_char(char) or char == '"' or await ReconUtils.is_digit(
                 char) or char == '-':
+
             if value_output is None:
                 value_output = await parser.parse_literal(message)
 
@@ -211,15 +206,9 @@ class AttrExpressionParser(Parser):
             return builder.bind()
 
         elif char == '{' or char == '[':
-            if builder is None:
-                builder = await parser.create_record_builder()
 
             if value_output is None:
                 await parser.parse_literal(message, builder)
-
-            if message.is_cont():
-                if message.head() == '@':
-                    await AttrExpressionParser.parse(message, parser, builder)
 
 
 class AttrParser(Parser):
@@ -229,6 +218,7 @@ class AttrParser(Parser):
                     value_output: 'Value' = None) -> 'Attr':
 
         char = message.head()
+
         if char == '@':
             char = message.step()
 
@@ -289,8 +279,7 @@ class StringParser(Parser):
 
         char = message.head()
 
-        while await ReconUtils.is_space(char):
-            char = message.step()
+        await ReconUtils.skip_spaces(char, message)
 
         if char == '"':
 
@@ -399,6 +388,7 @@ class LiteralParser(Parser):
             value_output = await parser.parse_string(message)
         elif char == '-' or await ReconUtils.is_digit(char):
             value_output = await parser.parse_number(message)
+
         if builder is None:
             builder = await parser.create_value_builder()
 
