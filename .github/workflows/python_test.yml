@@ -1,4 +1,4 @@
-name: Swim System Python
+name: Swim Python Client Test
 
 on: [push]
 
