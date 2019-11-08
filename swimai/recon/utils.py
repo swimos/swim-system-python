@@ -140,6 +140,11 @@ class OutputMessage(Message):
 
     @property
     def last_char(self) -> str:
+        """
+        Return the last character of the message.
+
+        :return:                - Last character of the message.
+        """
         if self.size > 0:
             return self.message[-1]
         else:
@@ -192,7 +197,7 @@ class InputMessage(Message):
         char = message.head
         while await ReconUtils.is_space(char):
             char = message.step()
-            
+
     @property
     def head(self) -> str:
         """

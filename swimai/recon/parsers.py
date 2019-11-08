@@ -370,16 +370,12 @@ class LiteralParser(Parser):
 
         char = message.head
 
-        if char == '(':
-            pass
-        elif char == '{':
+        if char == '{':
             if builder is None:
                 builder = await parser.create_record_builder()
 
             await parser.parse_record(message, builder)
 
-        elif char == '[':
-            pass
         elif await ReconUtils.is_ident_start_char(char):
             value_output = await parser.parse_ident(message)
         elif char == '"':
