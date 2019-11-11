@@ -53,11 +53,12 @@ class ReconParser:
     async def parse_attr(self, message: 'InputMessage') -> 'Attr':
         return await AttrParser.parse(message=message, parser=self)
 
-    async def parse_string(self, message: 'InputMessage') -> 'Text':
-        return await StringParser.parse(message=message, parser=self)
+    async def parse_string(self, message: 'InputMessage', output: 'OutputMessage' = None) -> 'Text':
+        return await StringParser.parse(message=message, parser=self, output=output)
 
-    async def parse_number(self, message: 'InputMessage') -> 'Num':
-        return await NumberParser.parse(message=message, parser=self)
+    async def parse_number(self, message: 'InputMessage', value_output: int = None, sign_output: int = 1) -> 'Num':
+        return await NumberParser.parse(message=message, parser=self, value_output=value_output,
+                                        sign_output=sign_output)
 
     async def parse_literal(self, message: 'InputMessage', builder: Union[RecordMap, ValueBuilder] = None) -> 'Value':
         return await LiteralParser.parse(message=message, parser=self, builder=builder)
@@ -84,7 +85,7 @@ class Parser(ABC):
 class BlockParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+    async def parse(message: 'InputMessage' = InputMessage(), parser: 'ReconParser' = None,
                     builder: Union[RecordMap, ValueBuilder] = None, key_output: 'Value' = None,
                     value_output: 'Value' = None) -> 'Value':
 
@@ -128,7 +129,7 @@ class BlockParser(Parser):
 class RecordParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+    async def parse(message: 'InputMessage' = InputMessage(), parser: 'ReconParser' = None,
                     builder: Union[RecordMap, ValueBuilder] = None, key_output: 'Value' = None,
                     value_output: 'Value' = None) -> 'Value':
 
@@ -171,7 +172,7 @@ class RecordParser(Parser):
 class AttrExpressionParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+    async def parse(message: 'InputMessage' = InputMessage(), parser: 'ReconParser' = None,
                     builder: Union[RecordMap, ValueBuilder] = None, field_output: 'Value' = None,
                     value_output: 'Value' = None) -> 'Value':
 
@@ -214,7 +215,7 @@ class AttrExpressionParser(Parser):
 class AttrParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, key_output: 'Value' = None,
+    async def parse(message: 'InputMessage' = InputMessage(), parser: 'ReconParser' = None, key_output: 'Value' = None,
                     value_output: 'Value' = None) -> 'Attr':
 
         await message.skip_spaces(message)
@@ -254,7 +255,7 @@ class AttrParser(Parser):
 class IdentParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+    async def parse(message: 'InputMessage' = InputMessage(), parser: 'ReconParser' = None,
                     output: 'OutputMessage' = None) -> 'Value':
 
         await message.skip_spaces(message)
@@ -298,6 +299,9 @@ class StringParser(Parser):
 
             message.step()
 
+        if output is None:
+            output = OutputMessage()
+
         return Text.create_from(output.value)
 
 
@@ -315,9 +319,10 @@ class NumberParser(Parser):
             sign_output = -1
             char = message.step()
 
-        if char == '0':
+        while char == '0':
             char = message.step()
-        elif '1' <= char <= '9':
+
+        if '1' <= char <= '9':
             value_output = sign_output * int(char)
             char = message.step()
 
@@ -325,57 +330,57 @@ class NumberParser(Parser):
                 value_output = 10 * value_output + sign_output * int(char)
                 char = message.step()
 
-        if message.is_cont:
-            if char == '.':
-                return await DecimalParser.parse(message, parser, value_output, sign_output)
-            else:
-                return await parser.create_number(value_output)
+        if message.is_cont and char == '.':
+            return await DecimalParser.parse(message, parser, value_output, sign_output)
         else:
+            if value_output is None:
+                value_output = 0
+
             return await parser.create_number(value_output)
 
 
 class DecimalParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None, value_output: int = None,
-                    sign_output: int = None) -> 'Num':
+    async def parse(message: 'InputMessage' = InputMessage(), parser: 'ReconParser' = None, value_output: int = None,
+                    sign_output: int = 0) -> 'Num':
 
         await message.skip_spaces(message)
 
-        builder = ''
+        builder = await OutputMessage.create('')
 
         if sign_output < 0 and value_output is None:
-            builder += '-0'
+            await builder.append('-0')
         else:
             if value_output is None:
                 value_output = 0
 
-            builder += str(value_output)
+            await builder.append(value_output)
 
         char = message.head
 
         if char == '.':
-            builder += '.'
+            await builder.append('.')
             message.step()
 
             if message.is_cont:
                 char = message.head
 
                 if await ReconUtils.is_digit(char):
-                    builder += char
+                    await builder.append(char)
                     char = message.step()
 
-                while message.is_cont and await ReconUtils.is_digit(char):
-                    builder += char
-                    char = message.step()
+                    while message.is_cont and await ReconUtils.is_digit(char):
+                        await builder.append(char)
+                        char = message.step()
 
-                return await parser.create_number(float(builder))
+        return await parser.create_number(float(builder.message))
 
 
 class LiteralParser(Parser):
 
     @staticmethod
-    async def parse(message: 'InputMessage' = None, parser: 'ReconParser' = None,
+    async def parse(message: 'InputMessage' = InputMessage(), parser: 'ReconParser' = None,
                     builder: Union[RecordMap, ValueBuilder] = None, value_output: int = None) -> Value:
 
         await message.skip_spaces(message)
