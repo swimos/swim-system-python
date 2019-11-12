@@ -46,12 +46,15 @@ class ReconParser:
     async def parse_block_expression(self, message: 'InputMessage') -> 'Value':
         return await self.parse_attr_expression(message)
 
-    async def parse_attr_expression(self, message: 'InputMessage',
-                                    builder: Union[RecordMap, ValueBuilder] = None) -> 'Value':
-        return await AttrExpressionParser.parse(message=message, parser=self, builder=builder)
+    async def parse_attr_expression(self, message: 'InputMessage', builder: Union[RecordMap, ValueBuilder] = None,
+                                    field_output: 'Value' = None, value_output: 'Value' = None) -> 'Value':
+        return await AttrExpressionParser.parse(message=message, parser=self, builder=builder,
+                                                field_output=field_output, value_output=value_output)
 
-    async def parse_attr(self, message: 'InputMessage') -> 'Attr':
-        return await AttrParser.parse(message=message, parser=self)
+    async def parse_attr(self, message: 'InputMessage', key_output: 'Value' = None,
+                         value_output: 'Value' = None) -> 'Attr':
+
+        return await AttrParser.parse(message=message, parser=self, key_output=key_output, value_output=value_output)
 
     async def parse_string(self, message: 'InputMessage', output: 'OutputMessage' = None) -> 'Text':
         return await StringParser.parse(message=message, parser=self, output=output)
@@ -66,8 +69,8 @@ class ReconParser:
     async def parse_record(self, message: 'InputMessage', builder: Union[RecordMap, ValueBuilder]) -> 'Value':
         return await RecordParser.parse(message=message, parser=self, builder=builder)
 
-    async def parse_ident(self, message: 'InputMessage') -> 'Value':
-        return await IdentParser.parse(message=message, parser=self)
+    async def parse_ident(self, message: 'InputMessage', output: 'OutputMessage' = None) -> 'Value':
+        return await IdentParser.parse(message=message, parser=self, output=output)
 
 
 class Parser(ABC):
@@ -135,7 +138,7 @@ class RecordParser(Parser):
 
         char = message.head
 
-        if char == '{':
+        if char == '{' or '{':
             message.step()
 
         await message.skip_spaces(message)
@@ -164,7 +167,7 @@ class RecordParser(Parser):
                 message.step()
                 await RecordParser.parse(message, parser, builder)
 
-            elif char == '}':
+            elif char == '}' or char == ']':
                 message.step()
                 return builder.bind()
 
@@ -189,9 +192,7 @@ class AttrExpressionParser(Parser):
                 builder = await parser.create_record_builder()
 
             builder.add(field_output)
-
             await AttrExpressionParser.parse(message, parser, builder)
-
             return builder.bind()
 
         elif await ReconUtils.is_ident_start_char(char) or char == '"' or await ReconUtils.is_digit(
@@ -204,12 +205,11 @@ class AttrExpressionParser(Parser):
                 builder = await parser.create_value_builder()
 
             builder.add(value_output)
+            await AttrExpressionParser.parse(message, parser, builder)
             return builder.bind()
 
         elif char == '{' or char == '[':
-
-            if value_output is None:
-                await parser.parse_literal(message, builder)
+            return await parser.parse_literal(message, builder)
 
 
 class AttrParser(Parser):
@@ -223,33 +223,25 @@ class AttrParser(Parser):
         char = message.head
 
         if char == '@':
-            char = message.step()
+            message.step()
 
-            if char == '"':
-                if key_output is None:
-                    key_output = await parser.parse_string(message)
+            if key_output is None:
+                key_output = await parser.parse_ident(message)
+
+            if message.head == '(' and message.is_cont:
+                message.step()
             else:
+                return await parser.create_attr(key_output)
 
-                if key_output is None:
-                    key_output = await parser.parse_ident(message)
+            if value_output is None:
+                value_output = await parser.parse_block(message)
+                message.step()
+                return await parser.create_attr(key_output, value_output)
 
-                if message.head == '(' and message.is_cont:
-                    message.step()
-                else:
-                    return await parser.create_attr(key_output)
-
-                if message.head == ')':
-                    message.step()
-                    return await parser.create_attr(key_output)
-                else:
-                    if value_output is None:
-                        value_output = await parser.parse_block(message)
-
-                if message.head == ')':
-                    message.step()
-                    return await parser.create_attr(key_output, value_output)
-
-        return await parser.create_attr(key_output, value_output)
+        if key_output is None or value_output is None:
+            raise TypeError(f'Attribute starting at position {message.index} is invalid!\nMessage: {message.value}')
+        else:
+            return await parser.create_attr(key_output, value_output)
 
 
 class IdentParser(Parser):
@@ -273,7 +265,10 @@ class IdentParser(Parser):
                 await output.append(char)
                 char = message.step()
 
-        return await parser.create_ident(output.value)
+        if output is not None:
+            return await parser.create_ident(output.value)
+        else:
+            raise TypeError(f'Identifier starting at position {message.index} is invalid!\nMessage: {message.value}')
 
 
 class StringParser(Parser):
@@ -387,7 +382,7 @@ class LiteralParser(Parser):
 
         char = message.head
 
-        if char == '{':
+        if char == '{' or char == '[':
             if builder is None:
                 builder = await parser.create_record_builder()
 
