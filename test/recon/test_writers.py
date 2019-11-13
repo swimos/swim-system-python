@@ -232,7 +232,6 @@ class TestWriters(unittest.TestCase):
         # When
         actual = await BlockWriter.write(items, writer=writer)
         # Then
-        # self.assertEqual()
         self.assertIsInstance(actual, OutputMessage)
         self.assertEqual('@dog(bark)', actual.message)
 
@@ -245,7 +244,6 @@ class TestWriters(unittest.TestCase):
         # When
         actual = await BlockWriter.write(items, writer=writer)
         # Then
-        # self.assertEqual()
         self.assertIsInstance(actual, OutputMessage)
         self.assertEqual('"Dead parrot"', actual.message)
 
@@ -259,7 +257,6 @@ class TestWriters(unittest.TestCase):
         # When
         actual = await BlockWriter.write(items, writer=writer)
         # Then
-        # self.assertEqual()
         self.assertIsInstance(actual, OutputMessage)
         self.assertEqual('foo_bar', actual.message)
 
@@ -267,13 +264,11 @@ class TestWriters(unittest.TestCase):
     async def test_block_writer_slot_single_first(self):
         # Given
         items = list()
-        # items.append(Attr.create_attr(Text.create_from('animal')))
         items.append(Slot.create_slot(Text.create_from('cat'), Text.create_from('meow')))
         writer = ReconWriter()
         # When
         actual = await BlockWriter.write(items, writer=writer, first=True)
         # Then
-        # self.assertEqual()
         self.assertIsInstance(actual, OutputMessage)
         self.assertEqual('cat:meow', actual.message)
 
@@ -286,7 +281,6 @@ class TestWriters(unittest.TestCase):
         # When
         actual = await BlockWriter.write(items, writer=writer, first=False)
         # Then
-        # self.assertEqual()
         self.assertIsInstance(actual, OutputMessage)
         self.assertEqual(',cat:meow', actual.message)
 
@@ -300,7 +294,6 @@ class TestWriters(unittest.TestCase):
         # When
         actual = await BlockWriter.write(items, writer=writer, first=True)
         # Then
-        # self.assertEqual()
         self.assertIsInstance(actual, OutputMessage)
         self.assertEqual('dog:bark,cat:meow', actual.message)
 
@@ -315,7 +308,6 @@ class TestWriters(unittest.TestCase):
         # When
         actual = await BlockWriter.write(items, writer=writer, first=True)
         # Then
-        # self.assertEqual()
         self.assertIsInstance(actual, OutputMessage)
         self.assertEqual('@animal(cat:meow)', actual.message)
 
@@ -331,7 +323,6 @@ class TestWriters(unittest.TestCase):
         # When
         actual = await BlockWriter.write(items, writer=writer, first=True)
         # Then
-        # self.assertEqual()
         self.assertIsInstance(actual, OutputMessage)
         self.assertEqual('@animal(dog:bark){cat:meow}', actual.message)
 
@@ -360,7 +351,6 @@ class TestWriters(unittest.TestCase):
         # When
         actual = await BlockWriter.write(items, writer=writer, first=True)
         # Then
-        # self.assertEqual()
         self.assertIsInstance(actual, OutputMessage)
         self.assertEqual('@Animal(dog:bark)@Animal(cat:meow)@Animal(bird:chirp)', actual.message)
 
@@ -379,7 +369,6 @@ class TestWriters(unittest.TestCase):
         animals_record = Record.create()
         animals_record.add(Slot.create_slot(Text.create_from('Animals'), species_record))
         items.append(Attr.create_attr(Text.create_from('Zoo'), animals_record))
-
         writer = ReconWriter()
         # When
         actual = await BlockWriter.write(items, writer=writer, first=True)
