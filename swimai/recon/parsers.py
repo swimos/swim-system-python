@@ -138,7 +138,7 @@ class RecordParser(Parser):
 
         char = message.head
 
-        if char == '{' or '{':
+        if char == '{' or char == '[':
             message.step()
 
         await message.skip_spaces(message)
