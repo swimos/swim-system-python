@@ -38,10 +38,7 @@ class ReconParser:
 
     async def parse_block_string(self, recon_string: str) -> 'Value':
         message = await InputMessage.create(recon_string)
-        return await self.parse_block(message)
-
-    async def parse_block(self, message: 'InputMessage') -> 'Value':
-        return await BlockParser.parse(message=message, parser=self)
+        return await self.parse_block_expression(message)
 
     async def parse_block_expression(self, message: 'InputMessage') -> 'Value':
         return await self.parse_attr_expression(message)
@@ -66,8 +63,10 @@ class ReconParser:
     async def parse_literal(self, message: 'InputMessage', builder: Union[RecordMap, ValueBuilder] = None) -> 'Value':
         return await LiteralParser.parse(message=message, parser=self, builder=builder)
 
-    async def parse_record(self, message: 'InputMessage', builder: Union[RecordMap, ValueBuilder]) -> 'Value':
-        return await RecordParser.parse(message=message, parser=self, builder=builder)
+    async def parse_record(self, message: 'InputMessage', builder: Union[RecordMap, ValueBuilder] = None,
+                           key_output: 'Value' = None, value_output: 'Value' = None) -> 'Value':
+        return await RecordParser.parse(message=message, parser=self, builder=builder, key_output=key_output,
+                                        value_output=value_output)
 
     async def parse_ident(self, message: 'InputMessage', output: 'OutputMessage' = None) -> 'Value':
         return await IdentParser.parse(message=message, parser=self, output=output)
@@ -85,55 +84,15 @@ class Parser(ABC):
         ...
 
 
-class BlockParser(Parser):
-
-    @staticmethod
-    async def parse(message: 'InputMessage' = InputMessage(), parser: 'ReconParser' = None,
-                    builder: Union[RecordMap, ValueBuilder] = None, key_output: 'Value' = None,
-                    value_output: 'Value' = None) -> 'Value':
-
-        await message.skip_spaces(message)
-
-        if builder is None:
-            builder = await parser.create_value_builder()
-
-        if key_output is None:
-            key_output = await parser.parse_block_expression(message)
-
-        await message.skip_spaces(message)
-        char = message.head
-
-        if message.is_cont:
-
-            if char == ':':
-                message.step()
-
-            await message.skip_spaces(message)
-
-            if value_output is None:
-                value_output = await parser.parse_block_expression(message)
-
-            builder.add(await parser.create_slot(key_output, value_output))
-
-            char = message.head
-
-            if char == ',' or char == ';':
-                message.step()
-                await BlockParser.parse(message, parser, builder)
-
-            return builder.bind()
-
-        else:
-            builder.add(key_output)
-            return builder.bind()
-
-
 class RecordParser(Parser):
 
     @staticmethod
     async def parse(message: 'InputMessage' = InputMessage(), parser: 'ReconParser' = None,
                     builder: Union[RecordMap, ValueBuilder] = None, key_output: 'Value' = None,
                     value_output: 'Value' = None) -> 'Value':
+
+        if builder is None:
+            builder = await parser.create_record_builder()
 
         char = message.head
 
@@ -154,12 +113,9 @@ class RecordParser(Parser):
                 if value_output is None:
                     value_output = await parser.parse_block_expression(message)
 
-                builder.add(await parser.create_slot(key_output, value_output))
+            builder.add(await parser.create_slot(key_output, value_output))
+            key_output = None
 
-            else:
-                builder.add(key_output)
-
-        if message.is_cont:
             char = message.head
 
             if char == ',' or char == ';':
@@ -168,7 +124,11 @@ class RecordParser(Parser):
 
             elif char == '}' or char == ']':
                 message.step()
-                return builder.bind()
+
+        if key_output:
+            builder.add(await parser.create_slot(key_output, value_output))
+
+        return builder.bind()
 
 
 class AttrExpressionParser(Parser):
@@ -233,7 +193,7 @@ class AttrParser(Parser):
                 return await parser.create_attr(key_output)
 
             if value_output is None:
-                value_output = await parser.parse_block(message)
+                value_output = await parser.parse_record(message)
                 message.step()
                 return await parser.create_attr(key_output, value_output)
 
@@ -382,6 +342,7 @@ class LiteralParser(Parser):
         char = message.head
 
         if char == '{' or char == '[':
+
             if builder is None:
                 builder = await parser.create_record_builder()
 

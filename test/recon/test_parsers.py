@@ -4,7 +4,7 @@ from aiounittest import async_test
 
 from swimai.recon import ReconParser, InputMessage, OutputMessage
 from swimai.recon.parsers import DecimalParser
-from swimai.structures import RecordMap, Slot, Text, Attr, Absent, Num, Extant
+from swimai.structures import RecordMap, Slot, Text, Attr, Absent, Num, Extant, Bool
 
 
 class TestParsers(unittest.TestCase):
@@ -669,7 +669,7 @@ class TestParsers(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(1, actual.size)
-        self.assertEqual('record', actual.get_item(0).value)
+        self.assertEqual('record', actual.get_item(0).key.value)
 
     @async_test
     async def test_attr_expression_parser_parse_record_square_brackets(self):
@@ -681,4 +681,307 @@ class TestParsers(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(1, actual.size)
-        self.assertEqual('record', actual.get_item(0).value)
+        self.assertEqual('record', actual.get_item(0).key.value)
+
+    @async_test
+    async def test_record_parser_parse_single(self):
+        # Given
+        message = await InputMessage.create('{animal: dog}')
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_record(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(1, actual.size)
+        self.assertEqual('animal', actual.get_item(0).key.value)
+        self.assertEqual('dog', actual.get_item(0).value.value)
+
+    @async_test
+    async def test_record_parser_parse_double(self):
+        # Given
+        message = await InputMessage.create('{cat: meow, dog: bark}')
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_record(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(2, actual.size)
+        self.assertEqual('cat', actual.get_item(0).key.value)
+        self.assertEqual('meow', actual.get_item(0).value.value)
+        self.assertEqual('dog', actual.get_item(1).key.value)
+        self.assertEqual('bark', actual.get_item(1).value.value)
+
+    @async_test
+    async def test_record_parser_parse_multiple(self):
+        # Given
+        message = await InputMessage.create('{dog: bark,  bird: chirp , cat  : meow }')
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_record(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(3, actual.size)
+        self.assertEqual('dog', actual.get_item(0).key.value)
+        self.assertEqual('bark', actual.get_item(0).value.value)
+        self.assertEqual('bird', actual.get_item(1).key.value)
+        self.assertEqual('chirp', actual.get_item(1).value.value)
+        self.assertEqual('cat', actual.get_item(2).key.value)
+        self.assertEqual('meow', actual.get_item(2).value.value)
+
+    @async_test
+    async def test_record_parser_parse_square_brackets(self):
+        # Given
+        message = await InputMessage.create('[pet: mouse]')
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_record(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(1, actual.size)
+        self.assertEqual('pet', actual.get_item(0).key.value)
+        self.assertEqual('mouse', actual.get_item(0).value.value)
+
+    @async_test
+    async def test_record_parser_parse_no_brackets(self):
+        # Given
+        message = await InputMessage.create('duck: quack, dog: bark')
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_record(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(2, actual.size)
+        self.assertEqual('duck', actual.get_item(0).key.value)
+        self.assertEqual('quack', actual.get_item(0).value.value)
+        self.assertEqual('dog', actual.get_item(1).key.value)
+        self.assertEqual('bark', actual.get_item(1).value.value)
+
+    @async_test
+    async def test_record_parser_parse_semicolon_delimiter(self):
+        # Given
+        message = await InputMessage.create('{large_dog: collie ; small_dog: pug}')
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_record(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(2, actual.size)
+        self.assertEqual('large_dog', actual.get_item(0).key.value)
+        self.assertEqual('collie', actual.get_item(0).value.value)
+        self.assertEqual('small_dog', actual.get_item(1).key.value)
+        self.assertEqual('pug', actual.get_item(1).value.value)
+
+    @async_test
+    async def test_record_parser_parse_missing_closing_bracket(self):
+        # Given
+        message = await InputMessage.create('{hello: world, bye: world')
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_record(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(2, actual.size)
+        self.assertEqual('hello', actual.get_item(0).key.value)
+        self.assertEqual('world', actual.get_item(0).value.value)
+        self.assertEqual('bye', actual.get_item(1).key.value)
+        self.assertEqual('world', actual.get_item(1).value.value)
+
+    @async_test
+    async def test_record_parser_parse_missing_opening_bracket(self):
+        # Given
+        message = await InputMessage.create('bye: world, hello: world}')
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_record(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(2, actual.size)
+        self.assertEqual('bye', actual.get_item(0).key.value)
+        self.assertEqual('world', actual.get_item(0).value.value)
+        self.assertEqual('hello', actual.get_item(1).key.value)
+        self.assertEqual('world', actual.get_item(1).value.value)
+
+    @async_test
+    async def test_record_parser_parse_key_only(self):
+        # Given
+        message = await InputMessage.create('{foo}')
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_record(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(1, actual.size)
+        self.assertIsInstance(actual.get_item(0), Slot)
+        self.assertEqual('foo', actual.get_item(0).key.value)
+
+    @async_test
+    async def test_record_parser_parse_existing_key_empty(self):
+        # Given
+        message = await InputMessage.create('')
+        parser = ReconParser()
+        key = Text.create_from('dog')
+        # When
+        actual = await parser.parse_record(message, key_output=key)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(1, actual.size)
+        self.assertIsInstance(actual.get_item(0), Slot)
+        self.assertEqual('dog', actual.get_item(0).key.value)
+
+    @async_test
+    async def test_record_parser_parse_existing_key_value(self):
+        # Given
+        message = await InputMessage.create(':dog')
+        parser = ReconParser()
+        key = Text.create_from('animal')
+        # When
+        actual = await parser.parse_record(message, key_output=key)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(1, actual.size)
+        self.assertEqual('animal', actual.get_item(0).key.value)
+        self.assertEqual('dog', actual.get_item(0).value.value)
+
+    @async_test
+    async def test_record_parser_parse_existing_key_multiple(self):
+        # Given
+        message = await InputMessage.create(':dog, test:bar')
+        parser = ReconParser()
+        key = Text.create_from('animal')
+        # When
+        actual = await parser.parse_record(message, key_output=key)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(2, actual.size)
+        self.assertEqual('animal', actual.get_item(0).key.value)
+        self.assertEqual('dog', actual.get_item(0).value.value)
+        self.assertEqual('test', actual.get_item(1).key.value)
+        self.assertEqual('bar', actual.get_item(1).value.value)
+
+    @async_test
+    async def test_record_parser_parse_existing_value_multiple(self):
+        # Given
+        message = await InputMessage.create('animal, test:foo')
+        parser = ReconParser()
+        value = Text.create_from('cat')
+        # When
+        actual = await parser.parse_record(message, value_output=value)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(2, actual.size)
+        self.assertEqual('animal', actual.get_item(0).key.value)
+        self.assertEqual('cat', actual.get_item(0).value.value)
+        self.assertEqual('test', actual.get_item(1).key.value)
+        self.assertEqual('foo', actual.get_item(1).value.value)
+
+    @async_test
+    async def test_record_parser_parse_existing_builder_empty(self):
+        # Given
+        message = await InputMessage.create('')
+        parser = ReconParser()
+        builder = await parser.create_record_builder()
+        builder.add(await parser.create_slot(Text.create_from('cow'), Text.create_from('moo')))
+        # When
+        actual = await parser.parse_record(message, builder=builder)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(1, actual.size)
+        self.assertEqual('cow', actual.get_item(0).key.value)
+        self.assertEqual('moo', actual.get_item(0).value.value)
+
+    @async_test
+    async def test_record_parser_parse_existing_builder_single(self):
+        # Given
+        message = await InputMessage.create(' cat: meow')
+        parser = ReconParser()
+        builder = await parser.create_record_builder()
+        builder.add(await parser.create_slot(Text.create_from('dog'), Text.create_from('bark')))
+        # When
+        actual = await parser.parse_record(message, builder=builder)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(2, actual.size)
+        self.assertEqual('dog', actual.get_item(0).key.value)
+        self.assertEqual('bark', actual.get_item(0).value.value)
+        self.assertEqual('cat', actual.get_item(1).key.value)
+        self.assertEqual('meow', actual.get_item(1).value.value)
+
+    @async_test
+    async def test_record_parser_parse_existing_builder_multiple(self):
+        # Given
+        message = await InputMessage.create(' pig: oink')
+        parser = ReconParser()
+        builder = await parser.create_record_builder()
+        builder.add(await parser.create_slot(Text.create_from('bird'), Text.create_from('chirp')))
+        builder.add(await parser.create_slot(Text.create_from('dog'), Text.create_from('bark')))
+        # When
+        actual = await parser.parse_record(message, builder=builder)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(3, actual.size)
+        self.assertEqual('bird', actual.get_item(0).key.value)
+        self.assertEqual('chirp', actual.get_item(0).value.value)
+        self.assertEqual('dog', actual.get_item(1).key.value)
+        self.assertEqual('bark', actual.get_item(1).value.value)
+        self.assertEqual('pig', actual.get_item(2).key.value)
+        self.assertEqual('oink', actual.get_item(2).value.value)
+
+    @async_test
+    async def test_record_parser_parse_empty(self):
+        # Given
+        message = await InputMessage.create('')
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_record(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(0, actual.size)
+        self.assertEqual(Absent.get_absent(), actual.value)
+
+    @async_test
+    async def test_record_parser_parse_block_string(self):
+        # Given
+        message = '@animals{dog: bark  , cat: meow; bird : chirp}'
+        parser = ReconParser()
+        # When
+        actual = await parser.parse_block_string(message)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(4, actual.size)
+        self.assertEqual('animals', actual.tag)
+        self.assertEqual('dog', actual.get_item(1).key.value)
+        self.assertEqual('bark', actual.get_item(1).value.value)
+        self.assertEqual('cat', actual.get_item(2).key.value)
+        self.assertEqual('meow', actual.get_item(2).value.value)
+        self.assertEqual('bird', actual.get_item(3).key.value)
+        self.assertEqual('chirp', actual.get_item(3).value.value)
+
+    @async_test
+    async def test_create_ident_true(self):
+        # Given
+        message = 'true'
+        # When
+        actual = await ReconParser.create_ident(message)
+        # Then
+        self.assertIsInstance(actual, Bool)
+        self.assertEqual(True, actual.value)
+
+    @async_test
+    async def test_create_ident_false(self):
+        # Given
+        message = 'false'
+        # When
+        actual = await ReconParser.create_ident(message)
+        # Then
+        self.assertIsInstance(actual, Bool)
+        self.assertEqual(False, actual.value)
+
+    @async_test
+    async def test_create_ident_text(self):
+        # Given
+        message = 'Dog'
+        # When
+        actual = await ReconParser.create_ident(message)
+        # Then
+        self.assertIsInstance(actual, Text)
+        self.assertEqual('Dog', actual.value)
