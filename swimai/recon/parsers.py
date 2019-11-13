@@ -101,7 +101,6 @@ class BlockParser(Parser):
             key_output = await parser.parse_block_expression(message)
 
         await message.skip_spaces(message)
-
         char = message.head
 
         if message.is_cont:
