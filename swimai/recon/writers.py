@@ -80,7 +80,7 @@ class Writer(ABC):
 class BlockWriter(Writer):
 
     @staticmethod
-    async def write(items: List[Value] = None, writer: 'ReconWriter' = None, first: 'bool' = False,
+    async def write(items: List[Item] = None, writer: 'ReconWriter' = None, first: 'bool' = False,
                     in_braces: bool = False) -> 'OutputMessage':
         output = await OutputMessage.create()
 
@@ -88,8 +88,10 @@ class BlockWriter(Writer):
 
             if isinstance(item, Attr):
                 item_text = await writer.write_item(item)
+                await output.append(item_text)
             elif isinstance(item, Value) and not isinstance(item, Record):
                 item_text = await writer.write_item(item)
+                await output.append(item_text)
             else:
                 if not first:
                     await output.append(',')
@@ -99,11 +101,8 @@ class BlockWriter(Writer):
                         in_braces = True
 
                 item_text = await writer.write_item(item)
-
-                first = False
-
-            if item_text:
                 await output.append(item_text)
+                first = False
 
         if in_braces:
             await output.append('}')
@@ -117,23 +116,15 @@ class AttrWriter(Writer):
     async def write(key: 'Value' = None, writer: 'ReconWriter' = None, value: 'Value' = None) -> 'OutputMessage':
 
         output = await OutputMessage.create('@')
-
         key_text = await writer.write_value(key)
 
         if key_text:
             await output.append(key_text)
 
-        if value != Extant.get_extant():
-
+        if value != Extant.get_extant() and value is not None:
             await output.append('(')
-
             value_text = await writer.write_value(value)
-            if value.size == 0:
-                return output
-
-            if value_text:
-                await output.append(value_text)
-
+            await output.append(value_text)
             await output.append(')')
 
         return output
@@ -143,15 +134,14 @@ class SlotWriter(Writer):
 
     @staticmethod
     async def write(key: Value = None, writer: 'ReconWriter' = None, value: 'Value' = None) -> 'OutputMessage':
-        output = await OutputMessage.create()
 
+        output = await OutputMessage.create()
         key_text = await writer.write_value(key)
 
         if key_text:
             await output.append(key_text)
 
         await output.append(':')
-
         value_text = await writer.write_value(value)
 
         if value_text:
