@@ -115,7 +115,7 @@ class Message(ABC):
     @staticmethod
     @abstractmethod
     async def create(chars: str) -> 'Message':
-        ...
+        raise NotImplementedError
 
     async def append(self, obj: Any) -> None:
         """

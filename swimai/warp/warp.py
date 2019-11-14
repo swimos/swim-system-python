@@ -135,7 +135,7 @@ class Form(ABC):
 
         :return:                - Name of the tag as string value.
         """
-        ...
+        raise NotImplementedError
 
     @abstractmethod
     def mold(self, envelope: 'Envelope') -> 'Value':
@@ -145,7 +145,7 @@ class Form(ABC):
         :param envelope:        - Envelope to convert to Value object.
         :return:                - Value object representing the Envelope.
         """
-        ...
+        raise NotImplementedError
 
     @abstractmethod
     def cast(self, item: RecordMap) -> 'Envelope':
@@ -155,7 +155,7 @@ class Form(ABC):
         :param item:            - RecordMap to convert to Envelope.
         :return:                - Envelope object created from the RecordMap.
         """
-        ...
+        raise NotImplementedError
 
 
 class LinkAddressedForm(Form):
@@ -172,7 +172,7 @@ class LinkAddressedForm(Form):
         :param body:            - Body of the Envelope.
         :return:                - Envelope corresponding to the LinkAddressedForm.
         """
-        ...
+        raise NotImplementedError
 
     def mold(self, envelope: Optional['LinkAddressedEnvelope']) -> 'Value':
 
@@ -230,7 +230,7 @@ class LaneAddressedForm(Form):
         :param body:            - Body of the Envelope.
         :return:                - Envelope corresponding to the LaneAddressedForm.
         """
-        ...
+        raise NotImplementedError
 
     def mold(self, envelope: Optional['LaneAddressedEnvelope']) -> 'Value':
 

@@ -81,7 +81,7 @@ class Parser(ABC):
 
         :return:                - Item object.
         """
-        ...
+        raise NotImplementedError
 
 
 class RecordParser(Parser):

@@ -73,7 +73,7 @@ class Writer(ABC):
 
         :return:                - OutputMessage containing the string representation of the Item object.
         """
-        ...
+        raise NotImplementedError
 
 
 class BlockWriter(Writer):

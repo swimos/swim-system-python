@@ -59,12 +59,12 @@ class Item(ABC):
     @property
     @abstractmethod
     def key(self) -> 'Any':
-        ...
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def value(self) -> 'Any':
-        ...
+        raise NotImplementedError
 
 
 class Field(Item):
@@ -72,12 +72,12 @@ class Field(Item):
     @property
     @abstractmethod
     def key(self) -> 'Any':
-        ...
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def value(self) -> Any:
-        ...
+        raise NotImplementedError
 
 
 class Attr(Field):
@@ -365,7 +365,7 @@ class Record(Value):
 
     @abstractmethod
     def add(self, item) -> bool:
-        ...
+        raise NotImplementedError
 
     @abstractmethod
     def get_item(self, index: int) -> 'Value':
@@ -375,7 +375,7 @@ class Record(Value):
         :param index:           - The index of the item.
         :return:                - The item with the given index.
         """
-        ...
+        raise NotImplementedError
 
     @abstractmethod
     def get_items(self) -> List['Value']:
@@ -384,7 +384,7 @@ class Record(Value):
 
         :return:                - List of all items from the Record.
         """
-        ...
+        raise NotImplementedError
 
     def add_all(self, items: List['Value']) -> bool:
         """
