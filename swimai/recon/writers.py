@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import Union, List, Optional
 
 from .utils import ReconUtils, OutputMessage
-from swimai.structures import Field, Attr, Slot, Value, Record, Text, Absent, Num, Extant, Bool, Item
+from swimai.structures import Attr, Slot, Value, Record, Text, Absent, Num, Extant, Bool, Item
 
 
 class ReconWriter:
@@ -28,18 +28,17 @@ class ReconWriter:
 
     async def write_item(self, item: 'Item') -> 'str':
 
-        if isinstance(item, Field):
-            if isinstance(item, Attr):
-                output = await self.write_attr(item.key, item.value)
-                return output.message
-            elif isinstance(item, Slot):
-                output = await self.write_slot(item.key, item.value)
-                return output.message
+        if isinstance(item, Attr):
+            output = await self.write_attr(item.key, item.value)
+            return output.message
+        elif isinstance(item, Slot):
+            output = await self.write_slot(item.key, item.value)
+            return output.message
         elif isinstance(item, Value):
             output = await self.write_value(item)
             return output.message
 
-        raise AttributeError(f'No Recon serialization for {item}')
+        raise TypeError(f'No Recon serialization for {type(item).__name__}!')
 
     async def write_attr(self, key: 'Value', value: 'Value') -> 'OutputMessage':
         return await AttrWriter.write(key=key, writer=self, value=value)
@@ -59,7 +58,7 @@ class ReconWriter:
         elif isinstance(value, Absent):
             return await self.write_absent()
 
-    async def write_record(self, record: 'Record') -> 'OutputMessage':
+    async def write_record(self, record: 'Record') -> Optional['OutputMessage']:
         if record.size > 0:
             message = await BlockWriter.write(items=record.get_items(), writer=self, first=True)
             return message
