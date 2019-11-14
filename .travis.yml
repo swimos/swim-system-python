@@ -5,10 +5,14 @@ python:
 install:
     - pip install -r requirements.txt
     - pip install flake8
+    - pip install aiounittest
+    - pip install codecov
+    - pip install pytest-cov
 script:
     - flake8 . --exclude=examples --count --select=E9,F63,F7,F82 --show-source --statistics
     - flake8 . --exclude=examples --count --select=E501 --exit-zero --max-complexity=10 --max-line-length=120 --statistics
-    - python -m unittest
+    - py.test --cov-report=xml --cov=swimai test/
+    - codecov
 deploy:
     provider: pypi
     user: __token__

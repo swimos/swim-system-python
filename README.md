@@ -1,6 +1,7 @@
 # Swim System Python
 [![Build Status](https://travis-ci.com/swimos/swim-system-python.svg?branch=master)](https://travis-ci.com/swimos/swim-system-python)
-
+[![codecov](https://codecov.io/gh/swimos/swim-system-python/branch/master/graph/badge.svg)](https://codecov.io/gh/swimos/swim-system-python)
+[![chat](https://img.shields.io/badge/chat-Gitter-green.svg)](https://gitter.im/swimos/community)
 <a href="https://www.swimos.org"><img src="https://docs.swimos.org/readme/marlin-blue.svg" align="left"></a>
 
 The **Swim System** Python implementation provides a standalone set of

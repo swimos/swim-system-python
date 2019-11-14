@@ -3,6 +3,9 @@ import setuptools
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
+
 setuptools.setup(
     name='swimai',
     version='0.1.0.dev1',
@@ -21,5 +24,5 @@ setuptools.setup(
         'Operating System :: OS Independent',
     ],
     keywords='swim client',
-    install_requires=['websockets==8.0.2'],
+    install_requires=requirements,
 )
