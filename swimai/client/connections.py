@@ -1,13 +1,16 @@
-from enum import Enum
-
 import websockets
+from enum import Enum
 from websockets import WebSocketClientProtocol
 
 
 class ConnectionPool:
 
     def __init__(self) -> None:
-        self.connections = dict()
+        self.__connections = dict()
+
+    @property
+    def size(self):
+        return len(self.__connections)
 
     async def get_connection(self, host_uri: str) -> 'WebSocketClientProtocol':
         """
@@ -17,16 +20,15 @@ class ConnectionPool:
         :param host_uri:        - URI of the connection host.
         :return:                - WebSocket connection.
         """
-        if host_uri not in self.connections:
+        if host_uri not in self.__connections:
             connection = WSConnection(host_uri)
-            self.connections[host_uri] = connection
+            self.__connections[host_uri] = connection
         else:
-            connection = self.connections.get(host_uri)
+            connection = self.__connections.get(host_uri)
 
         await connection.subscribe()
         return connection.websocket
 
-    # TODO: Add guard here
     async def remove_connection(self, host_uri: str) -> None:
         """
         Unsubscribe from a WebSocket connection. If the connection does not
@@ -35,11 +37,13 @@ class ConnectionPool:
         :param host_uri:        - URI of the connection host.
         """
 
-        connection = self.connections.get(host_uri)
-        await connection.unsubscribe()
+        connection = self.__connections.get(host_uri)
 
-        if connection.status == ConnectionStatus.CLOSED:
-            self.connections.pop(host_uri)
+        if connection:
+            await connection.unsubscribe()
+
+            if connection.status == ConnectionStatus.CLOSED:
+                self.__connections.pop(host_uri)
 
 
 class WSConnection:
