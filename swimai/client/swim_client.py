@@ -3,7 +3,7 @@ import concurrent.futures
 from threading import Thread
 
 from swimai.client.downlinks import ValueDownlink
-from swimai.client.ws_connections import ConnectionPool
+from swimai.client.connections import ConnectionPool
 from swimai.warp import CommandMessage
 
 

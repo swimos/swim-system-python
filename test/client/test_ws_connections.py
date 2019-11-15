@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from aiounittest import async_test
 
-from swimai.client.ws_connections import WSConnection, ConnectionStatus
+from swimai.client import WSConnection, ConnectionStatus
 from test.utils import AsyncMock, MockWebsocket
 
 
