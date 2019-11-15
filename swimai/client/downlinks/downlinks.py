@@ -52,7 +52,7 @@ class ValueDownlink:
         return self
 
     async def __open(self):
-        self.websocket = await self.client.open_websocket(self.host_uri)
+        self.websocket = await self.client.get_connection(self.host_uri)
         await self.establish_downlink()
         await self.receive_message()
 
@@ -75,6 +75,7 @@ class ValueDownlink:
                 elif response.tag == 'event':
                     await self.set_value(response)
         finally:
+            # TODO: Change this
             await self.websocket.close()
 
     def get(self, blocking=False):

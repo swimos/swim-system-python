@@ -1,29 +1,53 @@
 import asyncio
 import concurrent.futures
 from threading import Thread
-import websockets
 
 from swimai.client.downlinks import ValueDownlink
-from swimai.client.downlinks import WSConnection
+from swimai.client.ws_connections import ConnectionPool
 from swimai.warp import CommandMessage
 
 
 class SwimClient:
 
-    def __init__(self):
-        self.downlinks = list()
+    def __init__(self) -> None:
         self.loop = None
         self.loop_thread = None
-        self.websocket_connections = dict()
         self.executor = None
+        self.__connection_pool = ConnectionPool()
 
-    def __enter__(self):
+    def __enter__(self) -> 'SwimClient':
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> 'SwimClient':
         self.stop()
         return self
+
+    def start(self):
+        loop = asyncio.new_event_loop()
+        self.loop = loop
+
+        self.loop_thread = Thread(target=self.__start_event_loop)
+        self.loop_thread.start()
+
+    def stop(self):
+        self.schedule_task(self.__stop_event_loop)
+        self.loop_thread.join()
+
+    # May throw exception
+    async def get_connection(self, host_uri):
+        return await self.__connection_pool.get_connection(host_uri)
+
+    async def remove_connection(self, host_uri):
+        return await self.__connection_pool.remove_connection(host_uri)
+
+    def schedule_task(self, task, *args):
+        if len(args) > 0:
+            task = asyncio.run_coroutine_threadsafe(task(*args), loop=self.loop)
+        else:
+            task = asyncio.run_coroutine_threadsafe(task(), loop=self.loop)
+
+        return task
 
     def get_pool_executor(self):
         if self.executor is None:
@@ -39,34 +63,14 @@ class SwimClient:
         self.schedule_task(self.__send_command, host_uri, message)
 
     async def __send_command(self, host_uri, message):
-        await self.open_websocket(host_uri)
-        await self.websocket_connections[host_uri].websocket.send(await message.to_recon())
+        connection = await self.get_connection(host_uri)
+        await connection.send(await message.to_recon())
 
-    def start(self):
-        loop = asyncio.new_event_loop()
-        self.loop = loop
+    def __start_event_loop(self):
+        asyncio.set_event_loop(self.loop)
+        asyncio.get_event_loop().run_forever()
 
-        self.loop_thread = Thread(target=self.__start_event_loop)
-        self.loop_thread.start()
-
-    def stop(self):
-        self.schedule_task(self.__stop_client)
-        self.loop_thread.join()
-
-    def schedule_task(self, task, *args):
-
-        if len(args) > 0:
-            task = asyncio.run_coroutine_threadsafe(task(*args), loop=self.loop)
-        else:
-            task = asyncio.run_coroutine_threadsafe(task(), loop=self.loop)
-
-        return task
-
-    @staticmethod
-    def unschedule_task(task):
-        task.cancel()
-
-    async def __stop_client(self):
+    async def __stop_event_loop(self):
 
         if self.executor is not None:
             self.executor.shutdown(wait=False)
@@ -77,27 +81,6 @@ class SwimClient:
 
         self.loop.stop()
 
-    def __start_event_loop(self):
-        asyncio.set_event_loop(self.loop)
-        asyncio.get_event_loop().run_forever()
-
-    async def open_websocket(self, host_uri):
-        try:
-            if host_uri not in self.websocket_connections:
-                connection = WSConnection(await websockets.connect(host_uri))
-                self.websocket_connections[host_uri] = connection
-            else:
-                connection = self.websocket_connections[host_uri]
-                connection.subscribe()
-            return connection.websocket
-
-        except Exception as e:
-            print(e)
-
-    async def remove_connection(self, host_uri):
-        connection = self.websocket_connections.get(host_uri)
-        connection.unsubscribe()
-
-        if connection.subscribers == 0:
-            await connection.websocket.close()
-            self.websocket_connections.pop(host_uri)
+    # @staticmethod
+    # def unschedule_task(task):
+    #     task.cancel()

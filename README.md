@@ -62,7 +62,7 @@ flake8 . --exclude=examples --count --select=E501 --exit-zero --max-complexity=1
 ```
 ### Build package
 ##### Building source distribution
-1) Run `python setup.py sdist`
+1) Run: `python setup.py sdist`
 ##### Building wheel
 1) Install wheel package: `pip install wheel`
 2) Run: `python setup.py sdist`
