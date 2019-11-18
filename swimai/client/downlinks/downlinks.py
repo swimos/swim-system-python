@@ -3,7 +3,7 @@ import inspect
 
 from collections.abc import Callable
 from swimai.structures import Absent
-from swimai.warp import SyncRequest, CommandMessage, Envelope
+from swimai.warp import SyncRequest, CommandMessage
 
 
 class ValueDownlink:
@@ -52,35 +52,31 @@ class ValueDownlink:
         return self
 
     async def __open(self):
-        self.websocket = await self.client.get_connection(self.host_uri)
-        await self.establish_downlink()
-        await self.receive_message()
+        connection = await self.client.get_connection(self.host_uri, self)
+        self.websocket = connection.websocket
+        if self.websocket:
+            await self.establish_downlink()
 
+            if connection.status != 3:
+                self.client.schedule_task(connection.wait_for_messages)
+            # await self.receive_message()
+
+    # TODO Refactor to connections
     async def establish_downlink(self):
-
         sync_request = SyncRequest(self.node_uri, self.lane_uri)
         await self.websocket.send(await sync_request.to_recon())
 
-    async def receive_message(self):
-        try:
-            while True:
-                message = await self.websocket.recv()
+    async def receive_message(self, message):
 
-                response = await Envelope.parse_recon(message)
+        if message.tag == 'linked':
+            self.linked.set()
+        elif message.tag == 'synced':
+            self.synced.set()
+        elif message.tag == 'event':
+            await self.set_value(message)
 
-                if response.tag == 'linked':
-                    self.linked.set()
-                elif response.tag == 'synced':
-                    self.synced.set()
-                elif response.tag == 'event':
-                    await self.set_value(response)
-        finally:
-            # TODO: Change this
-            await self.websocket.close()
-
-    def get(self, blocking=False):
-
-        if blocking:
+    def get(self, synchronous=False):
+        if synchronous:
             task = self.client.schedule_task(self.get_val)
             return task.result()
         else:
@@ -102,14 +98,10 @@ class ValueDownlink:
         else:
             self.value = response.body.value
 
-        if inspect.iscoroutinefunction(self.execute_did_set):
-            self.client.schedule_task(self.execute_did_set, self.value, old_value)
-        else:
-            self.client.loop.run_in_executor(self.client.get_pool_executor(), self.execute_did_set, self.value,
-                                             old_value)
+        self.client.schedule_task(self.execute_did_set, self.value, old_value)
 
     async def send_message(self, message):
-        await self.linked.wait()
+        await self.synced.wait()
         await self.websocket.send(await message.to_recon())
 
     def close(self):
@@ -117,4 +109,4 @@ class ValueDownlink:
 
     async def __close(self):
         self.task.cancel()
-        await self.client.remove_connection(self.host_uri)
+        await self.client.remove_connection(self.host_uri, self)
