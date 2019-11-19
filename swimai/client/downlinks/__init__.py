@@ -1,3 +1,3 @@
-from .downlinks import ValueDownlink
+from .downlinks import ValueDownlinkModel
 
-__all__ = [ValueDownlink]
+__all__ = [ValueDownlinkModel]

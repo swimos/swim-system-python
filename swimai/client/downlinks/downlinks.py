@@ -6,14 +6,18 @@ from swimai.structures import Absent
 from swimai.warp import SyncRequest, CommandMessage
 
 
-class ValueDownlink:
+class ValueDownlinkView:
+    pass
+
+
+class ValueDownlinkModel:
 
     def __init__(self, client):
         self.client = client
         self.host_uri = None
         self.node_uri = None
         self.lane_uri = None
-        self.websocket = None
+        self.connection = None
         self.task = None
         self.value = None
 
@@ -52,19 +56,13 @@ class ValueDownlink:
         return self
 
     async def __open(self):
-        connection = await self.client.get_connection(self.host_uri, self)
-        self.websocket = connection.websocket
-        if self.websocket:
-            await self.establish_downlink()
+        self.connection = await self.client.get_connection(self.host_uri, self)
+        await self.establish_downlink()
+        self.client.schedule_task(self.connection.wait_for_messages)
 
-            if connection.status != 3:
-                self.client.schedule_task(connection.wait_for_messages)
-            # await self.receive_message()
-
-    # TODO Refactor to connections
     async def establish_downlink(self):
         sync_request = SyncRequest(self.node_uri, self.lane_uri)
-        await self.websocket.send(await sync_request.to_recon())
+        await self.connection.send_message(await sync_request.to_recon())
 
     async def receive_message(self, message):
 
@@ -102,7 +100,7 @@ class ValueDownlink:
 
     async def send_message(self, message):
         await self.synced.wait()
-        await self.websocket.send(await message.to_recon())
+        await self.connection.send_message(await message.to_recon())
 
     def close(self):
         self.client.schedule_task(self.__close)

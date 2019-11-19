@@ -29,18 +29,22 @@ if __name__ == '__main__':
             lane_uri).did_set(
             my_custom_did_set_async).open()
 
+        link = swim_client.downlink_value().set_host_uri('ws://localhost:9001').set_node_uri(node_uri).set_lane_uri(
+            lane_uri).did_set(
+            my_custom_did_set_async).open()
+
         time.sleep(2)
         link.set(Text.create_from('Test'))
         # link.close()
-        time.sleep(5)
-        link1 = swim_client.downlink_value().set_host_uri(host_uri).set_node_uri(node_uri).set_lane_uri(
-            lane_uri).did_set(
-            my_custom_did_set_async_new).open()
+        # time.sleep(5)
+        # link1 = swim_client.downlink_value().set_host_uri(host_uri).set_node_uri(node_uri).set_lane_uri(
+        #     lane_uri).did_set(
+        #     my_custom_did_set_async_new).open()
 
+        # time.sleep(2)
+        # link1.set(Text.create_from('Pest'))
         time.sleep(2)
-        link1.set(Text.create_from('Pest'))
-        time.sleep(2)
-        # swim_client.command(host_uri, node_uri, 'publishInfo', Text.create_from('1_2'))
+        swim_client.command(host_uri, node_uri, lane_uri, Text.create_from('1_2'))
         # swim_client.command(host_uri2, node_uri, 'publish', Num.create_from(37))
         # swim_client.command(host_uri, node_uri, 'publishInfo', Text.create_from('1_3'))
         print("Will shut down client in 2 seconds")

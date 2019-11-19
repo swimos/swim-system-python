@@ -1,13 +1,15 @@
 import asyncio
 import inspect
 import os
+import sys
+import traceback
 
-from asyncio import Future
+from asyncio import Future, CancelledError
 from threading import Thread
-from typing import Callable, Any
+from typing import Callable, Any, Coroutine
 from concurrent.futures.thread import ThreadPoolExecutor
 
-from swimai.client.downlinks import ValueDownlink
+from swimai.client.downlinks import ValueDownlinkModel
 from swimai.client.connections import ConnectionPool
 from swimai.structures import Item
 from swimai.warp import CommandMessage, Envelope
@@ -43,26 +45,30 @@ class SwimClient:
         self.loop_thread.join()
         self.loop.close()
 
-    async def get_connection(self, host_uri: str, caller):
-        try:
-            connection = await self.__connection_pool.get_connection(host_uri, caller)
-            return connection
-
-        except Exception as exception:
-            print(f'Unable to establish connection to {host_uri}\n{str(exception)}')
-
-            if self.terminate_on_exception:
-                os._exit(1)
-
-            await self.remove_connection(host_uri, caller)
-
-            if self.execute_on_exception:
-                await self.schedule_task(self.execute_on_exception)
+    async def get_connection(self, host_uri: str, caller=None):
+        connection = await self.__connection_pool.get_connection(host_uri, caller)
+        return connection
 
     async def remove_connection(self, host_uri: str, caller) -> None:
         await self.__connection_pool.remove_connection(host_uri, caller)
 
-    def schedule_task(self, task: Callable[..., 'Coroutine'], *args: Any) -> 'Future':
+    def exception_handler(self, feature):
+        try:
+            feature.result()
+        except CancelledError:
+            pass
+        except Exception:
+            ex_type, ex, tb = sys.exc_info()
+            print(ex)
+            traceback.print_tb(tb)
+
+            if self.terminate_on_exception:
+                os._exit(1)
+
+            if self.execute_on_exception:
+                self.schedule_task(self.execute_on_exception)
+
+    def schedule_task(self, task: Callable[..., Coroutine], *args: Any) -> 'Future':
 
         if inspect.iscoroutinefunction(task):
             if len(args) > 0:
@@ -71,30 +77,29 @@ class SwimClient:
                 task = asyncio.run_coroutine_threadsafe(task(), loop=self.loop)
         else:
             if len(args) > 0:
-                self.loop.run_in_executor(self.get_pool_executor(), task, *args)
+                task = self.loop.run_in_executor(self.__get_pool_executor(), task, *args)
             else:
-                self.loop.run_in_executor(self.get_pool_executor(), task)
+                task = self.loop.run_in_executor(self.__get_pool_executor(), task)
 
+        task.add_done_callback(self.exception_handler)
         return task
 
-    def get_pool_executor(self) -> 'ThreadPoolExecutor':
-        if self.executor is None:
-            self.executor = ThreadPoolExecutor()
-
-        return self.executor
-
-    def downlink_value(self) -> 'ValueDownlink':
-        return ValueDownlink(self)
+    def downlink_value(self) -> 'ValueDownlinkModel':
+        return ValueDownlinkModel(self)
 
     def command(self, host_uri: str, node_uri: str, lane_uri: str, body: 'Item') -> None:
         message = CommandMessage(node_uri, lane_uri, body=body)
         self.schedule_task(self.__send_command, host_uri, message)
 
     async def __send_command(self, host_uri: str, message: 'Envelope') -> None:
-        websocket = await self.get_connection(host_uri, self)
+        connection = await self.get_connection(host_uri)
+        await connection.send_message(await message.to_recon())
 
-        if websocket:
-            await websocket.send(await message.to_recon())
+    def __get_pool_executor(self) -> 'ThreadPoolExecutor':
+        if self.executor is None:
+            self.executor = ThreadPoolExecutor()
+
+        return self.executor
 
     def __start_event_loop(self) -> None:
         asyncio.set_event_loop(self.loop)

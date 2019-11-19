@@ -13,7 +13,7 @@ class ConnectionPool:
     def size(self):
         return len(self.__connections)
 
-    async def get_connection(self, host_uri: str, caller) -> 'WSConnection':
+    async def get_connection(self, host_uri: str, caller=None) -> 'WSConnection':
         """
         Return a WebSocket connection to the given Host URI. If it is a new
         host, create the connection.
@@ -23,11 +23,16 @@ class ConnectionPool:
         """
         if host_uri not in self.__connections:
             connection = WSConnection(host_uri)
+
+            if caller:
+                await connection.subscribe(caller)
+
             self.__connections[host_uri] = connection
         else:
             connection = self.__connections.get(host_uri)
+            if caller:
+                await connection.subscribe(caller)
 
-        await connection.subscribe(caller)
         return connection
 
     async def remove_connection(self, host_uri: str, caller) -> None:
@@ -64,6 +69,13 @@ class WSConnection:
         """
         return self.__subscribers.size > 0
 
+    async def send_message(self, message):
+
+        if self.websocket is None:
+            await self.__open()
+
+        await self.websocket.send(message)
+
     async def subscribe(self, subscriber) -> None:
         """
         Increment the number of subscribers to the connection.
@@ -94,14 +106,15 @@ class WSConnection:
             await self.websocket.close()
 
     async def wait_for_messages(self):
-        self.status = ConnectionStatus.RUNNING
-        try:
-            while self.status == ConnectionStatus.RUNNING:
-                message = await self.websocket.recv()
-                response = await Envelope.parse_recon(message)
-                await self.__subscribers.send_message(response)
-        finally:
-            await self.__close()
+        if self.status != ConnectionStatus.RUNNING:
+            self.status = ConnectionStatus.RUNNING
+            try:
+                while self.status == ConnectionStatus.RUNNING:
+                    message = await self.websocket.recv()
+                    response = await Envelope.parse_recon(message)
+                    await self.__subscribers.send_message(response)
+            finally:
+                await self.__close()
 
 
 class ConnectionStatus(Enum):
