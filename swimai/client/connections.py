@@ -1,5 +1,6 @@
 import websockets
 from enum import Enum
+from urllib.parse import urlparse
 
 from swimai.warp import Envelope
 
@@ -60,6 +61,23 @@ class WSConnection:
         self.websocket = None
         self.status = ConnectionStatus.CLOSED
         self.__subscribers = SubscriberPool()
+
+    @property
+    def host_uri(self):
+        return self.__host_uri
+
+    @host_uri.setter
+    def host_uri(self, uri):
+        uri = urlparse(uri)
+        if self.has_valid_scheme(uri):
+            uri = uri._replace(scheme='ws')
+            self.__host_uri = uri.geturl()
+        else:
+            raise TypeError('Invalid scheme for URI!')
+
+    def has_valid_scheme(self, uri):
+        scheme = uri.scheme
+        return scheme == 'ws' or scheme == 'warp'
 
     def has_subscribers(self) -> bool:
         """

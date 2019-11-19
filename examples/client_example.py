@@ -29,7 +29,7 @@ if __name__ == '__main__':
             lane_uri).did_set(
             my_custom_did_set_async).open()
 
-        link = swim_client.downlink_value().set_host_uri('ws://localhost:9001').set_node_uri(node_uri).set_lane_uri(
+        link = swim_client.downlink_value().set_host_uri('warp://localhost:9001').set_node_uri(node_uri).set_lane_uri(
             lane_uri).did_set(
             my_custom_did_set_async).open()
 
