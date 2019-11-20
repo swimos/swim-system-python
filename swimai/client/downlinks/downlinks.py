@@ -6,10 +6,6 @@ from swimai.structures import Absent
 from swimai.warp import SyncRequest, CommandMessage
 
 
-class ValueDownlinkView:
-    pass
-
-
 class ValueDownlinkModel:
 
     def __init__(self, client):
@@ -19,50 +15,24 @@ class ValueDownlinkModel:
         self.lane_uri = None
         self.connection = None
         self.task = None
+        self.downlink = None
+
         self.value = None
 
         self.linked = asyncio.Event(loop=self.client.loop)
         self.synced = asyncio.Event(loop=self.client.loop)
 
-    def execute_did_set(self, new_value, old_value):
-        # no-op
-        pass
-
-    def set_host_uri(self, host_uri):
-        self.host_uri = host_uri
-        return self
-
-    def set_node_uri(self, node_uri):
-        self.node_uri = node_uri
-        return self
-
-    def set_lane_uri(self, lane_uri):
-        self.lane_uri = lane_uri
-        return self
-
-    def did_set(self, function):
-
-        if inspect.iscoroutinefunction(function):
-            self.execute_did_set = function
-        elif isinstance(function, Callable):
-            self.execute_did_set = function
-        else:
-            raise TypeError('Callback must be a function!')
-
-        return self
-
-    def open(self):
-        self.task = self.client.schedule_task(self.__open)
-        return self
-
-    async def __open(self):
-        self.connection = await self.client.get_connection(self.host_uri, self)
-        await self.establish_downlink()
-        self.client.schedule_task(self.connection.wait_for_messages)
+    # def execute_did_set(self, new_value, old_value):
+    #     no-op
+    # pass
 
     async def establish_downlink(self):
         sync_request = SyncRequest(self.node_uri, self.lane_uri)
         await self.connection.send_message(await sync_request.to_recon())
+
+    def open(self):
+        self.task = self.client.schedule_task(self.connection.wait_for_messages)
+        return self
 
     async def receive_message(self, message):
 
@@ -96,7 +66,7 @@ class ValueDownlinkModel:
         else:
             self.value = response.body.value
 
-        self.client.schedule_task(self.execute_did_set, self.value, old_value)
+        await self.downlink.subscribers_did_set(self.value, old_value)
 
     async def send_message(self, message):
         await self.synced.wait()
@@ -108,3 +78,69 @@ class ValueDownlinkModel:
     async def __close(self):
         self.task.cancel()
         await self.client.remove_connection(self.host_uri, self)
+
+
+class ValueDownlinkView:
+
+    def __init__(self, client):
+        self.client = client
+        self.host_uri = None
+        self.node_uri = None
+        self.lane_uri = None
+
+        self.model = None
+        self.connection = None
+
+    @property
+    def route(self):
+        return f'{self.node_uri}/{self.lane_uri}'
+
+    def open(self):
+        self.client.schedule_task(self.client.add_downlink_view, self)
+        return self
+
+    async def establish_downlink(self):
+        await self.model.establish_downlink()
+
+    async def create_downlink_model(self):
+        model = ValueDownlinkModel(self.client)
+        model.host_uri = self.host_uri
+        model.node_uri = self.node_uri
+        model.lane_uri = self.lane_uri
+
+        return model
+
+    def set_host_uri(self, host_uri):
+        self.host_uri = host_uri
+        return self
+
+    def set_node_uri(self, node_uri):
+        self.node_uri = node_uri
+        return self
+
+    def set_lane_uri(self, lane_uri):
+        self.lane_uri = lane_uri
+        return self
+
+    async def did_set_callback(self, new_value, old_value):
+        pass
+
+    def did_set(self, function):
+
+        if inspect.iscoroutinefunction(function):
+            self.did_set_callback = function
+        elif isinstance(function, Callable):
+            self.did_set_callback = function
+        else:
+            raise TypeError('Callback must be a function!')
+
+        return self
+
+    async def execute_did_set(self, current_value, old_value):
+        self.client.schedule_task(self.did_set_callback, current_value, old_value)
+
+    def set(self, value):
+        self.model.set(value)
+
+    def get(self, synchronous=False):
+        return self.model.get(synchronous)

@@ -26,15 +26,16 @@ if __name__ == '__main__':
 
         # swim_client.command(host'WebSocketClientProtocol'_uri2, node_uri, 'publish', Num.create_from(13))
         link = swim_client.downlink_value().set_host_uri(host_uri).set_node_uri(node_uri).set_lane_uri(
-            lane_uri).did_set(
-            my_custom_did_set_async).open()
+            lane_uri).did_set(my_custom_did_set_async).open()
 
-        link = swim_client.downlink_value().set_host_uri('warp://localhost:9001').set_node_uri(node_uri).set_lane_uri(
+        link1 = swim_client.downlink_value().set_host_uri('warp://localhost:9001').set_node_uri(node_uri).set_lane_uri(
             lane_uri).did_set(
-            my_custom_did_set_async).open()
+            my_custom_did_set_async_new).open()
 
         time.sleep(2)
         link.set(Text.create_from('Test'))
+        link1.set(Text.create_from('Foo'))
+        # print(link1.get(synchronous=True))
         # link.close()
         # time.sleep(5)
         # link1 = swim_client.downlink_value().set_host_uri(host_uri).set_node_uri(node_uri).set_lane_uri(

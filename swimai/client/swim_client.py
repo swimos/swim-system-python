@@ -9,8 +9,8 @@ from threading import Thread
 from typing import Callable, Any, Coroutine
 from concurrent.futures.thread import ThreadPoolExecutor
 
-from swimai.client.downlinks import ValueDownlinkModel
 from swimai.client.connections import ConnectionPool
+from swimai.client.downlinks.downlinks import ValueDownlinkView
 from swimai.structures import Item
 from swimai.warp import CommandMessage, Envelope
 
@@ -49,6 +49,9 @@ class SwimClient:
         connection = await self.__connection_pool.get_connection(host_uri, caller)
         return connection
 
+    async def add_downlink_view(self, downlink):
+        await self.__connection_pool.add_downlink_view(downlink)
+
     async def remove_connection(self, host_uri: str, caller) -> None:
         await self.__connection_pool.remove_connection(host_uri, caller)
 
@@ -84,8 +87,8 @@ class SwimClient:
         task.add_done_callback(self.exception_handler)
         return task
 
-    def downlink_value(self) -> 'ValueDownlinkModel':
-        return ValueDownlinkModel(self)
+    def downlink_value(self):
+        return ValueDownlinkView(self)
 
     def command(self, host_uri: str, node_uri: str, lane_uri: str, body: 'Item') -> None:
         message = CommandMessage(node_uri, lane_uri, body=body)

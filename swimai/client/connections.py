@@ -1,7 +1,6 @@
 import websockets
 from enum import Enum
 from urllib.parse import urlparse
-
 from swimai.warp import Envelope
 
 
@@ -52,6 +51,17 @@ class ConnectionPool:
             if connection.status == ConnectionStatus.CLOSED:
                 self.__connections.pop(host_uri)
 
+    async def add_downlink_view(self, downlink_view):
+        host_uri = downlink_view.host_uri
+
+        if host_uri in self.__connections:
+            connection = self.__connections.get(host_uri)
+        else:
+            connection = WSConnection(host_uri)
+
+        downlink_view.connection = connection
+        await connection.subscribe(downlink_view)
+
 
 class WSConnection:
 
@@ -60,7 +70,7 @@ class WSConnection:
 
         self.websocket = None
         self.status = ConnectionStatus.CLOSED
-        self.__subscribers = SubscriberPool()
+        self.__subscribers = DownlinkPool()
 
     @property
     def host_uri(self):
@@ -94,7 +104,7 @@ class WSConnection:
 
         await self.websocket.send(message)
 
-    async def subscribe(self, subscriber) -> None:
+    async def subscribe(self, downlink_view) -> None:
         """
         Increment the number of subscribers to the connection.
         If this is the first subscriber, open the connection.
@@ -102,15 +112,15 @@ class WSConnection:
         if self.__subscribers.size == 0:
             await self.__open()
 
-        self.__subscribers.add_subscribers(subscriber)
+        await self.__subscribers.add_downlink(downlink_view, self)
 
-    async def unsubscribe(self, subscriber) -> None:
+    async def unsubscribe(self, downlink) -> None:
         """
         Decrement the number of subscribers to the connection.
         If there are no subscribers, close the connection.
         """
 
-        self.__subscribers.remove_subscriber(subscriber)
+        self.__subscribers.remove_downlink(downlink)
         if self.__subscribers.size == 0:
             await self.__close()
 
@@ -141,27 +151,57 @@ class ConnectionStatus(Enum):
     RUNNING = 2
 
 
-class SubscriberPool:
+class DownlinkPool:
 
     def __init__(self):
-        self.subscribers = dict()
+        self.downlinks = dict()
 
     @property
     def size(self):
-        return len(self.subscribers)
+        return len(self.downlinks)
 
-    def add_subscribers(self, subscriber):
-        self.subscribers[hash(subscriber)] = subscriber
+    async def add_downlink(self, downlink_view, connection):
 
-    def remove_subscriber(self, subscriber):
-        self.subscribers.pop(hash(subscriber))
+        if downlink_view.route in self.downlinks:
+            downlink = self.downlinks.get(downlink_view.route)
+        else:
+            downlink = Downlink(connection)
+            await downlink.init_downlink_model(downlink_view)
+            self.downlinks[downlink_view.route] = downlink
+
+        await downlink.register_view(downlink_view)
+
+    def remove_downlink(self, downlink):
+        # TODO count number of views before removing
+        self.downlinks.pop(downlink.route)
 
     async def send_message(self, message):
-        for key, subscriber in self.subscribers.items():
-            await subscriber.receive_message(message)
+        # TODO send based on lane and node URIs
+        for key, downlink in self.downlinks.items():
+            await downlink.receive_message(message)
 
 
-class Subscriber:
+class Downlink:
 
-    def __init__(self, subscriber):
-        self.subscriber = subscriber
+    def __init__(self, connection):
+        self.connection = connection
+        self.downlink_model = None
+        self.views = dict()
+
+    async def subscribers_did_set(self, current_value, old_value):
+        for key, view in self.views.items():
+            await view.execute_did_set(current_value, old_value)
+
+    async def init_downlink_model(self, downlink_view):
+        self.downlink_model = await downlink_view.create_downlink_model()
+        self.downlink_model.downlink = self
+        self.downlink_model.connection = self.connection
+        await self.downlink_model.establish_downlink()
+        self.downlink_model.open()
+
+    async def register_view(self, downlink_view):
+        downlink_view.model = self.downlink_model
+        self.views[hash(downlink_view)] = downlink_view
+
+    async def receive_message(self, message):
+        await self.downlink_model.receive_message(message)
