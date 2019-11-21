@@ -69,6 +69,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual(0.0, actual.prio)
         self.assertEqual(0.0, actual.rate)
         self.assertEqual('sync', actual.tag)
+        self.assertEqual('foo__sync_node/bar__sync_lane', actual.route)
         self.assertEqual(Absent.get_absent(), actual.body)
         self.assertIsInstance(actual.form, SyncRequestForm)
 
@@ -87,6 +88,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual(3.5, actual.prio)
         self.assertEqual(2.0, actual.rate)
         self.assertEqual('sync', actual.tag)
+        self.assertEqual('foo_sync_node/bar_sync_lane', actual.route)
         self.assertEqual(body, actual.body)
         self.assertIsInstance(actual.form, SyncRequestForm)
 
@@ -100,6 +102,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('foo_synced_node', actual.node_uri)
         self.assertEqual('bar_synced_lane', actual.lane_uri)
         self.assertEqual('synced', actual.tag)
+        self.assertEqual('foo_synced_node/bar_synced_lane', actual.route)
         self.assertEqual(Absent.get_absent(), actual.body)
         self.assertIsInstance(actual.form, SyncedResponseForm)
 
@@ -114,6 +117,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('foo_synced_node', actual.node_uri)
         self.assertEqual('bar_synced_lane', actual.lane_uri)
         self.assertEqual('synced', actual.tag)
+        self.assertEqual('foo_synced_node/bar_synced_lane', actual.route)
         self.assertEqual(body, actual.body)
         self.assertIsInstance(actual.form, SyncedResponseForm)
 
@@ -127,6 +131,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('foo_linked_node', actual.node_uri)
         self.assertEqual('bar_linked_lane', actual.lane_uri)
         self.assertEqual('linked', actual.tag)
+        self.assertEqual('foo_linked_node/bar_linked_lane', actual.route)
         self.assertEqual(Absent.get_absent(), actual.body)
         self.assertIsInstance(actual.form, LinkedResponseForm)
 
@@ -143,6 +148,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('foo_linked_node', actual.node_uri)
         self.assertEqual('bar_linked_lane', actual.lane_uri)
         self.assertEqual('linked', actual.tag)
+        self.assertEqual('foo_linked_node/bar_linked_lane', actual.route)
         self.assertEqual(body, actual.body)
         self.assertIsInstance(actual.form, LinkedResponseForm)
 
@@ -156,6 +162,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('foo_command_node', actual.node_uri)
         self.assertEqual('bar_command_lane', actual.lane_uri)
         self.assertEqual('command', actual.tag)
+        self.assertEqual('foo_command_node/bar_command_lane', actual.route)
         self.assertEqual(Absent.get_absent(), actual.body)
         self.assertIsInstance(actual.form, CommandMessageForm)
 
@@ -170,6 +177,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('foo_command_node', actual.node_uri)
         self.assertEqual('bar_command_lane', actual.lane_uri)
         self.assertEqual('command', actual.tag)
+        self.assertEqual('foo_command_node/bar_command_lane', actual.route)
         self.assertEqual(body, actual.body)
         self.assertIsInstance(actual.form, CommandMessageForm)
 
@@ -183,6 +191,7 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('foo_event_node', actual.node_uri)
         self.assertEqual('bar_event_lane', actual.lane_uri)
         self.assertEqual('event', actual.tag)
+        self.assertEqual('foo_event_node/bar_event_lane', actual.route)
         self.assertEqual(Absent.get_absent(), actual.body)
         self.assertIsInstance(actual.form, EventMessageForm)
 
@@ -196,6 +205,7 @@ class TestEnvelopes(unittest.TestCase):
         # Then
         self.assertEqual('foo_event_node', actual.node_uri)
         self.assertEqual('bar_event_lane', actual.lane_uri)
+        self.assertEqual('foo_event_node/bar_event_lane', actual.route)
         self.assertEqual('event', actual.tag)
         self.assertEqual(body, actual.body)
         self.assertIsInstance(actual.form, EventMessageForm)

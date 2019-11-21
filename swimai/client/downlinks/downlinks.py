@@ -2,6 +2,8 @@ import asyncio
 import inspect
 
 from collections.abc import Callable
+
+from swimai.client.utils import URI
 from swimai.structures import Absent
 from swimai.warp import SyncRequest, CommandMessage
 
@@ -22,17 +24,9 @@ class ValueDownlinkModel:
         self.linked = asyncio.Event(loop=self.client.loop)
         self.synced = asyncio.Event(loop=self.client.loop)
 
-    # def execute_did_set(self, new_value, old_value):
-    #     no-op
-    # pass
-
     async def establish_downlink(self):
         sync_request = SyncRequest(self.node_uri, self.lane_uri)
         await self.connection.send_message(await sync_request.to_recon())
-
-    def open(self):
-        self.task = self.client.schedule_task(self.connection.wait_for_messages)
-        return self
 
     async def receive_message(self, message):
 
@@ -54,10 +48,6 @@ class ValueDownlinkModel:
         await self.synced.wait()
         return self.value
 
-    def set(self, value):
-        message = CommandMessage(self.node_uri, self.lane_uri, value)
-        self.client.schedule_task(self.send_message, message)
-
     async def set_value(self, response):
         old_value = self.value
 
@@ -68,6 +58,10 @@ class ValueDownlinkModel:
 
         await self.downlink.subscribers_did_set(self.value, old_value)
 
+    def open(self):
+        self.task = self.client.schedule_task(self.connection.wait_for_messages)
+        return self
+
     async def send_message(self, message):
         await self.synced.wait()
         await self.connection.send_message(await message.to_recon())
@@ -77,7 +71,6 @@ class ValueDownlinkModel:
 
     async def __close(self):
         self.task.cancel()
-        await self.client.remove_connection(self.host_uri, self)
 
 
 class ValueDownlinkView:
@@ -88,6 +81,7 @@ class ValueDownlinkView:
         self.node_uri = None
         self.lane_uri = None
 
+        self.initialised = asyncio.Event(loop=self.client.loop)
         self.model = None
         self.connection = None
 
@@ -97,6 +91,10 @@ class ValueDownlinkView:
 
     def open(self):
         self.client.schedule_task(self.client.add_downlink_view, self)
+        return self
+
+    def close(self):
+        self.client.schedule_task(self.client.remove_downlink_view, self)
         return self
 
     async def establish_downlink(self):
@@ -111,7 +109,7 @@ class ValueDownlinkView:
         return model
 
     def set_host_uri(self, host_uri):
-        self.host_uri = host_uri
+        self.host_uri = URI.normalise_scheme(host_uri)
         return self
 
     def set_node_uri(self, node_uri):
@@ -140,7 +138,12 @@ class ValueDownlinkView:
         self.client.schedule_task(self.did_set_callback, current_value, old_value)
 
     def set(self, value):
-        self.model.set(value)
+        message = CommandMessage(self.node_uri, self.lane_uri, value)
+        self.client.schedule_task(self.send_message, message)
+
+    async def send_message(self, message):
+        await self.initialised.wait()
+        await self.model.send_message(message)
 
     def get(self, synchronous=False):
         return self.model.get(synchronous)

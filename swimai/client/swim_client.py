@@ -11,6 +11,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 
 from swimai.client.connections import ConnectionPool
 from swimai.client.downlinks.downlinks import ValueDownlinkView
+from swimai.client.utils import URI
 from swimai.structures import Item
 from swimai.warp import CommandMessage, Envelope
 
@@ -45,15 +46,15 @@ class SwimClient:
         self.loop_thread.join()
         self.loop.close()
 
-    async def get_connection(self, host_uri: str, caller=None):
-        connection = await self.__connection_pool.get_connection(host_uri, caller)
+    async def get_connection(self, host_uri: str):
+        connection = await self.__connection_pool.get_connection(host_uri)
         return connection
 
     async def add_downlink_view(self, downlink):
         await self.__connection_pool.add_downlink_view(downlink)
 
-    async def remove_connection(self, host_uri: str, caller) -> None:
-        await self.__connection_pool.remove_connection(host_uri, caller)
+    async def remove_downlink_view(self, downlink):
+        await self.__connection_pool.remove_downlink_view(downlink)
 
     def exception_handler(self, feature):
         try:
@@ -91,6 +92,7 @@ class SwimClient:
         return ValueDownlinkView(self)
 
     def command(self, host_uri: str, node_uri: str, lane_uri: str, body: 'Item') -> None:
+        host_uri = URI.normalise_scheme(host_uri)
         message = CommandMessage(node_uri, lane_uri, body=body)
         self.schedule_task(self.__send_command, host_uri, message)
 

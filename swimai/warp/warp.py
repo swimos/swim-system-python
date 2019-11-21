@@ -15,6 +15,10 @@ class Envelope(ABC):
         self.form = form
         self.body = body
 
+    @property
+    def route(self):
+        return f'{self.node_uri}/{self.lane_uri}'
+
     @staticmethod
     async def parse_recon(recon_message: str) -> Optional['Envelope']:
         """
