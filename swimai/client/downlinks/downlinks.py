@@ -147,12 +147,18 @@ class ValueDownlinkView:
         self.client.schedule_task(self.did_set_callback, current_value, old_value)
 
     def set(self, value):
-        message = CommandMessage(self.node_uri, self.lane_uri, value)
-        self.client.schedule_task(self.send_message, message)
+        if self.is_open:
+            message = CommandMessage(self.node_uri, self.lane_uri, value)
+            self.client.schedule_task(self.send_message, message)
+        else:
+            raise RuntimeError('Link is not open!')
 
     async def send_message(self, message):
         await self.initialised.wait()
         await self.model.send_message(message)
 
     def get(self, synchronous=False):
-        return self.model.get(synchronous)
+        if self.is_open:
+            return self.model.get(synchronous)
+        else:
+            raise RuntimeError('Link is not open!')

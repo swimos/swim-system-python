@@ -32,6 +32,10 @@ class SwimClient:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback) -> 'SwimClient':
+
+        if exc_value or exc_traceback:
+            self.handle_exception(exc_type, exc_value, exc_traceback)
+
         self.stop()
         return self
 
@@ -62,15 +66,18 @@ class SwimClient:
         except CancelledError:
             pass
         except Exception:
-            ex_type, ex, tb = sys.exc_info()
-            print(ex)
-            traceback.print_tb(tb)
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.handle_exception(exc_type, exc_value, exc_traceback)
 
-            if self.terminate_on_exception:
-                os._exit(1)
+    def handle_exception(self, exc_type, exc_value, exc_traceback):
+        print(exc_value)
+        traceback.print_tb(exc_traceback)
 
-            if self.execute_on_exception:
-                self.schedule_task(self.execute_on_exception)
+        if self.terminate_on_exception:
+            os._exit(1)
+
+        if self.execute_on_exception:
+            self.schedule_task(self.execute_on_exception)
 
     def schedule_task(self, task: Callable[..., Coroutine], *args: Any) -> 'Future':
 
