@@ -80,6 +80,7 @@ class ValueDownlinkView:
         self.host_uri = None
         self.node_uri = None
         self.lane_uri = None
+        self.is_open = False
 
         self.initialised = asyncio.Event(loop=self.client.loop)
         self.model = None
@@ -90,11 +91,19 @@ class ValueDownlinkView:
         return f'{self.node_uri}/{self.lane_uri}'
 
     def open(self):
-        self.client.schedule_task(self.client.add_downlink_view, self)
+
+        if not self.is_open:
+            self.is_open = True
+            self.client.schedule_task(self.client.add_downlink_view, self)
+
         return self
 
     def close(self):
-        self.client.schedule_task(self.client.remove_downlink_view, self)
+
+        if self.is_open:
+            self.is_open = False
+            self.client.schedule_task(self.client.remove_downlink_view, self)
+            
         return self
 
     async def establish_downlink(self):
