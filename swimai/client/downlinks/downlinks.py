@@ -103,7 +103,7 @@ class ValueDownlinkView:
         if self.is_open:
             self.is_open = False
             self.client.schedule_task(self.client.remove_downlink_view, self)
-            
+
         return self
 
     async def establish_downlink(self):
