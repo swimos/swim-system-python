@@ -110,7 +110,6 @@ class WSConnection:
 
         await self.__subscribers.remove_downlink(downlink_view)
         if not self.has_subscribers():
-            # TODO Use timer to close after X seconds
             await self.__close()
 
     async def send_message(self, message):

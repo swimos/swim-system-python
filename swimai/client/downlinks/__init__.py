@@ -12,6 +12,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .downlinks import ValueDownlinkModel
+from .downlinks import ValueDownlinkModel, ValueDownlinkView
 
-__all__ = [ValueDownlinkModel]
+__all__ = [ValueDownlinkModel, ValueDownlinkView]

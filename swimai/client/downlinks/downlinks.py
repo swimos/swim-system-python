@@ -16,15 +16,19 @@ import asyncio
 import inspect
 
 from collections.abc import Callable
-
+from typing import TYPE_CHECKING, Any
 from swimai.client.utils import URI
 from swimai.structures import Absent
-from swimai.warp import SyncRequest, CommandMessage
+from swimai.warp import SyncRequest, CommandMessage, Envelope
+
+# Imports for type annotations
+if TYPE_CHECKING:
+    from swimai import SwimClient
 
 
 class ValueDownlinkModel:
 
-    def __init__(self, client):
+    def __init__(self, client: 'SwimClient') -> None:
         self.client = client
         self.host_uri = None
         self.node_uri = None
@@ -32,56 +36,86 @@ class ValueDownlinkModel:
         self.connection = None
         self.task = None
         self.downlink = None
-
         self.value = None
 
         self.linked = asyncio.Event(loop=self.client.loop)
         self.synced = asyncio.Event(loop=self.client.loop)
 
-    async def establish_downlink(self):
+    def open(self) -> 'ValueDownlinkModel':
+        self.task = self.client.schedule_task(self.connection.wait_for_messages)
+        return self
+
+    def close(self) -> 'ValueDownlinkModel':
+        self.client.schedule_task(self.__close)
+        return self
+
+    async def establish_downlink(self) -> None:
+        """
+        Send a `sync` request in order to start getting messages from the remote agent.
+        """
         sync_request = SyncRequest(self.node_uri, self.lane_uri)
         await self.connection.send_message(await sync_request.to_recon())
 
-    async def receive_message(self, message):
+    async def receive_message(self, message: 'Envelope') -> None:
+        """
+        Handle a message from the remote agent.
 
+        :param message:         - Message received from the remote agent.
+        """
         if message.tag == 'linked':
             self.linked.set()
         elif message.tag == 'synced':
             self.synced.set()
         elif message.tag == 'event':
-            await self.set_value(message)
+            await self.__set_value(message)
 
-    def get(self, synchronous=False):
-        if synchronous:
-            task = self.client.schedule_task(self.get_val)
+    def get(self, wait_sync: bool = False) -> Any:
+        """
+        Return the value of the downlink.
+
+        :param wait_sync:       - If True, wait for the initial sync to be completed before returning.
+                                  If False, return immediately.
+        :return:                - The value of the Downlink.
+        """
+        if wait_sync:
+            task = self.client.schedule_task(self.__get_value)
             return task.result()
         else:
             return self.value
 
-    async def get_val(self):
-        await self.synced.wait()
-        return self.value
+    async def send_message(self, message: 'Envelope') -> None:
+        """
+        Send a message to the remote agent of the downlink.
 
-    async def set_value(self, response):
-        old_value = self.value
-
-        if response.body == Absent.get_absent():
-            self.value = None
-        else:
-            self.value = response.body.value
-
-        await self.downlink.subscribers_did_set(self.value, old_value)
-
-    def open(self):
-        self.task = self.client.schedule_task(self.connection.wait_for_messages)
-        return self
-
-    async def send_message(self, message):
+        :param message:         - Message to send to the remote agent.
+        """
         await self.synced.wait()
         await self.connection.send_message(await message.to_recon())
 
-    def close(self):
-        self.client.schedule_task(self.__close)
+    async def __get_value(self) -> Any:
+        """
+        Get the value of the downlink after it has been synced.
+
+        :return:                - The current value of the downlink.
+        """
+        await self.synced.wait()
+        return self.value
+
+    async def __set_value(self, message: 'Envelope') -> None:
+        """
+        Set the value of the the downlink and trigger the `did_set` callback of the relevant subscribers.
+
+        :param message:        - The message from the remote agent.
+        :return:
+        """
+        old_value = self.value
+
+        if message.body == Absent.get_absent():
+            self.value = None
+        else:
+            self.value = message.body.value
+
+        await self.downlink.subscribers_did_set(self.value, old_value)
 
     async def __close(self):
         self.task.cancel()
@@ -89,22 +123,23 @@ class ValueDownlinkModel:
 
 class ValueDownlinkView:
 
-    def __init__(self, client):
+    def __init__(self, client: 'SwimClient') -> None:
         self.client = client
         self.host_uri = None
         self.node_uri = None
         self.lane_uri = None
-        self.is_open = False
+        self.did_set_callback = None
 
+        self.is_open = False
         self.initialised = asyncio.Event(loop=self.client.loop)
         self.model = None
         self.connection = None
 
     @property
-    def route(self):
+    def route(self) -> str:
         return f'{self.node_uri}/{self.lane_uri}'
 
-    def open(self):
+    def open(self) -> 'ValueDownlinkView':
 
         if not self.is_open:
             self.is_open = True
@@ -112,7 +147,7 @@ class ValueDownlinkView:
 
         return self
 
-    def close(self):
+    def close(self) -> 'ValueDownlinkView':
 
         if self.is_open:
             self.is_open = False
@@ -120,10 +155,10 @@ class ValueDownlinkView:
 
         return self
 
-    async def establish_downlink(self):
+    async def establish_downlink(self) -> None:
         await self.model.establish_downlink()
 
-    async def create_downlink_model(self):
+    async def create_downlink_model(self) -> 'ValueDownlinkModel':
         model = ValueDownlinkModel(self.client)
         model.host_uri = self.host_uri
         model.node_uri = self.node_uri
@@ -131,48 +166,45 @@ class ValueDownlinkView:
 
         return model
 
-    def set_host_uri(self, host_uri):
-        self.host_uri = URI.normalise_scheme(host_uri)
+    def set_host_uri(self, host_uri: str) -> 'ValueDownlinkView':
+        self.host_uri = URI.normalise_warp_scheme(host_uri)
         return self
 
-    def set_node_uri(self, node_uri):
+    def set_node_uri(self, node_uri: str) -> 'ValueDownlinkView':
         self.node_uri = node_uri
         return self
 
-    def set_lane_uri(self, lane_uri):
+    def set_lane_uri(self, lane_uri: str) -> 'ValueDownlinkView':
         self.lane_uri = lane_uri
         return self
 
-    async def did_set_callback(self, new_value, old_value):
-        pass
+    def did_set(self, function: Callable) -> 'ValueDownlinkView':
 
-    def did_set(self, function):
-
-        if inspect.iscoroutinefunction(function):
-            self.did_set_callback = function
-        elif isinstance(function, Callable):
+        if inspect.iscoroutinefunction(function) or isinstance(function, Callable):
             self.did_set_callback = function
         else:
-            raise TypeError('Callback must be a function!')
+            raise TypeError('Callback must be a coroutine or function!')
 
         return self
 
-    async def execute_did_set(self, current_value, old_value):
-        self.client.schedule_task(self.did_set_callback, current_value, old_value)
+    # noinspection PyAsyncCall
+    async def execute_did_set(self, current_value: Any, old_value: Any) -> None:
+        if self.did_set_callback:
+            self.client.schedule_task(self.did_set_callback, current_value, old_value)
 
-    def set(self, value):
+    def set(self, value: Any) -> None:
         if self.is_open:
             message = CommandMessage(self.node_uri, self.lane_uri, value)
             self.client.schedule_task(self.send_message, message)
         else:
             raise RuntimeError('Link is not open!')
 
-    async def send_message(self, message):
+    async def send_message(self, message: Envelope) -> None:
         await self.initialised.wait()
         await self.model.send_message(message)
 
-    def get(self, synchronous=False):
+    def get(self, wait_sync: bool = False) -> Any:
         if self.is_open:
-            return self.model.get(synchronous)
+            return self.model.get(wait_sync)
         else:
             raise RuntimeError('Link is not open!')
