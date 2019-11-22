@@ -15,16 +15,16 @@ class TestWsConnections(unittest.TestCase):
     def setUp(self):
         MockWebsocket.clear()
 
-    @async_test
-    async def test_ws_connection(self):
-        # Given
-        host_uri = 'ws://localhost:9001'
-        # When
-        actual = WSConnection(host_uri)
-        # Then
-        self.assertEqual(host_uri, actual.host_uri)
-        self.assertIsNone(actual.websocket)
-        self.assertEqual(ConnectionStatus.CLOSED, actual.status)
+    # @async_test
+    # async def test_ws_connection(self):
+    #     # Given
+    #     host_uri = 'ws://localhost:9001'
+    #     # When
+    #     actual = WSConnection(host_uri)
+    #     # Then
+    #     self.assertEqual(host_uri, actual.host_uri)
+    #     self.assertIsNone(actual.websocket)
+    #     self.assertEqual(ConnectionStatus.CLOSED, actual.status)
 
     # @patch('websockets.connect', new_callable=AsyncMock)
     # @async_test
