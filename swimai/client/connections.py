@@ -229,4 +229,3 @@ class Downlink:
 
     async def __close(self):
         self.downlink_model.close()
-
