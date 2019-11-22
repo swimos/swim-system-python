@@ -43,12 +43,6 @@ if __name__ == '__main__':
         #     lane_uri).did_set(
         #     my_custom_did_set_async_new).open()
 
-        # time.sleep(2)
-        # link1.set(Text.create_from('Pest'))
-        time.sleep(2)
-        swim_client.command(host_uri, node_uri, lane_uri, Text.create_from('1_2'))
-        # swim_client.command(host_uri2, node_uri, 'publish', Num.create_from(37))
-        # swim_client.command(host_uri, node_uri, 'publishInfo', Text.create_from('1_3'))
-        print("Will shut down client in 2 seconds")
-
+    value_downlink.set(new_value)
+    print('Stopping the client in 2 seconds')
     time.sleep(2)
