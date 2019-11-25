@@ -84,7 +84,7 @@ class MockWebsocket:
     async def recv(self):
 
         message = self.messages_to_send.pop()
-      
+
         if len(self.messages_to_send) == 0:
             self.connection.status = ConnectionStatus.CLOSED
 
