@@ -17,13 +17,14 @@ import inspect
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
-from swimai.client.utils import URI
+
+from ..utils import URI
 from swimai.structures import Absent
 from swimai.warp import SyncRequest, CommandMessage, Envelope
 
 # Imports for type annotations
 if TYPE_CHECKING:
-    from swimai import SwimClient
+    from ..swim_client import SwimClient
 
 
 class ValueDownlinkModel:

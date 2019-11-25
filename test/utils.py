@@ -15,6 +15,7 @@
 from typing import Any
 from unittest.mock import MagicMock
 
+from swimai.client import ConnectionStatus
 from swimai.structures import Item
 
 
@@ -39,10 +40,15 @@ class CustomItem(Item):
         return 'MockVale'
 
 
-class AsyncMock(MagicMock):
+class MockAsyncFunction(MagicMock):
+    async def __call__(self, *args, **kwargs):
+        return super(MockAsyncFunction, self).__call__(*args, **kwargs)
+
+
+class MockWebsocketConnect(MagicMock):
 
     async def __call__(self, *args, **kwargs):
-        return super(AsyncMock, self).__call__(*args, **kwargs)
+        return super(MockWebsocketConnect, self).__call__(*args, **kwargs)
 
     @property
     def return_value(self):
@@ -53,7 +59,10 @@ class MockWebsocket:
     instance = None
 
     def __init__(self):
+        self.connection = None
         self.closed = False
+        self.sent_messages = list()
+        self.messages_to_send = list()
 
     @staticmethod
     def get_mock_websocket():
@@ -68,3 +77,15 @@ class MockWebsocket:
 
     async def close(self):
         self.closed = True
+
+    async def send(self, message):
+        self.sent_messages.append(message)
+
+    async def recv(self):
+
+        message = self.messages_to_send.pop()
+        
+        if len(self.messages_to_send) == 0:
+            self.connection.status = ConnectionStatus.CLOSED
+
+        return message

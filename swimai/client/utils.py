@@ -30,7 +30,7 @@ class URI:
             uri = uri._replace(scheme='ws')
             return uri.geturl()
         else:
-            raise TypeError('Invalid scheme for URI!')
+            raise TypeError(f'Invalid scheme "{uri.scheme}" for Warp URI!')
 
     @staticmethod
     def has_valid_scheme(uri: ParseResult) -> bool:

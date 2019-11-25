@@ -14,7 +14,11 @@
 
 import websockets
 from enum import Enum
+from typing import TYPE_CHECKING
 from swimai.warp import Envelope
+
+if TYPE_CHECKING:
+    from .downlinks import ValueDownlinkView
 
 
 class ConnectionPool:
@@ -29,14 +33,15 @@ class ConnectionPool:
     async def get_connection(self, host_uri: str) -> 'WSConnection':
         """
         Return a WebSocket connection to the given Host URI. If it is a new
-        host, create the connection.
+        host or the existing connection is closing, create a new connection.
 
         :param host_uri:        - URI of the connection host.
         :return:                - WebSocket connection.
         """
-        if host_uri in self.__connections and self.__connections.get(host_uri).status != ConnectionStatus.CLOSED:
-            connection = self.__connections.get(host_uri)
-        else:
+
+        connection = self.__connections.get(host_uri)
+
+        if connection is None or connection.status == ConnectionStatus.CLOSED:
             connection = WSConnection(host_uri)
             self.__connections[host_uri] = connection
 
@@ -44,8 +49,7 @@ class ConnectionPool:
 
     async def remove_connection(self, host_uri: str) -> None:
         """
-        Unsubscribe from a WebSocket connection. If the connection does not
-        have any subscribers, close it and remove it from the pool.
+        Remove a connection from the pool.
 
         :param host_uri:        - URI of the connection host.
         """
@@ -53,26 +57,38 @@ class ConnectionPool:
         connection = self.__connections.get(host_uri)
 
         if connection:
-            if connection.status == ConnectionStatus.CLOSED:
-                self.__connections.pop(host_uri)
+            self.__connections.pop(host_uri)
+            await connection.close()
 
-    async def add_downlink_view(self, downlink_view):
+    async def add_downlink_view(self, downlink_view: 'ValueDownlinkView') -> None:
+        """
+        Subscribe a downlink view to a connection from the pool.
+
+        :param downlink_view:   - Downlink view to subscribe to a connection.
+        """
 
         host_uri = downlink_view.host_uri
-
         connection = await self.get_connection(host_uri)
-
         downlink_view.connection = connection
+
         await connection.subscribe(downlink_view)
 
-    async def remove_downlink_view(self, downlink_view):
-        host_uri = downlink_view.host_uri
+    async def remove_downlink_view(self, downlink_view: 'ValueDownlinkView') -> None:
+        """
+        Unsubscribe a downlink view from a connection from the pool.
 
+        :param downlink_view:   - Downlink view to unsubscribe from a connection.
+        """
+        connection: WSConnection
+
+        host_uri = downlink_view.host_uri
         connection = self.__connections.get(host_uri)
 
         if connection:
             await connection.unsubscribe(downlink_view)
-            await self.remove_connection(host_uri)
+
+            if connection.status == ConnectionStatus.CLOSED:
+                await self.remove_connection(host_uri)
 
 
 class WSConnection:
@@ -84,6 +100,18 @@ class WSConnection:
         self.status = ConnectionStatus.CLOSED
         self.__subscribers = DownlinkPool()
 
+    async def open(self) -> None:
+        if self.status == ConnectionStatus.CLOSED:
+            self.websocket = await websockets.connect(self.host_uri)
+            self.status = ConnectionStatus.IDLE
+
+    async def close(self) -> None:
+        if self.status != ConnectionStatus.CLOSED:
+            self.status = ConnectionStatus.CLOSED
+
+            if self.websocket:
+                await self.websocket.close()
+
     def has_subscribers(self) -> bool:
         """
         Check if the connection has any subscribers.
@@ -92,43 +120,48 @@ class WSConnection:
         """
         return self.__subscribers.size > 0
 
-    async def subscribe(self, downlink_view) -> None:
+    async def subscribe(self, downlink_view: 'ValueDownlinkView') -> None:
         """
-        Increment the number of subscribers to the connection.
+        Add a downlink view to the subscriber list of the current connection.
         If this is the first subscriber, open the connection.
+
+        :param downlink_view:   - Downlink view to add to the subscribers.
         """
         if self.__subscribers.size == 0:
-            await self.__open()
+            await self.open()
 
         await self.__subscribers.add_downlink(downlink_view, self)
 
-    async def unsubscribe(self, downlink_view) -> None:
+    async def unsubscribe(self, downlink_view: 'ValueDownlinkView') -> None:
         """
-        Decrement the number of subscribers to the connection.
-        If there are no subscribers, close the connection.
+        Remove a downlink view from the subscriber list of the current connection.
+        If there are no other subscribers, close the connection.
+
+        :param downlink_view:   - Downlink view to remove from the subscribers.
         """
 
         await self.__subscribers.remove_downlink(downlink_view)
         if not self.has_subscribers():
-            await self.__close()
+            await self.close()
 
-    async def send_message(self, message):
+    async def send_message(self, message: str) -> None:
+        """
+        Send a string message to the host using a WebSocket connection.
+        If the WebSocket connection to the host is not open, open it.
 
-        if self.websocket is None:
-            await self.__open()
+        :param message:         - String message to send to the remote host.
+        """
+        if self.websocket is None or self.status == ConnectionStatus.CLOSED:
+            await self.open()
 
         await self.websocket.send(message)
 
-    async def __open(self) -> None:
-        self.websocket = await websockets.connect(self.host_uri)
-        self.status = ConnectionStatus.IDLE
+    async def wait_for_messages(self) -> None:
+        """
+        Wait for messages from the remote host and propagate them
+        to all subscribers.
+        """
 
-    async def __close(self) -> None:
-        if self.status != ConnectionStatus.CLOSED:
-            self.status = ConnectionStatus.CLOSED
-            await self.websocket.close()
-
-    async def wait_for_messages(self):
         if self.status == ConnectionStatus.IDLE:
             self.status = ConnectionStatus.RUNNING
             try:
@@ -137,7 +170,7 @@ class WSConnection:
                     response = await Envelope.parse_recon(message)
                     await self.__subscribers.receive_message(response)
             finally:
-                await self.__close()
+                await self.close()
 
 
 class ConnectionStatus(Enum):

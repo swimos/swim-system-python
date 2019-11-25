@@ -62,7 +62,7 @@ with SwimClient() as swim_client:
 2) Run checks:
 ```
 flake8 . --exclude=examples --count --select=E9,F63,F7,F82 --show-source --statistics
-flake8 . --exclude=examples --count --select=E501 --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+flake8 . --exclude=examples --count --select=E501 --max-complexity=10 --max-line-length=120 --statistics
 ```
 ### Build package
 ##### Building source distribution
