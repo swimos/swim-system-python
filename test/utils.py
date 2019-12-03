@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+import asyncio
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -54,6 +54,46 @@ class MockWebsocketConnect(MagicMock):
     def return_value(self):
         return MockWebsocket.get_mock_websocket()
 
+    @staticmethod
+    def set_raise_exception(state):
+        MockWebsocket.get_mock_websocket().raise_exception = state
+
+class MockDownlink:
+    instance = None
+
+    def __init__(self):
+        self.all_messages_sent = asyncio.Event()
+        self.call_counts_left = 0
+
+    async def receive_message(self):
+
+        self.call_counts_left = self.call_counts_left - 1
+
+        if self.call_counts_left == 0:
+            self.all_messages_sent.set()
+
+    @staticmethod
+    def get_mock_downlink():
+        if MockDownlink.instance is None:
+            MockDownlink.instance = MockDownlink()
+
+        return MockDownlink.instance
+
+
+class MockReceiveMessage(MagicMock):
+
+    async def __call__(self, *args, **kwargs):
+        await MockDownlink.get_mock_downlink().receive_message()
+        return super(MockReceiveMessage, self).__call__(*args, **kwargs)
+
+    @staticmethod
+    def set_call_count(call_count):
+        MockDownlink.get_mock_downlink().call_counts_left = call_count
+
+    @staticmethod
+    def all_messages_has_been_sent():
+        return MockDownlink.get_mock_downlink().all_messages_sent
+
 
 class MockWebsocket:
     instance = None
@@ -63,6 +103,7 @@ class MockWebsocket:
         self.closed = False
         self.sent_messages = list()
         self.messages_to_send = list()
+        self.raise_exception = False
 
     @staticmethod
     def get_mock_websocket():
@@ -82,6 +123,9 @@ class MockWebsocket:
         self.sent_messages.append(message)
 
     async def recv(self):
+
+        if self.raise_exception:
+            raise Exception('WebSocket Exception!')
 
         message = self.messages_to_send.pop()
 

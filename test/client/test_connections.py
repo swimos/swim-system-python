@@ -18,7 +18,7 @@ from unittest.mock import patch
 from aiounittest import async_test
 from swimai import SwimClient
 from swimai.client import WSConnection, ConnectionStatus, ConnectionPool
-from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction
+from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, MockReceiveMessage
 
 
 class TestConnections(unittest.TestCase):
@@ -477,16 +477,72 @@ class TestConnections(unittest.TestCase):
         mock_websocket.assert_called_once_with(host_uri)
         mock_receive_message.assert_called_once()
 
+    @patch('websockets.connect', new_callable=MockWebsocketConnect)
+    @patch('swimai.client.connections.Downlink.add_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.Downlink.receive_message', new_callable=MockReceiveMessage)
     @async_test
-    async def test_ws_connection_wait_for_message_receive_multiple(self):
+    async def test_ws_connection_wait_for_message_receive_multiple(self, mock_receive_message, mock_add_view,
+                                                                   mock_websocket):
         # Given
-        # When
-        # Then
-        pass
+        host_uri = 'ws://2.2.2.2:9001'
+        connection = WSConnection(host_uri)
+        MockWebsocket.get_mock_websocket().connection = connection
+        mock_receive_message.set_call_count(3)
 
-    @async_test
-    async def test_ws_connection_wait_for_message_receive_exception(self):
-        # Given
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_host_uri(host_uri)
+        downlink_view.set_node_uri('baz')
+        downlink_view.set_lane_uri('qux')
+        await connection.subscribe(downlink_view)
+
+        first_message = '@synced(node:baz,lane:qux)'
+        second_message = '@linked(node:baz,lane:qux)'
+        third_message = '@synced(node:baz,lane:qux)'
+
+        expected = {first_message, second_message, third_message}
+        connection.websocket.messages_to_send.append(first_message)
+        connection.websocket.messages_to_send.append(second_message)
+        connection.websocket.messages_to_send.append(third_message)
         # When
+        await connection.wait_for_messages()
+        await mock_receive_message.all_messages_has_been_sent().wait()
         # Then
-        pass
+        messages = mock_receive_message.call_args_list
+        first_actual_message = (await asyncio.gather(messages[0][0][0].to_recon()))[0]
+        second_actual_message = (await asyncio.gather(messages[1][0][0].to_recon()))[0]
+        third_actual_message = (await asyncio.gather(messages[2][0][0].to_recon()))[0]
+        actual = {first_actual_message, second_actual_message, third_actual_message}
+        self.assertEqual(expected, actual)
+        self.assertEqual(ConnectionStatus.CLOSED, connection.status)
+        mock_add_view.assert_called_once_with(downlink_view)
+        mock_websocket.assert_called_once_with(host_uri)
+        self.assertEqual(3, mock_receive_message.call_count)
+
+    @patch('websockets.connect', new_callable=MockWebsocketConnect)
+    @patch('swimai.client.connections.Downlink.add_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.Downlink.receive_message', new_callable=MockReceiveMessage)
+    @async_test
+    async def test_ws_connection_wait_for_message_receive_exception(self, mock_receive_message, mock_add_view,
+                                                                    mock_websocket):
+        # Given
+        host_uri = 'ws://5.5.5.5:9001'
+        connection = WSConnection(host_uri)
+        MockWebsocket.get_mock_websocket().connection = connection
+        mock_websocket.set_raise_exception(True)
+
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_host_uri(host_uri)
+        downlink_view.set_node_uri('boo')
+        downlink_view.set_lane_uri('far')
+        await connection.subscribe(downlink_view)
+        # When
+        with self.assertRaises(Exception) as error:
+            await connection.wait_for_messages()
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('WebSocket Exception!', message)
+        mock_receive_message.assert_not_called()
+        mock_websocket.assert_called_once()
+        mock_add_view.assert_called_once_with(downlink_view)
