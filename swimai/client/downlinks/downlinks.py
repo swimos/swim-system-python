@@ -118,7 +118,7 @@ class ValueDownlinkModel:
 
         await self.downlink.subscribers_did_set(self.value, old_value)
 
-    async def __close(self):
+    async def __close(self) -> None:
         self.task.cancel()
 
 

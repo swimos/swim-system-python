@@ -14,7 +14,7 @@
 
 import websockets
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from swimai.warp import Envelope
 
 if TYPE_CHECKING:
@@ -79,7 +79,7 @@ class ConnectionPool:
 
         :param downlink_view:   - Downlink view to unsubscribe from a connection.
         """
-        connection: WSConnection
+        connection: 'WSConnection'
 
         host_uri = downlink_view.host_uri
         connection = self.__connections.get(host_uri)
@@ -181,14 +181,14 @@ class ConnectionStatus(Enum):
 
 class DownlinkPool:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.downlinks = dict()
 
     @property
-    def size(self):
+    def size(self) -> int:
         return len(self.downlinks)
 
-    async def add_downlink(self, downlink_view, connection):
+    async def add_downlink(self, downlink_view: 'ValueDownlinkView', connection: 'WSConnection') -> None:
 
         downlink = self.downlinks.get(downlink_view.route)
 
@@ -198,7 +198,7 @@ class DownlinkPool:
 
         await downlink.add_view(downlink_view)
 
-    async def remove_downlink(self, downlink_view):
+    async def remove_downlink(self, downlink_view: 'ValueDownlinkView') -> None:
 
         if downlink_view.route in self.downlinks:
             downlink = self.downlinks.get(downlink_view.route)
@@ -207,7 +207,7 @@ class DownlinkPool:
             if downlink.view_count == 0:
                 self.downlinks.pop(downlink_view.route)
 
-    async def receive_message(self, message):
+    async def receive_message(self, message: 'Envelope') -> None:
 
         downlink = self.downlinks.get(message.route)
         if downlink:
@@ -216,20 +216,20 @@ class DownlinkPool:
 
 class Downlink:
 
-    def __init__(self, connection):
+    def __init__(self, connection: 'WSConnection') -> None:
         self.connection = connection
         self.downlink_model = None
         self.downlink_views = dict()
 
     @property
-    def view_count(self):
+    def view_count(self) -> int:
         return len(self.downlink_views)
 
-    async def subscribers_did_set(self, current_value, old_value):
+    async def subscribers_did_set(self, current_value: Any, old_value: Any) -> None:
         for view in self.downlink_views.values():
             await view.execute_did_set(current_value, old_value)
 
-    async def add_view(self, downlink_view):
+    async def add_view(self, downlink_view: 'ValueDownlinkView') -> None:
 
         if self.downlink_model is None:
             await self.__init_downlink_model(downlink_view)
@@ -239,7 +239,7 @@ class Downlink:
         downlink_view.initialised.set()
         self.downlink_views[hash(downlink_view)] = downlink_view
 
-    async def remove_view(self, downlink_view):
+    async def remove_view(self, downlink_view: 'ValueDownlinkView') -> None:
 
         if hash(downlink_view) in self.downlink_views:
             self.downlink_views.pop(hash(downlink_view))
@@ -247,17 +247,17 @@ class Downlink:
             if self.view_count == 0:
                 await self.__close()
 
-    async def receive_message(self, message):
+    async def receive_message(self, message: 'Envelope') -> None:
         await self.downlink_model.receive_message(message)
 
-    async def __init_downlink_model(self, downlink_view):
+    async def __init_downlink_model(self, downlink_view: 'ValueDownlinkView') -> None:
         self.downlink_model = await downlink_view.create_downlink_model()
         self.downlink_model.downlink = self
         self.downlink_model.connection = self.connection
 
-    async def __open(self):
+    async def __open(self) -> None:
         await self.downlink_model.establish_downlink()
         self.downlink_model.open()
 
-    async def __close(self):
+    async def __close(self) -> None:
         self.downlink_model.close()
