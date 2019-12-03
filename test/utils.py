@@ -58,6 +58,7 @@ class MockWebsocketConnect(MagicMock):
     def set_raise_exception(state):
         MockWebsocket.get_mock_websocket().raise_exception = state
 
+
 class MockDownlink:
     instance = None
 
