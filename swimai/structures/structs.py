@@ -16,7 +16,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, List, Optional, Dict, Union
 
-
 class Item(ABC):
 
     def concat(self, new_item: 'Item') -> 'Record':
