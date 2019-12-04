@@ -45,7 +45,10 @@ with SwimClient() as swim_client:
 ## Development
 
 ### Dependencies
+##### Code dependencies
 `pip install -r requirements.txt`
+##### Development tools dependencies
+`pip install -r requirements-dev.txt`
 ### Run unit tests
 ##### Basic:
 1) Install async test package: `pip install aiounittest`
@@ -58,12 +61,12 @@ with SwimClient() as swim_client:
 4) View report: `coverage report -m`
 
 ### Run Lint
+##### Manual
 1) Install lint package: `pip install flake8`
-2) Run checks:
-```
-flake8 . --exclude=examples --count --select=E9,F63,F7,F82 --show-source --statistics
-flake8 . --exclude=examples --count --select=E501 --max-complexity=10 --max-line-length=120 --statistics
-```
+2) Run checks: `flake8`
+##### Automatic (before commit)
+1) Install commit hook package: `pip install pre-commit`
+2) Run hook installation: `pre-commit install`
 ### Build package
 ##### Building source distribution
 1) Run: `python setup.py sdist`
