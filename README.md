@@ -2,6 +2,8 @@
 [![PyPI version](https://badge.fury.io/py/swimai.svg)](https://badge.fury.io/py/swimai)
 [![Build Status](https://travis-ci.com/swimos/swim-system-python.svg?branch=master)](https://travis-ci.com/swimos/swim-system-python)
 [![codecov](https://codecov.io/gh/swimos/swim-system-python/branch/master/graph/badge.svg)](https://codecov.io/gh/swimos/swim-system-python)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Code of Conduct](https://img.shields.io/badge/code-of%20conduct-green.svg)](CODE_OF_CONDUCT.md)
 [![chat](https://img.shields.io/badge/chat-Gitter-green.svg)](https://gitter.im/swimos/community)
 <a href="https://www.swimos.org"><img src="https://docs.swimos.org/readme/marlin-blue.svg" align="left"></a>
 
