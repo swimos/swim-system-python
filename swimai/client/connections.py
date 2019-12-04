@@ -14,8 +14,8 @@
 
 import websockets
 from enum import Enum
-from typing import TYPE_CHECKING, Any
 from swimai.warp import Envelope
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .downlinks import ValueDownlinkView
