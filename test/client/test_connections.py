@@ -17,7 +17,8 @@ import unittest
 from unittest.mock import patch
 from aiounittest import async_test
 from swimai import SwimClient
-from swimai.client import WSConnection, ConnectionStatus, ConnectionPool
+from swimai.client import WSConnection, ConnectionStatus, ConnectionPool, DownlinkManagerPool
+from swimai.warp import SyncedResponse
 from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, MockReceiveMessage
 
 
@@ -171,9 +172,9 @@ class TestConnections(unittest.TestCase):
         mock_subscribe.assert_called_once_with(downlink_view)
         mock_unsubscribe.assert_called_once_with(downlink_view)
 
-    @patch('swimai.client.connections.DownlinkManagerPool.remove_downlink', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManagerPool.deregister_downlink_view', new_callable=MockAsyncFunction)
     @async_test
-    async def test_pool_remove_downlink_view_non_existing_connection(self, mock_remove_downlink):
+    async def test_pool_remove_downlink_view_non_existing_connection(self, mock_deregister_downlink_view):
         # Given
         pool = ConnectionPool()
         uri = 'ws://foo_bar:9000'
@@ -185,7 +186,7 @@ class TestConnections(unittest.TestCase):
         # Then
         pass
         self.assertEqual(0, pool.size)
-        mock_remove_downlink.assert_not_called()
+        mock_deregister_downlink_view.assert_not_called()
 
     @async_test
     async def test_ws_connection(self):
@@ -546,3 +547,180 @@ class TestConnections(unittest.TestCase):
         mock_receive_message.assert_not_called()
         mock_websocket.assert_called_once()
         mock_add_view.assert_called_once_with(downlink_view)
+
+    @async_test
+    async def test_downlink_manager_pool(self):
+        # When
+        actual = DownlinkManagerPool()
+        # Then
+        self.assertIsInstance(actual, DownlinkManagerPool)
+        self.assertEqual(0, actual.size)
+
+    @patch('swimai.client.connections.DownlinkManager.open', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_downlink_manager_pool_register_downlink_view_single(self, mock_open):
+        # Given
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('boo')
+        downlink_view.set_lane_uri('far')
+        actual = DownlinkManagerPool()
+        # When
+        await actual.register_downlink_view(downlink_view)
+        # Then
+        self.assertEqual(1, actual.size)
+        mock_open.assert_called_once()
+
+    @patch('swimai.client.connections.DownlinkManager.open', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_downlink_manager_pool_register_downlink_view_multiple_different_routes(self, mock_open):
+        # Given
+        client = SwimClient()
+        first_downlink_view = client.downlink_value()
+        first_downlink_view.set_node_uri('boo')
+        first_downlink_view.set_lane_uri('far')
+        second_downlink_view = client.downlink_value()
+        second_downlink_view.set_node_uri('poo')
+        second_downlink_view.set_lane_uri('par')
+        actual = DownlinkManagerPool()
+        # When
+        await actual.register_downlink_view(first_downlink_view)
+        await actual.register_downlink_view(second_downlink_view)
+        # Then
+        self.assertEqual(2, actual.size)
+        self.assertEqual(2, mock_open.call_count)
+
+    @patch('swimai.client.connections.DownlinkManager.open', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_downlink_manager_pool_register_downlink_view_multiple_same_route(self, mock_open):
+        # Given
+        client = SwimClient()
+        first_downlink_view = client.downlink_value()
+        first_downlink_view.set_node_uri('boo')
+        first_downlink_view.set_lane_uri('far')
+        second_downlink_view = client.downlink_value()
+        second_downlink_view.set_node_uri('boo')
+        second_downlink_view.set_lane_uri('far')
+        actual = DownlinkManagerPool()
+        # When
+        await actual.register_downlink_view(first_downlink_view)
+        await actual.register_downlink_view(second_downlink_view)
+        # Then
+        self.assertEqual(1, actual.size)
+        mock_open.assert_called_once()
+
+    @patch('swimai.client.connections.DownlinkManager.close', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.open', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_downlink_manager_pool_deregister_downlink_view_single_existing(self, mock_open, mock_close):
+        # Given
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('moo')
+        downlink_view.set_lane_uri('cow')
+        actual = DownlinkManagerPool()
+        await actual.register_downlink_view(downlink_view)
+        # When
+        await actual.deregister_downlink_view(downlink_view)
+        # Then
+        self.assertEqual(0, actual.size)
+        mock_open.assert_called_once()
+        mock_close.assert_called_once()
+
+    @patch('swimai.client.connections.DownlinkManager.close', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_downlink_manager_pool_deregister_downlink_view_single_non_existing(self, mock_close):
+        # Given
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('foo')
+        downlink_view.set_lane_uri('bar')
+        actual = DownlinkManagerPool()
+        # When
+        await actual.deregister_downlink_view(downlink_view)
+        # Then
+        self.assertEqual(0, actual.size)
+        mock_close.assert_not_called()
+
+    @patch('swimai.client.connections.DownlinkManager.close', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.open', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_downlink_manager_pool_deregister_downlink_view_multiple_same_route(self, mock_open, mock_close):
+        # Given
+        client = SwimClient()
+        first_downlink_view = client.downlink_value()
+        first_downlink_view.set_node_uri('qux')
+        first_downlink_view.set_lane_uri('baz')
+        second_downlink_view = client.downlink_value()
+        second_downlink_view.set_node_uri('qux')
+        second_downlink_view.set_lane_uri('baz')
+        actual = DownlinkManagerPool()
+        await actual.register_downlink_view(first_downlink_view)
+        await actual.register_downlink_view(second_downlink_view)
+        # When
+        await actual.deregister_downlink_view(first_downlink_view)
+        await actual.deregister_downlink_view(second_downlink_view)
+        # Then
+        self.assertEqual(0, actual.size)
+        self.assertEqual(1, mock_open.call_count)
+        self.assertEqual(1, mock_close.call_count)
+
+    @patch('swimai.client.connections.DownlinkManager.close', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.open', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_downlink_manager_pool_deregister_downlink_view_multiple_different_routes(self, mock_open,
+                                                                                            mock_close):
+        # Given
+        client = SwimClient()
+        first_downlink_view = client.downlink_value()
+        first_downlink_view.set_node_uri('parrot')
+        first_downlink_view.set_lane_uri('dead')
+        second_downlink_view = client.downlink_value()
+        second_downlink_view.set_node_uri('ghost')
+        second_downlink_view.set_lane_uri('boo')
+        actual = DownlinkManagerPool()
+        await actual.register_downlink_view(first_downlink_view)
+        await actual.register_downlink_view(second_downlink_view)
+        # When
+        await actual.deregister_downlink_view(first_downlink_view)
+        await actual.deregister_downlink_view(second_downlink_view)
+        # Then
+        self.assertEqual(0, actual.size)
+        self.assertEqual(2, mock_open.call_count)
+        self.assertEqual(2, mock_close.call_count)
+
+    @patch('swimai.client.connections.DownlinkManager.open', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.receive_message', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_downlink_manager_pool_receive_message_existing_route(self, mock_receive_message, mock_open):
+        # Given
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('moo')
+        downlink_view.set_lane_uri('cow')
+        actual = DownlinkManagerPool()
+        await actual.register_downlink_view(downlink_view)
+        message = SyncedResponse('moo', 'cow')
+        # When
+        await actual.receive_message(message)
+        # Then
+        mock_open.assert_called_once()
+        mock_receive_message.assert_called_once_with(message)
+
+    @patch('swimai.client.connections.DownlinkManager.open', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.receive_message', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_downlink_manager_pool_receive_message_non_existing_route(self, mock_receive_message, mock_open):
+        # Given
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('moo')
+        downlink_view.set_lane_uri('cow')
+        actual = DownlinkManagerPool()
+        await actual.register_downlink_view(downlink_view)
+        message = SyncedResponse('poo', 'pow')
+        # When
+        await actual.receive_message(message)
+        # Then
+        mock_open.assert_called_once()
+        mock_receive_message.assert_not_called()

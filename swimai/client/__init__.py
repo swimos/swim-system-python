@@ -14,7 +14,8 @@
 
 from .swim_client import SwimClient
 from .downlinks import ValueDownlinkModel
-from .connections import WSConnection, ConnectionStatus, ConnectionPool
+from .connections import WSConnection, ConnectionStatus, ConnectionPool, DownlinkManagerPool, DownlinkManager
 from .utils import URI
 
-__all__ = [SwimClient, ValueDownlinkModel, WSConnection, ConnectionStatus, ConnectionPool, URI]
+__all__ = [SwimClient, ValueDownlinkModel, WSConnection, ConnectionStatus, ConnectionPool, DownlinkManagerPool,
+           DownlinkManager, URI]
