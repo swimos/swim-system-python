@@ -171,7 +171,7 @@ class TestConnections(unittest.TestCase):
         mock_subscribe.assert_called_once_with(downlink_view)
         mock_unsubscribe.assert_called_once_with(downlink_view)
 
-    @patch('swimai.client.connections.DownlinkPool.remove_downlink', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManagerPool.remove_downlink', new_callable=MockAsyncFunction)
     @async_test
     async def test_pool_remove_downlink_view_non_existing_connection(self, mock_remove_downlink):
         # Given
@@ -199,7 +199,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(ConnectionStatus.CLOSED, actual.status)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @patch('swimai.client.connections.Downlink.add_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.add_view', new_callable=MockAsyncFunction)
     @async_test
     async def test_ws_connection_subscribe_single(self, mock_add_view, mock_websocket):
         # Given
@@ -220,7 +220,7 @@ class TestConnections(unittest.TestCase):
         mock_add_view.assert_called_once_with(downlink_view)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @patch('swimai.client.connections.Downlink.add_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.add_view', new_callable=MockAsyncFunction)
     @async_test
     async def test_ws_connection_subscribe_multiple(self, mock_add_view, mock_websocket):
         # Given
@@ -250,8 +250,8 @@ class TestConnections(unittest.TestCase):
         mock_add_view.assert_any_call(second_downlink_view)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @patch('swimai.client.connections.Downlink.add_view', new_callable=MockAsyncFunction)
-    @patch('swimai.client.connections.Downlink.remove_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.add_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.remove_view', new_callable=MockAsyncFunction)
     @async_test
     async def test_ws_connection_unsubscribe_all(self, mock_remove_view, mock_add_view, mock_websocket):
         # Given
@@ -276,8 +276,8 @@ class TestConnections(unittest.TestCase):
         mock_remove_view.assert_called_once_with(downlink_view)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @patch('swimai.client.connections.Downlink.add_view', new_callable=MockAsyncFunction)
-    @patch('swimai.client.connections.Downlink.remove_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.add_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.remove_view', new_callable=MockAsyncFunction)
     @async_test
     async def test_ws_connection_unsubscribe_one(self, mock_remove_view, mock_add_view, mock_websocket):
         # Given
@@ -448,8 +448,8 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(ConnectionStatus.CLOSED, connection.status)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @patch('swimai.client.connections.Downlink.add_view', new_callable=MockAsyncFunction)
-    @patch('swimai.client.connections.Downlink.receive_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.add_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.receive_message', new_callable=MockAsyncFunction)
     @async_test
     async def test_ws_connection_wait_for_message_receive_single(self, mock_receive_message, mock_add_view,
                                                                  mock_websocket):
@@ -478,8 +478,8 @@ class TestConnections(unittest.TestCase):
         mock_receive_message.assert_called_once()
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @patch('swimai.client.connections.Downlink.add_view', new_callable=MockAsyncFunction)
-    @patch('swimai.client.connections.Downlink.receive_message', new_callable=MockReceiveMessage)
+    @patch('swimai.client.connections.DownlinkManager.add_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.receive_message', new_callable=MockReceiveMessage)
     @async_test
     async def test_ws_connection_wait_for_message_receive_multiple(self, mock_receive_message, mock_add_view,
                                                                    mock_websocket):
@@ -520,8 +520,8 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(3, mock_receive_message.call_count)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @patch('swimai.client.connections.Downlink.add_view', new_callable=MockAsyncFunction)
-    @patch('swimai.client.connections.Downlink.receive_message', new_callable=MockReceiveMessage)
+    @patch('swimai.client.connections.DownlinkManager.add_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.DownlinkManager.receive_message', new_callable=MockReceiveMessage)
     @async_test
     async def test_ws_connection_wait_for_message_receive_exception(self, mock_receive_message, mock_add_view,
                                                                     mock_websocket):

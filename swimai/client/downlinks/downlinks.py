@@ -52,7 +52,7 @@ class ValueDownlinkModel:
 
     async def establish_downlink(self) -> None:
         """
-        Send a `sync` request in order to start getting messages from the remote agent.
+        Send a `sync` request in order to initiate a connection to a lane from the remote agent.
         """
         sync_request = SyncRequest(self.node_uri, self.lane_uri)
         await self.connection.send_message(await sync_request.to_recon())
@@ -70,20 +70,6 @@ class ValueDownlinkModel:
         elif message.tag == 'event':
             await self.__set_value(message)
 
-    def get(self, wait_sync: bool = False) -> Any:
-        """
-        Return the value of the downlink.
-
-        :param wait_sync:       - If True, wait for the initial sync to be completed before returning.
-                                  If False, return immediately.
-        :return:                - The value of the Downlink.
-        """
-        if wait_sync:
-            task = self.client.schedule_task(self.__get_value)
-            return task.result()
-        else:
-            return self.value
-
     async def send_message(self, message: 'Envelope') -> None:
         """
         Send a message to the remote agent of the downlink.
@@ -93,7 +79,7 @@ class ValueDownlinkModel:
         await self.synced.wait()
         await self.connection.send_message(await message.to_recon())
 
-    async def __get_value(self) -> Any:
+    async def get_value(self) -> Any:
         """
         Get the value of the downlink after it has been synced.
 
@@ -104,7 +90,7 @@ class ValueDownlinkModel:
 
     async def __set_value(self, message: 'Envelope') -> None:
         """
-        Set the value of the the downlink and trigger the `did_set` callback of the relevant subscribers.
+        Set the value of the the downlink and trigger the `did_set` callback of the downlink subscribers.
 
         :param message:        - The message from the remote agent.
         :return:
@@ -156,9 +142,6 @@ class ValueDownlinkView:
 
         return self
 
-    async def establish_downlink(self) -> None:
-        await self.model.establish_downlink()
-
     async def create_downlink_model(self) -> 'ValueDownlinkModel':
         model = ValueDownlinkModel(self.client)
         model.host_uri = self.host_uri
@@ -188,24 +171,51 @@ class ValueDownlinkView:
 
         return self
 
-    # noinspection PyAsyncCall
-    async def execute_did_set(self, current_value: Any, old_value: Any) -> None:
-        if self.did_set_callback:
-            self.client.schedule_task(self.did_set_callback, current_value, old_value)
+    def get(self, wait_sync: bool = False) -> Any:
+        """
+        Return the value of the downlink.
+
+        :param wait_sync:       - If True, wait for the initial `sync` to be completed before returning.
+                                  If False, return immediately.
+        :return:                - The value of the Downlink.
+        """
+        if self.is_open:
+            if wait_sync:
+                task = self.client.schedule_task(self.model.get_value)
+                return task.result()
+            else:
+                return self.model.value
+        else:
+            raise RuntimeError('Link is not open!')
 
     def set(self, value: Any) -> None:
+        """
+        Send a command message to set the value of the lane on the remote agent to the given value.
+
+        :param value:           - New value for the lane of the remote agent.
+        """
         if self.is_open:
             message = CommandMessage(self.node_uri, self.lane_uri, value)
             self.client.schedule_task(self.send_message, message)
         else:
             raise RuntimeError('Link is not open!')
 
+    # noinspection PyAsyncCall
+    async def execute_did_set(self, current_value: Any, old_value: Any) -> None:
+        """
+        Execute the custom `did_set` callback of the current downlink view.
+
+        :param current_value:       - The new value of the downlink.
+        :param old_value:           - The previous value of the downlink.
+        """
+        if self.did_set_callback:
+            self.client.schedule_task(self.did_set_callback, current_value, old_value)
+
     async def send_message(self, message: Envelope) -> None:
+        """
+        Send a message to the remote agent of the downlink.
+
+        :param message:         - Message to send to the remote agent.
+        """
         await self.initialised.wait()
         await self.model.send_message(message)
-
-    def get(self, wait_sync: bool = False) -> Any:
-        if self.is_open:
-            return self.model.get(wait_sync)
-        else:
-            raise RuntimeError('Link is not open!')
