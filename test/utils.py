@@ -80,6 +80,10 @@ class MockDownlink:
 
         return MockDownlink.instance
 
+    @staticmethod
+    def clear():
+        MockDownlink.instance = None
+
 
 class MockReceiveMessage(MagicMock):
 
@@ -134,3 +138,27 @@ class MockWebsocket:
             self.connection.status = ConnectionStatus.CLOSED
 
         return message
+
+
+class MockConnection:
+    instance = None
+
+    def __init__(self):
+        self.messages_sent = list()
+
+    @staticmethod
+    def get_mock_connection():
+        if MockConnection.instance is None:
+            MockConnection.instance = MockConnection()
+
+        return MockConnection.instance
+
+    @staticmethod
+    def clear():
+        MockConnection.instance = None
+
+    async def wait_for_messages(self):
+        pass
+
+    async def send_message(self, message):
+        self.messages_sent.append(message)

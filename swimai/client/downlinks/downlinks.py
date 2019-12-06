@@ -76,7 +76,7 @@ class ValueDownlinkModel:
 
         :param message:         - Message to send to the remote agent.
         """
-        await self.synced.wait()
+        await self.linked.wait()
         await self.connection.send_message(await message.to_recon())
 
     async def get_value(self) -> Any:

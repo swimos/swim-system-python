@@ -102,6 +102,7 @@ class WSConnection:
 
     async def open(self) -> None:
         if self.status == ConnectionStatus.CLOSED:
+            self.status = ConnectionStatus.CONNECTING
             self.websocket = await websockets.connect(self.host_uri)
             self.status = ConnectionStatus.IDLE
 
@@ -175,8 +176,9 @@ class WSConnection:
 
 class ConnectionStatus(Enum):
     CLOSED = 0
-    IDLE = 1
-    RUNNING = 2
+    CONNECTING = 1
+    IDLE = 2
+    RUNNING = 3
 
 
 class DownlinkManagerPool:
@@ -238,6 +240,7 @@ class DownlinkManager:
 
     def __init__(self, connection: 'WSConnection') -> None:
         self.connection = connection
+        self.status = DownlinkManagerStatus.CLOSED
         self.downlink_model = None
         self.downlink_views = dict()
 
@@ -246,11 +249,16 @@ class DownlinkManager:
         return len(self.downlink_views)
 
     async def open(self) -> None:
-        await self.downlink_model.establish_downlink()
-        self.downlink_model.open()
+        if self.status == DownlinkManagerStatus.CLOSED:
+            self.status = DownlinkManagerStatus.OPENING
+            self.downlink_model.open()
+            await self.downlink_model.establish_downlink()
+            self.status = DownlinkManagerStatus.OPEN
 
     async def close(self) -> None:
-        self.downlink_model.close()
+        if self.status != DownlinkManagerStatus.CLOSED:
+            self.status = DownlinkManagerStatus.CLOSED
+            self.downlink_model.close()
 
     async def init_downlink_model(self, downlink_view: 'ValueDownlinkView') -> None:
         """
@@ -270,10 +278,13 @@ class DownlinkManager:
         """
         if self.downlink_model is None:
             await self.init_downlink_model(downlink_view)
-            await self.open()
 
         downlink_view.model = self.downlink_model
         downlink_view.initialised.set()
+
+        if self.view_count == 0:
+            await self.open()
+
         self.downlink_views[hash(downlink_view)] = downlink_view
 
     async def remove_view(self, downlink_view: 'ValueDownlinkView') -> None:
@@ -306,3 +317,9 @@ class DownlinkManager:
         """
         for view in self.downlink_views.values():
             await view.execute_did_set(current_value, old_value)
+
+
+class DownlinkManagerStatus(Enum):
+    CLOSED = 0
+    OPENING = 1
+    OPEN = 2
