@@ -14,11 +14,13 @@
 
 import websockets
 from enum import Enum
+
 from swimai.warp import Envelope
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .downlinks import ValueDownlinkView
+    from .downlinks import ValueDownlinkModel
 
 
 class ConnectionPool:
@@ -242,13 +244,15 @@ class DownlinkManager:
         self.connection = connection
         self.status = DownlinkManagerStatus.CLOSED
         self.downlink_model = None
-        self.downlink_views = dict()
+        self.__downlink_views = dict()
 
     @property
     def view_count(self) -> int:
-        return len(self.downlink_views)
+        return len(self.__downlink_views)
 
     async def open(self) -> None:
+        self.downlink_model: ValueDownlinkModel
+
         if self.status == DownlinkManagerStatus.CLOSED:
             self.status = DownlinkManagerStatus.OPENING
             self.downlink_model.open()
@@ -256,6 +260,8 @@ class DownlinkManager:
             self.status = DownlinkManagerStatus.OPEN
 
     async def close(self) -> None:
+        self.downlink_model: ValueDownlinkModel
+
         if self.status != DownlinkManagerStatus.CLOSED:
             self.status = DownlinkManagerStatus.CLOSED
             self.downlink_model.close()
@@ -285,7 +291,7 @@ class DownlinkManager:
         if self.view_count == 0:
             await self.open()
 
-        self.downlink_views[hash(downlink_view)] = downlink_view
+        self.__downlink_views[hash(downlink_view)] = downlink_view
 
     async def remove_view(self, downlink_view: 'ValueDownlinkView') -> None:
         """
@@ -294,8 +300,8 @@ class DownlinkManager:
 
         :param downlink_view:       - Downlink view to remove from the manager.
         """
-        if hash(downlink_view) in self.downlink_views:
-            self.downlink_views.pop(hash(downlink_view))
+        if hash(downlink_view) in self.__downlink_views:
+            self.__downlink_views.pop(hash(downlink_view))
 
             if self.view_count == 0:
                 await self.close()
@@ -306,6 +312,8 @@ class DownlinkManager:
 
         :param message:             - Received message from the remote agent.
         """
+        self.downlink_model: ValueDownlinkModel
+
         await self.downlink_model.receive_message(message)
 
     async def subscribers_did_set(self, current_value: Any, old_value: Any) -> None:
@@ -315,7 +323,7 @@ class DownlinkManager:
         :param current_value:       - The new value of the downlink.
         :param old_value:           - The previous value of the downlink.
         """
-        for view in self.downlink_views.values():
+        for view in self.__downlink_views.values():
             await view.execute_did_set(current_value, old_value)
 
 

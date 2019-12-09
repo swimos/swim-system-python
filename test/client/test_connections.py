@@ -18,10 +18,11 @@ from unittest.mock import patch
 from aiounittest import async_test
 from swimai import SwimClient
 from swimai.client import WSConnection, ConnectionStatus, ConnectionPool, DownlinkManagerPool, DownlinkManager, \
-    DownlinkManagerStatus
-from swimai.warp import SyncedResponse
+    DownlinkManagerStatus, ValueDownlinkModel
+from swimai.structures import Text
+from swimai.warp import SyncedResponse, LinkedResponse, EventMessage
 from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, MockReceiveMessage, MockConnection, \
-    MockDownlink
+    MockDownlink, mock_did_set_callback
 
 
 class TestConnections(unittest.TestCase):
@@ -787,3 +788,374 @@ class TestConnections(unittest.TestCase):
         self.assertEqual('@sync(node:moo,lane:car)', MockConnection.get_mock_connection().messages_sent[0])
         self.assertEqual(1, len(MockConnection.get_mock_connection().messages_sent))
         mock_schedule_task.assert_called_once_with(MockConnection.get_mock_connection().wait_for_messages)
+
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_close_running(self, mock_schedule_task):
+        # Given
+        host_uri = 'ws://1.2.3.4:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('moo')
+        downlink_view.set_lane_uri('car')
+        downlink_model = await downlink_view.create_downlink_model()
+        actual = DownlinkManager(connection)
+        downlink_model.connection = MockConnection.get_mock_connection()
+        actual.downlink_model = downlink_model
+        await actual.open()
+        # When
+        await actual.close()
+        # Then
+        self.assertEqual(DownlinkManagerStatus.CLOSED, actual.status)
+        self.assertEqual(1, len(MockConnection.get_mock_connection().messages_sent))
+        self.assertEqual(2, mock_schedule_task.call_count)
+
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_close_stopped(self, mock_schedule_task):
+        # Given
+        host_uri = 'ws://4.3.2.1:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('boo')
+        downlink_view.set_lane_uri('far')
+        downlink_model = await downlink_view.create_downlink_model()
+        downlink_model.connection = MockConnection.get_mock_connection()
+        actual = DownlinkManager(connection)
+        await actual.init_downlink_model(downlink_view)
+        # When
+        await actual.close()
+        # Then
+        self.assertEqual(DownlinkManagerStatus.CLOSED, actual.status)
+        self.assertEqual(0, len(MockConnection.get_mock_connection().messages_sent))
+        self.assertEqual(0, mock_schedule_task.call_count)
+
+    @async_test
+    async def test_downlink_manager_init_downlink_model(self):
+        # Given
+        host_uri = 'ws://100.100.100.100:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('bar')
+        downlink_view.set_lane_uri('baz')
+        actual = DownlinkManager(connection)
+        # When
+        await actual.init_downlink_model(downlink_view)
+        # Then
+        self.assertEqual(downlink_view.lane_uri, actual.downlink_model.lane_uri)
+        self.assertIsInstance(actual.downlink_model, ValueDownlinkModel)
+        self.assertEqual(DownlinkManagerStatus.CLOSED, actual.status)
+        self.assertEqual(downlink_view.client, actual.downlink_model.client)
+        self.assertEqual(downlink_view.node_uri, actual.downlink_model.node_uri)
+        self.assertEqual(downlink_view.host_uri, actual.downlink_model.host_uri)
+        self.assertEqual(actual, actual.downlink_model.downlink)
+        self.assertEqual(actual.connection, actual.downlink_model.connection)
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_add_view_single(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://99.99.99.99:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('Hello')
+        downlink_view.set_lane_uri('World')
+        actual = DownlinkManager(connection)
+        # When
+        await actual.add_view(downlink_view)
+        # Then
+        self.assertEqual(1, actual.view_count)
+        self.assertIsInstance(actual.downlink_model, ValueDownlinkModel)
+        self.assertEqual(downlink_view.client, actual.downlink_model.client)
+        self.assertEqual(downlink_view.host_uri, actual.downlink_model.host_uri)
+        self.assertEqual(DownlinkManagerStatus.OPEN, actual.status)
+        self.assertEqual(downlink_view.node_uri, actual.downlink_model.node_uri)
+        self.assertEqual(actual, actual.downlink_model.downlink)
+        self.assertEqual(downlink_view.lane_uri, actual.downlink_model.lane_uri)
+        self.assertEqual(actual.connection, actual.downlink_model.connection)
+        self.assertEqual(1, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+        self.assertTrue(downlink_view.initialised.is_set())
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_add_view_multiple(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://11.22.33.44:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        first_downlink_view = client.downlink_value()
+        first_downlink_view.set_node_uri('Goodbye')
+        first_downlink_view.set_lane_uri('World')
+        second_downlink_view = client.downlink_value()
+        second_downlink_view.set_node_uri('Hello')
+        second_downlink_view.set_lane_uri('World')
+        third_downlink_view = client.downlink_value()
+        third_downlink_view.set_node_uri('Dead')
+        third_downlink_view.set_lane_uri('Parrot')
+        actual = DownlinkManager(connection)
+        # When
+        await actual.add_view(first_downlink_view)
+        await actual.add_view(second_downlink_view)
+        await actual.add_view(third_downlink_view)
+        # Then
+        self.assertEqual(first_downlink_view.client, actual.downlink_model.client)
+        self.assertEqual(3, actual.view_count)
+        self.assertEqual(DownlinkManagerStatus.OPEN, actual.status)
+        self.assertEqual(first_downlink_view.host_uri, actual.downlink_model.host_uri)
+        self.assertEqual(first_downlink_view.node_uri, actual.downlink_model.node_uri)
+        self.assertIsInstance(actual.downlink_model, ValueDownlinkModel)
+        self.assertEqual(first_downlink_view.lane_uri, actual.downlink_model.lane_uri)
+        self.assertEqual(actual, actual.downlink_model.downlink)
+        self.assertEqual(actual.connection, actual.downlink_model.connection)
+        self.assertEqual(1, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+        self.assertTrue(first_downlink_view.initialised.is_set())
+        self.assertTrue(second_downlink_view.initialised.is_set())
+        self.assertTrue(third_downlink_view.initialised.is_set())
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_remove_view_single(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://11.11.11.11:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('Goodbye')
+        downlink_view.set_lane_uri('World')
+        actual = DownlinkManager(connection)
+        await actual.add_view(downlink_view)
+        # When
+        await actual.remove_view(downlink_view)
+        # Then
+        self.assertEqual(0, actual.view_count)
+        self.assertEqual(downlink_view.client, actual.downlink_model.client)
+        self.assertEqual(downlink_view.host_uri, actual.downlink_model.host_uri)
+        self.assertEqual(DownlinkManagerStatus.CLOSED, actual.status)
+        self.assertIsInstance(actual.downlink_model, ValueDownlinkModel)
+        self.assertEqual(downlink_view.node_uri, actual.downlink_model.node_uri)
+        self.assertEqual(actual, actual.downlink_model.downlink)
+        self.assertEqual(downlink_view.lane_uri, actual.downlink_model.lane_uri)
+        self.assertEqual(actual.connection, actual.downlink_model.connection)
+        self.assertEqual(2, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+        self.assertTrue(downlink_view.initialised.is_set())
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_remove_view_multiple(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://44.33.22.11:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        first_downlink_view = client.downlink_value()
+        first_downlink_view.set_node_uri('Dead')
+        first_downlink_view.set_lane_uri('Parrot')
+        second_downlink_view = client.downlink_value()
+        second_downlink_view.set_node_uri('Hello')
+        second_downlink_view.set_lane_uri('World')
+        third_downlink_view = client.downlink_value()
+        third_downlink_view.set_node_uri('Goodbye')
+        third_downlink_view.set_lane_uri('World')
+        actual = DownlinkManager(connection)
+        await actual.add_view(first_downlink_view)
+        await actual.add_view(second_downlink_view)
+        await actual.add_view(third_downlink_view)
+        # When
+        await actual.remove_view(second_downlink_view)
+        await actual.remove_view(third_downlink_view)
+        # Then
+        self.assertEqual(1, actual.view_count)
+        self.assertIsInstance(actual.downlink_model, ValueDownlinkModel)
+        self.assertEqual(DownlinkManagerStatus.OPEN, actual.status)
+        self.assertEqual(actual.connection, actual.downlink_model.connection)
+        self.assertEqual(actual, actual.downlink_model.downlink)
+        self.assertEqual(1, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+        self.assertTrue(first_downlink_view.initialised.is_set())
+        self.assertTrue(second_downlink_view.initialised.is_set())
+        self.assertTrue(third_downlink_view.initialised.is_set())
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_remove_view_non_existing(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://66.66.66.66:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('Foo')
+        downlink_view.set_lane_uri('Qux')
+        actual = DownlinkManager(connection)
+        # When
+        await actual.remove_view(downlink_view)
+        # Then
+        self.assertEqual(0, actual.view_count)
+        self.assertEqual(DownlinkManagerStatus.CLOSED, actual.status)
+        mock_schedule_task.assert_not_called()
+        mock_send_message.assert_not_called()
+        self.assertFalse(downlink_view.initialised.is_set())
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_receive_message_linked(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://66.66.66.66:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('test')
+        downlink_view.set_lane_uri('foo')
+        actual = DownlinkManager(connection)
+        await actual.add_view(downlink_view)
+        envelope = LinkedResponse('test', 'foo')
+        # When
+        await actual.receive_message(envelope)
+        # Then
+        self.assertTrue(actual.downlink_model.linked.is_set())
+        self.assertEqual(1, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_receive_message_synced(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://11.11.11.11:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('test')
+        downlink_view.set_lane_uri('foo')
+        actual = DownlinkManager(connection)
+        await actual.add_view(downlink_view)
+        envelope = SyncedResponse('test', 'foo')
+        # When
+        await actual.receive_message(envelope)
+        # Then
+        self.assertTrue(actual.downlink_model.synced.is_set())
+        self.assertEqual(1, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_receive_message_event(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://33.33.33.33:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('test')
+        downlink_view.set_lane_uri('foo')
+        actual = DownlinkManager(connection)
+        await actual.add_view(downlink_view)
+        envelope = EventMessage('test', 'foo', body=Text.create_from('baz'))
+        # When
+        await actual.receive_message(envelope)
+        # Then
+        self.assertEqual('baz', actual.downlink_model.value)
+        self.assertEqual(1, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_receive_message_multiple(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://44.44.44.44:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('bar')
+        downlink_view.set_lane_uri('baz')
+        actual = DownlinkManager(connection)
+        await actual.add_view(downlink_view)
+        linked_envelope = LinkedResponse('bar', 'baz')
+        event_envelope = EventMessage('bar', 'baz', body=Text.create_from('foo'))
+        synced_envelope = SyncedResponse('bar', 'baz')
+        # When
+        await actual.receive_message(linked_envelope)
+        await actual.receive_message(event_envelope)
+        await actual.receive_message(synced_envelope)
+        # Then
+        self.assertEqual('foo', actual.downlink_model.value)
+        self.assertTrue(actual.downlink_model.synced.is_set())
+        self.assertTrue(actual.downlink_model.linked.is_set())
+        self.assertEqual(1, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_subscribers_did_set_single(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://4.3.2.1:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_value()
+        downlink_view.set_node_uri('bar')
+        downlink_view.set_lane_uri('baz')
+        did_set_callback = mock_did_set_callback
+        downlink_view.did_set(did_set_callback)
+        actual = DownlinkManager(connection)
+        await actual.add_view(downlink_view)
+        # When
+        await actual.subscribers_did_set('dead', 'parrot')
+        # Then
+        self.assertEqual(2, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+        self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual('dead', mock_schedule_task.call_args_list[1][0][1])
+        self.assertEqual('parrot', mock_schedule_task.call_args_list[1][0][2])
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_subscribers_did_set_multiple(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://10.9.8.7:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        did_set_callback = mock_did_set_callback
+        first_downlink_view = client.downlink_value()
+        first_downlink_view.set_node_uri('cow')
+        first_downlink_view.set_lane_uri('moo')
+        first_downlink_view.did_set(did_set_callback)
+        second_downlink_view = client.downlink_value()
+        second_downlink_view.set_node_uri('cow')
+        second_downlink_view.set_lane_uri('moo')
+        second_downlink_view.did_set(did_set_callback)
+        third_downlink_view = client.downlink_value()
+        third_downlink_view.set_node_uri('cow')
+        third_downlink_view.set_lane_uri('moo')
+        third_downlink_view.did_set(did_set_callback)
+        actual = DownlinkManager(connection)
+        await actual.add_view(first_downlink_view)
+        await actual.add_view(second_downlink_view)
+        await actual.add_view(third_downlink_view)
+        # When
+        await actual.subscribers_did_set('hello', 'world')
+        # Then
+        self.assertEqual(4, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+        self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual('hello', mock_schedule_task.call_args_list[1][0][1])
+        self.assertEqual('world', mock_schedule_task.call_args_list[1][0][2])
+        self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual('hello', mock_schedule_task.call_args_list[2][0][1])
+        self.assertEqual('world', mock_schedule_task.call_args_list[2][0][2])
+        self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual('hello', mock_schedule_task.call_args_list[3][0][1])
+        self.assertEqual('world', mock_schedule_task.call_args_list[3][0][2])
