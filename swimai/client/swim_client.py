@@ -170,8 +170,9 @@ class SwimClient:
 
         if self.terminate_on_exception:
             os._exit(1)
+            return
 
-        if self.execute_on_exception:
+        if self.execute_on_exception is not None:
             self.schedule_task(self.execute_on_exception)
 
     async def __send_command(self, host_uri: str, message: 'Envelope') -> None:

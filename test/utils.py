@@ -164,5 +164,13 @@ class MockConnection:
         self.messages_sent.append(message)
 
 
-def mock_did_set_callback(old, new):
+async def mock_did_set_callback(old, new):
     pass
+
+
+async def mock_async_callback():
+    print('Mock async callback')
+
+
+def mock_sync_callback():
+    print('Mock sync callback')

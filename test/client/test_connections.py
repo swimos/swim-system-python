@@ -26,6 +26,7 @@ from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, M
 
 
 class TestConnections(unittest.TestCase):
+
     def setUp(self):
         MockWebsocket.clear()
         MockDownlink.clear()
