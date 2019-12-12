@@ -16,12 +16,18 @@ import unittest
 from concurrent.futures.thread import ThreadPoolExecutor
 from threading import Thread
 from unittest.mock import patch
-from test.utils import mock_async_callback, mock_sync_callback
 
+from aiounittest import async_test
+from swimai.client.downlinks import ValueDownlinkView
+from swimai.structures import Text
+from test.utils import mock_async_callback, mock_sync_callback, MockWebsocketConnect, MockWebsocket, MockAsyncFunction
 from swimai import SwimClient
 
 
 class TestSwimClient(unittest.TestCase):
+
+    def setUp(self):
+        MockWebsocket.clear()
 
     def test_swim_client_start(self):
         # Given
@@ -197,3 +203,93 @@ class TestSwimClient(unittest.TestCase):
         mock_print.assert_called_once()
         self.assertIsNone(swim_client.executor)
         self.assertFalse(swim_client.loop_thread.is_alive())
+
+    @patch('websockets.connect', new_callable=MockWebsocketConnect)
+    def test_swim_client_command(self, mock_websocket_connect):
+        # Given
+        host_uri = 'ws://localhost:9001'
+        node_uri = 'moo'
+        lane_uri = 'cow'
+        expected = '@command(node:moo,lane:cow)"Hello, World!"'
+        with SwimClient() as swim_client:
+            # When
+            swim_client.command(host_uri, node_uri, lane_uri, Text.create_from('Hello, World!'))
+        # Then
+        mock_websocket_connect.assert_called_once_with(host_uri)
+        self.assertEqual(expected, MockWebsocket.get_mock_websocket().sent_messages[0])
+
+    def test_swim_client_downlink_value(self):
+        # Given
+        with SwimClient() as swim_client:
+            # When
+            downlink_view = swim_client.downlink_value()
+
+        # Then
+        self.assertIsInstance(downlink_view, ValueDownlinkView)
+        self.assertEqual(downlink_view.client, swim_client)
+
+    @patch('swimai.client.connections.ConnectionPool.add_downlink_view', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_swim_client_add_downlink_view(self, mock_add_downlink):
+        # Given
+        host_uri = 'ws://localhost:9001'
+        node_uri = 'moo'
+        lane_uri = 'cow'
+
+        MockWebsocket.get_mock_websocket().messages_to_send.append('@synced(node:"moo",lane:"cow")')
+
+        with SwimClient() as swim_client:
+            downlink_view = swim_client.downlink_value()
+            downlink_view.host_uri = host_uri
+            downlink_view.node_uri = node_uri
+            downlink_view.lane_uri = lane_uri
+            # When
+            await swim_client.add_downlink_view(downlink_view)
+
+        # Then
+        mock_add_downlink.assert_called_once_with(downlink_view)
+
+    @patch('swimai.client.connections.ConnectionPool.add_downlink_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client.connections.ConnectionPool.remove_downlink_view', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_swim_client_remove_downlink_view(self, mock_remove_downlink, mock_add_downlink):
+        # Given
+        host_uri = 'ws://localhost:9001'
+        node_uri = 'moo'
+        lane_uri = 'cow'
+
+        MockWebsocket.get_mock_websocket().messages_to_send.append('@synced(node:"moo",lane:"cow")')
+
+        with SwimClient() as swim_client:
+            downlink_view = swim_client.downlink_value()
+            downlink_view.host_uri = host_uri
+            downlink_view.node_uri = node_uri
+            downlink_view.lane_uri = lane_uri
+            await swim_client.add_downlink_view(downlink_view)
+            # When
+            await swim_client.remove_downlink_view(downlink_view)
+
+        # Then
+        mock_add_downlink.assert_called_once_with(downlink_view)
+        mock_remove_downlink.assert_called_once_with(downlink_view)
+
+    @patch('swimai.client.connections.ConnectionPool.get_connection', new_callable=MockAsyncFunction)
+    @async_test
+    async def test_swim_client_get_connection(self, mock_get_connection):
+        # Given
+        host_uri = 'ws://localhost:9001'
+        node_uri = 'moo'
+        lane_uri = 'cow'
+
+        MockWebsocket.get_mock_websocket().messages_to_send.append('@synced(node:"moo",lane:"cow")')
+
+        with SwimClient() as swim_client:
+            downlink_view = swim_client.downlink_value()
+            downlink_view.host_uri = host_uri
+            downlink_view.node_uri = node_uri
+            downlink_view.lane_uri = lane_uri
+            # When
+            await swim_client.get_connection(host_uri)
+
+        # Then
+        mock_get_connection.assert_called_once_with(host_uri)
