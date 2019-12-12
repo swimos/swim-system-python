@@ -39,8 +39,8 @@ class ValueDownlinkModel:
         self.downlink = None
         self.value = None
 
-        self.linked = asyncio.Event(loop=self.client.loop)
-        self.synced = asyncio.Event(loop=self.client.loop)
+        self.linked = asyncio.Event()
+        self.synced = asyncio.Event()
 
     def open(self) -> 'ValueDownlinkModel':
         self.task = self.client.schedule_task(self.connection.wait_for_messages)
@@ -118,7 +118,7 @@ class ValueDownlinkView:
         self.did_set_callback = None
 
         self.is_open = False
-        self.initialised = asyncio.Event(loop=self.client.loop)
+        self.initialised = asyncio.Event()
         self.model = None
         self.connection = None
 

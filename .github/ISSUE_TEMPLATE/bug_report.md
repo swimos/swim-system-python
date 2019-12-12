@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **System information**:
 - OS: [e.g. Ubuntu]
-- Python version: [e.g. 3.7]
+- Python version: [e.g. 3.8]
 
 **Additional context**
 Add any other context about the problem here.

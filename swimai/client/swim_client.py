@@ -18,7 +18,8 @@ import os
 import sys
 import traceback
 
-from asyncio import Future, CancelledError
+from asyncio import Future
+from concurrent.futures import CancelledError
 from threading import Thread
 from traceback import TracebackException
 from typing import Callable, Any, Optional
