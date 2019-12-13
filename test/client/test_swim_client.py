@@ -13,6 +13,8 @@
 #  limitations under the License.
 import asyncio
 import unittest
+from asyncio import Future
+from concurrent import futures
 from concurrent.futures.thread import ThreadPoolExecutor
 from threading import Thread
 from unittest.mock import patch
@@ -20,7 +22,8 @@ from unittest.mock import patch
 from aiounittest import async_test
 from swimai.client.downlinks import ValueDownlinkView
 from swimai.structures import Text
-from test.utils import mock_async_callback, mock_sync_callback, MockWebsocketConnect, MockWebsocket, MockAsyncFunction
+from test.utils import mock_async_callback, mock_sync_callback, MockWebsocketConnect, MockWebsocket, \
+    MockAsyncFunction, MockScheduleTask
 from swimai import SwimClient
 
 
@@ -28,6 +31,7 @@ class TestSwimClient(unittest.TestCase):
 
     def setUp(self):
         MockWebsocket.clear()
+        MockScheduleTask.clear()
 
     def test_swim_client_start(self):
         # Given
@@ -293,3 +297,83 @@ class TestSwimClient(unittest.TestCase):
 
         # Then
         mock_get_connection.assert_called_once_with(host_uri)
+
+    @async_test
+    async def test_swim_client_test_schedule_task_async(self):
+        #  Given
+        mock_task = MockScheduleTask.get_mock_schedule_task()
+        with SwimClient() as swim_client:
+            # When
+            actual = swim_client.schedule_task(mock_task.async_execute, 'foo')
+            while not actual.done():
+                pass
+
+        # Then
+        self.assertEqual(1, mock_task.call_count)
+        self.assertEqual('foo', mock_task.message)
+        self.assertIsInstance(actual, futures.Future)
+
+    def test_swim_client_test_schedule_task_sync(self):
+        # Given
+        mock_task = MockScheduleTask.get_mock_schedule_task()
+        with SwimClient() as swim_client:
+            # When
+            actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
+            while not actual.done():
+                pass
+
+        # Then
+        self.assertEqual(1, mock_task.call_count)
+        self.assertEqual('foo', mock_task.message)
+        self.assertIsInstance(actual, Future)
+
+    def test_swim_client_test_schedule_task_exception(self):
+        pass
+
+    @patch('builtins.print')
+    @patch('traceback.print_tb')
+    def test_swim_client_test_schedule_async_task_that_raises_exception(self, mock_print_tb, mock_print):
+        # Given
+        mock_task = MockScheduleTask.get_mock_schedule_task()
+        with SwimClient() as swim_client:
+            # When
+            actual = swim_client.schedule_task(mock_task.async_exception_execute, 'foo')
+            while not actual.done():
+                pass
+
+        # Then
+        mock_print_tb.assert_called_once()
+        mock_print.assert_called_once()
+        self.assertEqual('Mock async execute exception', mock_print.call_args_list[0][0][0].args[0])
+        self.assertEqual(1, mock_task.call_count)
+        self.assertEqual('foo', mock_task.message)
+        self.assertIsInstance(actual, futures.Future)
+
+    @patch('builtins.print')
+    @patch('traceback.print_tb')
+    def test_swim_client_test_schedule_sync_task_that_raises_exception(self, mock_print_tb, mock_print):
+        # Given
+        mock_task = MockScheduleTask.get_mock_schedule_task()
+        with SwimClient() as swim_client:
+            # When
+            actual = swim_client.schedule_task(mock_task.sync_exception_execute, 'foo')
+            while not actual.done():
+                pass
+
+        # Then
+        mock_print_tb.assert_called_once()
+        mock_print.assert_called_once()
+        self.assertEqual(1, mock_task.call_count)
+        self.assertEqual('Mock sync execute exception', mock_print.call_args_list[0][0][0].args[0])
+        self.assertEqual('foo', mock_task.message)
+        self.assertIsInstance(actual, Future)
+
+    def test_swim_client_test_schedule_async_task_that_is_cancelled(self):
+        # Given
+        mock_task = MockScheduleTask.get_mock_schedule_task()
+        with SwimClient() as swim_client:
+            # When
+            actual = swim_client.schedule_task(mock_task.async_infinite_cancel_execute)
+        # Then
+        self.assertIsInstance(actual, futures.Future)
+        self.assertTrue(actual.cancelled())

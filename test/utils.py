@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import asyncio
+import time
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -174,3 +175,54 @@ async def mock_async_callback():
 
 def mock_sync_callback():
     print('Mock sync callback')
+
+
+class MockScheduleTask:
+    instance = None
+
+    def __init__(self):
+        self.message = None
+        self.call_count = 0
+
+    @staticmethod
+    async def async_execute(message):
+        MockScheduleTask.instance.message = message
+        MockScheduleTask.instance.call_count = MockScheduleTask.instance.call_count + 1
+
+    @staticmethod
+    def sync_execute(message):
+        MockScheduleTask.instance.message = message
+        MockScheduleTask.instance.call_count = MockScheduleTask.instance.call_count + 1
+
+    @staticmethod
+    async def async_exception_execute(message):
+        MockScheduleTask.instance.message = message
+        MockScheduleTask.instance.call_count = MockScheduleTask.instance.call_count + 1
+        raise Exception('Mock async execute exception')
+
+    @staticmethod
+    def sync_exception_execute(message):
+        MockScheduleTask.instance.message = message
+        MockScheduleTask.instance.call_count = MockScheduleTask.instance.call_count + 1
+        raise Exception('Mock sync execute exception')
+
+    @staticmethod
+    async def async_infinite_cancel_execute():
+        while True:
+            await asyncio.sleep(1)
+
+    @staticmethod
+    def sync_infinite_cancel_execute():
+        while True:
+            time.sleep(1)
+
+    @staticmethod
+    def get_mock_schedule_task():
+        if MockScheduleTask.instance is None:
+            MockScheduleTask.instance = MockScheduleTask()
+
+        return MockScheduleTask.instance
+
+    @staticmethod
+    def clear():
+        MockScheduleTask.instance = None
