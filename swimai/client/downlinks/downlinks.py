@@ -19,7 +19,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from ..utils import URI
-from swimai.structures import Absent
+from swimai.structures import Absent, Value
 from swimai.warp import SyncRequest, CommandMessage, Envelope
 
 # Imports for type annotations
@@ -37,7 +37,7 @@ class ValueDownlinkModel:
         self.connection = None
         self.task = None
         self.downlink = None
-        self.value = None
+        self.value = Value.absent()
 
         self.linked = asyncio.Event()
         self.synced = asyncio.Event()
@@ -100,7 +100,7 @@ class ValueDownlinkModel:
         if message.body == Absent.get_absent():
             self.value = None
         else:
-            self.value = message.body.value
+            self.value = message.body
 
         await self.downlink.subscribers_did_set(self.value, old_value)
 

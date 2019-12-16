@@ -1062,11 +1062,12 @@ class TestConnections(unittest.TestCase):
         downlink_view.set_lane_uri('foo')
         actual = DownlinkManager(connection)
         await actual.add_view(downlink_view)
-        envelope = EventMessage('test', 'foo', body=Text.create_from('baz'))
+        value = Text.create_from('baz')
+        envelope = EventMessage('test', 'foo', body=value)
         # When
         await actual.receive_message(envelope)
         # Then
-        self.assertEqual('baz', actual.downlink_model.value)
+        self.assertEqual(value, actual.downlink_model.value)
         self.assertEqual(1, mock_schedule_task.call_count)
         self.assertEqual(1, mock_send_message.call_count)
 
@@ -1084,14 +1085,15 @@ class TestConnections(unittest.TestCase):
         actual = DownlinkManager(connection)
         await actual.add_view(downlink_view)
         linked_envelope = LinkedResponse('bar', 'baz')
-        event_envelope = EventMessage('bar', 'baz', body=Text.create_from('foo'))
+        value = Text.create_from('foo')
+        event_envelope = EventMessage('bar', 'baz', body=value)
         synced_envelope = SyncedResponse('bar', 'baz')
         # When
         await actual.receive_message(linked_envelope)
         await actual.receive_message(event_envelope)
         await actual.receive_message(synced_envelope)
         # Then
-        self.assertEqual('foo', actual.downlink_model.value)
+        self.assertEqual(value, actual.downlink_model.value)
         self.assertTrue(actual.downlink_model.synced.is_set())
         self.assertTrue(actual.downlink_model.linked.is_set())
         self.assertEqual(1, mock_schedule_task.call_count)

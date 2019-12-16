@@ -21,6 +21,15 @@ from test.utils import CustomString, CustomItem
 
 class TestStructs(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(self):
+        with open('expected_strings.txt') as golden_file:
+            self.expected_strings = dict()
+
+            for line in golden_file:
+                (key, val) = line.strip().split('=')
+                self.expected_strings[key] = val
+
     def test_item_concat_single_num(self):
         # Given
         headers = Record.create().add_slot('node', 'foo').add_slot('lane', 'bar')
@@ -32,6 +41,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual.get_items()[0], Attr)
         self.assertIsInstance(actual.get_items()[1], Num)
         self.assertEqual(42, actual.get_items()[1].value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_item_concat_single_record(self):
         # Given
@@ -48,6 +58,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual('hello', actual.get_items()[1].value.value)
         self.assertEqual('message', actual.get_items()[2].key.value)
         self.assertEqual('world', actual.get_items()[2].value.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_item_concat_multiple_text(self):
         # Given
@@ -62,6 +73,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual(3, actual.get_items()[0].size)
         self.assertIsInstance(actual.get_items()[1], Text)
         self.assertEqual('Polly the parrot', actual.get_items()[1].value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_item_concat_multiple_record(self):
         # Given
@@ -79,6 +91,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual('poo', actual.get_items()[1].value.value)
         self.assertEqual('lane', actual.get_items()[2].key.value)
         self.assertEqual('car', actual.get_items()[2].value.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_item_concat_zero_bool(self):
         # Given
@@ -92,6 +105,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual(0, actual.get_items()[0].size)
         self.assertIsInstance(actual.get_items()[1], Bool)
         self.assertTrue(actual.get_items()[1].value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_item_concat_zero_record(self):
         # Given
@@ -109,18 +123,21 @@ class TestStructs(unittest.TestCase):
         self.assertEqual('moo', actual.get_items()[1].value.value)
         self.assertEqual('lane', actual.get_items()[2].key.value)
         self.assertEqual('cow', actual.get_items()[2].value.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_item_extant(self):
         # Given
         actual = Item.extant()
         # Then
         self.assertEqual(Extant.get_extant(), actual)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_item_absent(self):
         # Given
         actual = Item.absent()
         # Then
         self.assertEqual(Absent.get_absent(), actual)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_item_create_from_item(self):
         # Given
@@ -134,6 +151,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual('boo', actual.get_items()[0].value.value)
         self.assertEqual('lane', actual.get_items()[1].key.value)
         self.assertEqual('ghost', actual.get_items()[1].value.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_item_create_from_tuple(self):
         # Given
@@ -145,6 +163,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, Slot)
         self.assertEqual('node', actual.key)
         self.assertEqual('boo', actual.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_item_create_from_other(self):
         # Given
@@ -154,6 +173,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Text)
         self.assertEqual('monkey', actual.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_create_attr_from_text_key(self):
         # Given
@@ -165,6 +185,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual.key, Text)
         self.assertEqual('Ghost', actual.key.value)
         self.assertEqual('Boo', actual.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_create_attr_from_string_key(self):
         # Given
@@ -177,6 +198,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual('Foo', actual.key.value)
         self.assertIsInstance(actual.value, Text)
         self.assertEqual('Bar', actual.value.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_create_attr_from_invalid_key(self):
         # Given
@@ -278,6 +300,7 @@ class TestStructs(unittest.TestCase):
         actual = Value.create_from(obj)
         # Then
         self.assertEqual(Extant.get_extant(), actual)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_create_value_from_object_value(self):
         # Given
@@ -287,6 +310,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Value)
         self.assertEqual('Boom', actual.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_create_value_from_object_str(self):
         # Given
@@ -296,6 +320,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Text)
         self.assertEqual('Dog', actual.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_create_value_from_object_int(self):
         # Given
@@ -305,6 +330,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Num)
         self.assertEqual(33, actual.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_create_value_from_object_float(self):
         # Given
@@ -314,6 +340,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Num)
         self.assertEqual(3.14, actual.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_create_value_from_object_boolean(self):
         # Given
@@ -323,6 +350,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Bool)
         self.assertTrue(actual.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_create_value_from_object_invalid(self):
         # Given
@@ -342,6 +370,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Text)
         self.assertEqual('Tea', actual.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_create_text_from_empty_string(self):
         # Given
@@ -351,6 +380,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Text)
         self.assertEqual('', actual.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_text_get_empty_first_time(self):
         # When
@@ -383,6 +413,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertEqual(33, num.value)
         self.assertEqual(33, num.get_num_value())
+        self.assertEqual(self.expected_strings.get(self.id()), str(num))
 
     def test_num_float(self):
         # When
@@ -390,6 +421,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertEqual(0.11, num.value)
         self.assertEqual(0.11, num.get_num_value())
+        self.assertEqual(self.expected_strings.get(self.id()), str(num))
 
     def test_create_num_from_positive_integer(self):
         # Given
@@ -399,6 +431,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Num)
         self.assertEqual(99, actual.get_num_value())
+        self.assertEqual(self.expected_strings.get(self.id()), str(num))
 
     def test_create_num_from_negative_integer(self):
         # Given
@@ -408,6 +441,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Num)
         self.assertEqual(-99, actual.get_num_value())
+        self.assertEqual(self.expected_strings.get(self.id()), str(num))
 
     def test_create_num_from_positive_float(self):
         # Given
@@ -417,6 +451,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Num)
         self.assertEqual(9.9, actual.get_num_value())
+        self.assertEqual(self.expected_strings.get(self.id()), str(num))
 
     def test_create_num_from_negative_float(self):
         # Given
@@ -426,20 +461,23 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Num)
         self.assertEqual(-9.9, actual.get_num_value())
+        self.assertEqual(self.expected_strings.get(self.id()), str(num))
 
-    def test_bool_false(self):
+    def test_bool_true(self):
         # Given
         boolean = Bool(True)
         # Then
         self.assertTrue(boolean.value)
         self.assertTrue(boolean.get_bool_value())
+        self.assertEqual(self.expected_strings.get(self.id()), str(boolean))
 
-    def test_bool_true(self):
+    def test_bool_false(self):
         # Given
         boolean = Bool(False)
         # Then
         self.assertFalse(boolean.value)
         self.assertFalse(boolean.get_bool_value())
+        self.assertEqual(self.expected_strings.get(self.id()), str(boolean))
 
     def test_create_bool_from_true_once(self):
         # Given
@@ -526,6 +564,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(slot, Slot)
         self.assertEqual('Foo', slot.key)
         self.assertEqual('Bar', slot.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(slot))
 
     def test_slot_key_only(self):
         # Given
@@ -534,6 +573,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(slot, Slot)
         self.assertEqual('Foo', slot.key)
         self.assertEqual(Extant.get_extant(), slot.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(slot))
 
     def test_create_slot_key_value(self):
         # Given
@@ -584,6 +624,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual(1, actual.item_count)
         self.assertEqual(item, actual.get_item(0))
         self.assertTrue(actual_response)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_record_add_all_multiple(self):
         # Given
@@ -601,6 +642,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual(second_item, actual.get_item(1))
         self.assertEqual(third_item, actual.get_item(2))
         self.assertTrue(actual_response)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_record_add_all_empty(self):
         # Given
@@ -612,6 +654,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual(0, actual.size)
         self.assertEqual(0, actual.item_count)
         self.assertEqual(False, actual_response)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_record_add_slot_key_item_value_item(self):
         # Given
@@ -626,6 +669,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual.get_item(0), Slot)
         self.assertEqual(key, actual.get_item(0).key)
         self.assertEqual(value, actual.get_item(0).value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_record_add_slot_key_string_value_item(self):
         # Given
@@ -640,6 +684,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual.get_item(0), Slot)
         self.assertEqual('Baz', actual.get_item(0).key.value)
         self.assertEqual('Qux', actual.get_item(0).value.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_record_add_slot_key_item_value_string(self):
         # Given
@@ -654,6 +699,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual.get_item(0), Slot)
         self.assertEqual('Foo', actual.get_item(0).key.value)
         self.assertEqual('Bar', actual.get_item(0).value.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_record_add_slot_key_string_value_string(self):
         # Given
@@ -668,6 +714,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual.get_item(0), Slot)
         self.assertEqual('Wibble', actual.get_item(0).key.value)
         self.assertEqual('Wobble', actual.get_item(0).value.value)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_record_get_headers_record(self):
         # Given
@@ -810,6 +857,7 @@ class TestStructs(unittest.TestCase):
         self.assertEqual(1, actual.size)
         self.assertEqual(1, actual.field_count)
         self.assertEqual(item, actual.get_item(0))
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_record_map_create_with_value(self):
         # Given
@@ -826,7 +874,7 @@ class TestStructs(unittest.TestCase):
         record_map = RecordMap.create()
         first_item = Attr.create_attr('First', '1st')
         second_item = Attr.create_attr('Second', '2nd')
-        third_item = Attr.create_attr('Thrid', '3rd')
+        third_item = Attr.create_attr('Third', '3rd')
         record_map.add(first_item)
         record_map.add(second_item)
         record_map.add(third_item)
@@ -834,6 +882,7 @@ class TestStructs(unittest.TestCase):
         actual = record_map.get_item(1)
         # Then
         self.assertEqual(second_item, actual)
+        self.assertEqual(self.expected_strings.get(self.id()), str(actual))
 
     def test_record_map_get_item_underflow(self):
         # Given

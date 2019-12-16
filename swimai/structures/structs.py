@@ -100,6 +100,12 @@ class Attr(Field):
         self.__key = key
         self.__value = value
 
+    def __str__(self):
+        if self.value == Value.extant():
+            return f'Attr({self.key})'
+        else:
+            return f'Attr({self.key}, {self.value})'
+
     @property
     def key(self) -> 'Value':
         return self.__key
@@ -188,6 +194,9 @@ class Text(Value):
     def __init__(self, value: str) -> None:
         self.__value = value
 
+    def __str__(self):
+        return f'"{self.value}"'
+
     @property
     def value(self) -> str:
         return self.__value
@@ -230,6 +239,9 @@ class Num(Value):
     def __init__(self, value: Union[int, float]) -> None:
         self.__value = value
 
+    def __str__(self) -> str:
+        return str(self.value)
+
     @property
     def value(self) -> Union[int, float]:
         return self.__value
@@ -260,6 +272,9 @@ class Bool(Value):
 
     def __init__(self, value: bool) -> None:
         self.__value = value
+
+    def __str__(self) -> str:
+        return str(self.value)
 
     @property
     def value(self) -> bool:
@@ -297,6 +312,9 @@ class Bool(Value):
 class Absent(Value):
     absent = None
 
+    def __str__(self) -> str:
+        return 'Absent()'
+
     @staticmethod
     def get_absent() -> 'Absent':
         """
@@ -313,6 +331,9 @@ class Absent(Value):
 class Extant(Value):
     extant = None
 
+    def __str__(self) -> str:
+        return 'Extant()'
+
     @staticmethod
     def get_extant() -> 'Extant':
         """
@@ -327,6 +348,9 @@ class Extant(Value):
 
 
 class Slot(Field):
+
+    def __str__(self):
+        return f'Slot({self.key}, {self.value})'
 
     def __init__(self, key: Any, value: Any = Value.extant()) -> None:
         self.__key = key
@@ -368,6 +392,11 @@ class RecordFlags(Enum):
 
 
 class Record(Value):
+
+    def __str__(self) -> str:
+
+        string = f'Record({", ".join([str(item) for item in self.get_items()])})'
+        return string
 
     @staticmethod
     def create() -> 'RecordMap':
