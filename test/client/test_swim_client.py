@@ -22,8 +22,8 @@ from unittest.mock import patch
 from aiounittest import async_test
 from swimai.client.downlinks import ValueDownlinkView
 from swimai.structures import Text
-from test.utils import mock_async_callback, mock_sync_callback, MockWebsocketConnect, MockWebsocket, \
-    MockAsyncFunction, MockScheduleTask
+from test.utils import MockWebsocketConnect, MockWebsocket, MockAsyncFunction, MockScheduleTask, MockRaiseException, \
+    mock_exception_callback
 from swimai import SwimClient
 
 
@@ -128,36 +128,9 @@ class TestSwimClient(unittest.TestCase):
 
     @patch('builtins.print')
     @patch('traceback.print_tb')
-    def test_swim_client_with_statement_exception_async_callback(self, mock_print_tb, mock_print):
+    def test_swim_client_with_statement_exception_callback(self, mock_print_tb, mock_print):
         # Given
-        mock_callback = mock_async_callback
-        # When
-        with SwimClient(execute_on_exception=mock_callback) as swim_client:
-            # Then
-            self.assertIsInstance(swim_client.loop, asyncio.events.AbstractEventLoop)
-            self.assertIsInstance(swim_client, SwimClient)
-            self.assertTrue(swim_client.loop_thread.is_alive())
-            self.assertFalse(swim_client.loop.is_closed())
-            self.assertIsInstance(swim_client.loop_thread, Thread)
-
-            swim_client.task_with_exception = lambda: (_ for _ in ()).throw(Exception,
-                                                                            Exception('Mock exception in task'))
-
-            swim_client.task_with_exception()
-
-        self.assertEqual('Mock exception in task', mock_print.call_args_list[0][0][0].args[0])
-        self.assertEqual('Mock async callback', mock_print.call_args_list[1][0][0])
-        self.assertEqual(2, mock_print.call_count)
-        mock_print_tb.assert_called_once()
-        self.assertTrue(swim_client.loop.is_closed())
-        self.assertFalse(swim_client.loop_thread.is_alive())
-        self.assertIsNone(swim_client.executor)
-
-    @patch('builtins.print')
-    @patch('traceback.print_tb')
-    def test_swim_client_with_statement_exception_sync_callback(self, mock_print_tb, mock_print):
-        # Given
-        mock_callback = mock_sync_callback
+        mock_callback = mock_exception_callback
         # When
         with SwimClient(execute_on_exception=mock_callback) as swim_client:
             # Then
@@ -172,20 +145,19 @@ class TestSwimClient(unittest.TestCase):
 
             swim_client.task_with_exception()
 
-        self.assertEqual('Mock sync callback', mock_print.call_args_list[1][0][0])
+        self.assertEqual('Mock exception callback', mock_print.call_args_list[1][0][0])
         self.assertEqual('Mock exception in task', mock_print.call_args_list[0][0][0].args[0])
         self.assertEqual(2, mock_print.call_count)
         self.assertTrue(swim_client.loop.is_closed())
         mock_print_tb.assert_called_once()
         self.assertFalse(swim_client.loop_thread.is_alive())
-        self.assertIsInstance(swim_client.executor, ThreadPoolExecutor)
 
     @patch('builtins.print')
     @patch('traceback.print_tb')
     @patch('os._exit')
     def test_swim_client_with_statement_exception_callback_and_terminate(self, mock_exit, mock_print_tb, mock_print):
         # Given
-        mock_callback = mock_async_callback
+        mock_callback = mock_exception_callback
         # When
         with SwimClient(terminate_on_exception=True, execute_on_exception=mock_callback) as swim_client:
             # Then
@@ -217,8 +189,12 @@ class TestSwimClient(unittest.TestCase):
         expected = '@command(node:moo,lane:cow)"Hello, World!"'
         with SwimClient() as swim_client:
             # When
-            swim_client.command(host_uri, node_uri, lane_uri, Text.create_from('Hello, World!'))
+            actual = swim_client.command(host_uri, node_uri, lane_uri, Text.create_from('Hello, World!'))
+            while not actual.done():
+                pass
+
         # Then
+        self.assertIsInstance(actual, futures.Future)
         mock_websocket_connect.assert_called_once_with(host_uri)
         self.assertEqual(expected, MockWebsocket.get_mock_websocket().sent_messages[0])
 
@@ -326,9 +302,22 @@ class TestSwimClient(unittest.TestCase):
         self.assertEqual(1, mock_task.call_count)
         self.assertEqual('foo', mock_task.message)
         self.assertIsInstance(actual, Future)
+        self.assertIsInstance(swim_client.executor, ThreadPoolExecutor)
 
-    def test_swim_client_test_schedule_task_exception(self):
-        pass
+    @patch('builtins.print')
+    @patch('traceback.print_tb')
+    @patch('asyncio.base_events.BaseEventLoop.run_in_executor', new_callable=MockRaiseException)
+    def test_swim_client_test_schedule_task_exception(self, mock_run_in_executor, mock_print_tb, mock_print):
+        # Given
+        mock_task = MockScheduleTask.get_mock_schedule_task()
+        # When
+        with SwimClient() as swim_client:
+            actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
+
+        self.assertEqual('Mock exception', mock_print.call_args_list[0][0][0].args[0])
+        mock_print_tb.assert_called_once()
+        self.assertIsNone(actual)
+        mock_run_in_executor.assert_called_once()
 
     @patch('builtins.print')
     @patch('traceback.print_tb')

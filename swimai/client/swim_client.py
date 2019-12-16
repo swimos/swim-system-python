@@ -78,7 +78,7 @@ class SwimClient:
 
         return self
 
-    def command(self, host_uri: str, node_uri: str, lane_uri: str, body: 'Item') -> None:
+    def command(self, host_uri: str, node_uri: str, lane_uri: str, body: 'Item') -> 'Future':
         """
         Send a command message to a command lane on a remote Swim agent.
 
@@ -89,7 +89,7 @@ class SwimClient:
         """
         host_uri = URI.normalise_warp_scheme(host_uri)
         message = CommandMessage(node_uri, lane_uri, body=body)
-        self.schedule_task(self.__send_command, host_uri, message)
+        return self.schedule_task(self.__send_command, host_uri, message)
 
     def downlink_value(self) -> 'ValueDownlinkView':
         """
@@ -174,7 +174,7 @@ class SwimClient:
             return
 
         if self.execute_on_exception is not None:
-            self.schedule_task(self.execute_on_exception)
+            self.execute_on_exception()
 
     async def __send_command(self, host_uri: str, message: 'Envelope') -> None:
         """

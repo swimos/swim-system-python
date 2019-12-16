@@ -12,7 +12,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import asyncio
-import time
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -166,15 +165,26 @@ class MockConnection:
 
 
 async def mock_did_set_callback(old, new):
+    str(old)
+    str(new)
     pass
 
 
-async def mock_async_callback():
-    print('Mock async callback')
+def mock_exception_callback():
+    print('Mock exception callback')
 
 
-def mock_sync_callback():
-    print('Mock sync callback')
+class MockRaiseException(MagicMock):
+
+    def __call__(self, *args, **kwargs):
+        return super(MockRaiseException, self).__call__(*args, **kwargs)
+
+    @property
+    def return_value(self):
+        return self.mock_raise_exception()
+
+    def mock_raise_exception(self):
+        raise Exception('Mock exception')
 
 
 class MockScheduleTask:
@@ -210,11 +220,6 @@ class MockScheduleTask:
     async def async_infinite_cancel_execute():
         while True:
             await asyncio.sleep(1)
-
-    @staticmethod
-    def sync_infinite_cancel_execute():
-        while True:
-            time.sleep(1)
 
     @staticmethod
     def get_mock_schedule_task():
