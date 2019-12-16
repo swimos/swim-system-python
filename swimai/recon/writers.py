@@ -183,7 +183,7 @@ class NumberWriter(Writer):
     async def write(value: Union[int, float] = None) -> 'OutputMessage':
         output = await OutputMessage().create()
 
-        if value:
+        if value is not None:
             await output.append(value)
 
         return output

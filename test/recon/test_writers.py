@@ -76,6 +76,16 @@ class TestWriters(unittest.TestCase):
         self.assertEqual('false', actual.value)
 
     @async_test
+    async def test_number_writer_zero(self):
+        # Given
+        message = 0
+        # When
+        actual = await NumberWriter.write(message)
+        # Then
+        self.assertIsInstance(actual, OutputMessage)
+        self.assertEqual('0', actual.value)
+
+    @async_test
     async def test_number_writer_int(self):
         # Given
         message = 25
