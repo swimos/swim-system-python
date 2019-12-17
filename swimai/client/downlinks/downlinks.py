@@ -19,7 +19,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from ..utils import URI
-from swimai.structures import Absent, Value
+from swimai.structures import Absent, Value, Attr, Slot, RecordMap
 from swimai.warp import SyncRequest, CommandMessage, Envelope
 
 # Imports for type annotations
@@ -34,6 +34,7 @@ class ValueDownlinkModel:
         self.host_uri = None
         self.node_uri = None
         self.lane_uri = None
+        self.form = None
         self.connection = None
         self.task = None
         self.downlink = None
@@ -100,9 +101,33 @@ class ValueDownlinkModel:
         if message.body == Absent.get_absent():
             self.value = None
         else:
-            self.value = message.body
+            self.value = await self.record_to_object(message.body)
 
         await self.downlink.subscribers_did_set(self.value, old_value)
+
+    async def record_to_object(self, body):
+        new_object = None
+
+        for item in body.get_items():
+            if isinstance(item, Attr):
+                class_name = item.key.value
+                class_object = self.client.registered_classes.get(class_name)
+
+                if class_object is not None:
+                    new_object = class_object()
+                elif not self.client.strict:
+                    new_object = type(str(class_name), (object,), {})
+                else:
+                    raise Exception(f'Missing class for {class_name}')
+
+            if isinstance(item, Slot):
+
+                if isinstance(item.value, RecordMap):
+                    setattr(new_object, item.key.value, await self.record_to_object(item.value))
+                else:
+                    setattr(new_object, item.key.value, item.value.value)
+
+        return new_object
 
     async def __close(self) -> None:
         self.task.cancel()

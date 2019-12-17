@@ -17,6 +17,7 @@ import inspect
 import os
 import sys
 import traceback
+import warnings
 
 from asyncio import Future
 from concurrent.futures import CancelledError
@@ -28,16 +29,20 @@ from .connections import ConnectionPool, WSConnection
 from .downlinks import ValueDownlinkView
 from .utils import URI
 from swimai.structures import Item
-from swimai.warp import CommandMessage, Envelope
+from swimai.warp import CommandMessage
 
 
 class SwimClient:
 
-    def __init__(self, terminate_on_exception: bool = False, execute_on_exception: Callable = None) -> None:
+    def __init__(self, terminate_on_exception: bool = False, execute_on_exception: Callable = None,
+                 strict: bool = True, debug=False) -> None:
         self.loop = None
         self.loop_thread = None
         self.executor = None
+        self.registered_classes = dict()
         self.__connection_pool = ConnectionPool()
+        self.strict = strict
+        self.debug = debug
 
         self.execute_on_exception = execute_on_exception
         self.terminate_on_exception = terminate_on_exception
@@ -87,9 +92,7 @@ class SwimClient:
         :param lane_uri:        - Lane URI of the command lane of the remote agent.
         :param body:            - The message body.
         """
-        host_uri = URI.normalise_warp_scheme(host_uri)
-        message = CommandMessage(node_uri, lane_uri, body=body)
-        return self.schedule_task(self.__send_command, host_uri, message)
+        return self.schedule_task(self.__send_command, host_uri, node_uri, lane_uri, body)
 
     def downlink_value(self) -> 'ValueDownlinkView':
         """
@@ -166,8 +169,10 @@ class SwimClient:
         :param exc_value:       - Exception value.
         :param exc_traceback:   - Exception traceback.
         """
-        print(exc_value)
-        traceback.print_tb(exc_traceback)
+        warnings.warn(exc_value)
+
+        if self.debug:
+            traceback.print_tb(exc_traceback)
 
         if self.terminate_on_exception:
             os._exit(1)
@@ -176,13 +181,17 @@ class SwimClient:
         if self.execute_on_exception is not None:
             self.execute_on_exception()
 
-    async def __send_command(self, host_uri: str, message: 'Envelope') -> None:
+    async def __send_command(self, host_uri: str, node_uri: str, lane_uri: str, body: 'Item') -> None:
         """
         Send a command message to a given host.
 
-        :param host_uri:        - URI of the host.
-        :param message:         - Message to send to the host.
+        :param host_uri:        - Host URI of the remote agent.
+        :param node_uri:        - Node URI of the remote agent.
+        :param lane_uri:        - Lane URI of the command lane of the remote agent.
+        :param body:            - The message body.
         """
+        host_uri = URI.normalise_warp_scheme(host_uri)
+        message = CommandMessage(node_uri, lane_uri, body=body)
         connection = await self.get_connection(host_uri)
         await connection.send_message(await message.to_recon())
 
@@ -196,6 +205,21 @@ class SwimClient:
             self.executor = ThreadPoolExecutor()
 
         return self.executor
+
+    def register_classes(self, classes_list: list) -> None:
+        for custom_class in classes_list:
+            self.schedule_task(self.__register_class, custom_class)
+
+    def register_class(self, custom_class: Any) -> None:
+        self.schedule_task(self.__register_class, custom_class)
+
+    def __register_class(self, custom_class: Any) -> None:
+        try:
+            custom_class()
+            self.registered_classes[custom_class.__name__] = custom_class
+        except Exception:
+            raise Exception(
+                f'Class {custom_class.__name__} must have a default constructor or default values for all arguments!')
 
     def __start_event_loop(self) -> None:
         asyncio.set_event_loop(self.loop)

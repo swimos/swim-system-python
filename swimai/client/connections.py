@@ -113,6 +113,7 @@ class WSConnection:
             self.status = ConnectionStatus.CLOSED
 
             if self.websocket:
+                self.websocket.close_timeout = 0.1
                 await self.websocket.close()
 
     def has_subscribers(self) -> bool:
