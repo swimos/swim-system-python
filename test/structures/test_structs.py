@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+import os
 import unittest
 
 from swimai.structures import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value, \
@@ -23,7 +23,8 @@ class TestStructs(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        with open('structures/expected_strings.txt') as golden_file:
+        file_location = os.path.dirname(__file__)
+        with open(os.path.join(file_location, 'expected_strings.txt')) as golden_file:
             self.expected_strings = dict()
 
             for line in golden_file:
