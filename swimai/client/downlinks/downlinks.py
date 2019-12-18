@@ -19,7 +19,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from ..utils import URI
-from swimai.structures import Absent, Value, Attr, Slot, RecordMap
+from swimai.structures import Absent, Value, Attr, Slot, RecordMap, Bool, Num, Text
 from swimai.warp import SyncRequest, CommandMessage, Envelope
 
 # Imports for type annotations
@@ -100,6 +100,8 @@ class ValueDownlinkModel:
 
         if message.body == Absent.get_absent():
             self.value = None
+        elif isinstance(message.body, (Text, Num, Bool)):
+            self.value = message.body
         else:
             self.value = await self.record_to_object(message.body)
 
