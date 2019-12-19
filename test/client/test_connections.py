@@ -755,9 +755,9 @@ class TestConnections(unittest.TestCase):
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('foo')
         downlink_view.set_lane_uri('bar')
-        downlink_model = await downlink_view.create_downlink_model()
-        downlink_model.connection = MockConnection.get_mock_connection()
         actual = DownlinkManager(connection)
+        downlink_model = await downlink_view.create_downlink_model(actual)
+        downlink_model.connection = MockConnection.get_mock_connection()
         actual.downlink_model = downlink_model
         # When
         await actual.open()
@@ -777,8 +777,8 @@ class TestConnections(unittest.TestCase):
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('moo')
         downlink_view.set_lane_uri('car')
-        downlink_model = await downlink_view.create_downlink_model()
         actual = DownlinkManager(connection)
+        downlink_model = await downlink_view.create_downlink_model(actual)
         downlink_model.connection = MockConnection.get_mock_connection()
         actual.downlink_model = downlink_model
         await actual.open()
@@ -800,8 +800,8 @@ class TestConnections(unittest.TestCase):
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('moo')
         downlink_view.set_lane_uri('car')
-        downlink_model = await downlink_view.create_downlink_model()
         actual = DownlinkManager(connection)
+        downlink_model = await downlink_view.create_downlink_model(actual)
         downlink_model.connection = MockConnection.get_mock_connection()
         actual.downlink_model = downlink_model
         await actual.open()
@@ -822,9 +822,9 @@ class TestConnections(unittest.TestCase):
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('boo')
         downlink_view.set_lane_uri('far')
-        downlink_model = await downlink_view.create_downlink_model()
-        downlink_model.connection = MockConnection.get_mock_connection()
         actual = DownlinkManager(connection)
+        downlink_model = await downlink_view.create_downlink_model(actual)
+        downlink_model.connection = MockConnection.get_mock_connection()
         await actual.init_downlink_model(downlink_view)
         # When
         await actual.close()
