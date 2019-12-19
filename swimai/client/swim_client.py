@@ -35,13 +35,11 @@ from swimai.warp import CommandMessage
 class SwimClient:
 
     def __init__(self, terminate_on_exception: bool = False, execute_on_exception: Callable = None,
-                 strict: bool = True, debug=False) -> None:
+                 debug: bool = False) -> None:
         self.loop = None
         self.loop_thread = None
         self.executor = None
-        self.registered_classes = dict()
         self.__connection_pool = ConnectionPool()
-        self.strict = strict
         self.debug = debug
 
         self.execute_on_exception = execute_on_exception
@@ -205,21 +203,6 @@ class SwimClient:
             self.executor = ThreadPoolExecutor()
 
         return self.executor
-
-    def register_classes(self, classes_list: list) -> None:
-        for custom_class in classes_list:
-            self.schedule_task(self.__register_class, custom_class)
-
-    def register_class(self, custom_class: Any) -> None:
-        self.schedule_task(self.__register_class, custom_class)
-
-    def __register_class(self, custom_class: Any) -> None:
-        try:
-            custom_class()
-            self.registered_classes[custom_class.__name__] = custom_class
-        except Exception:
-            raise Exception(
-                f'Class {custom_class.__name__} must have a default constructor or default values for all arguments!')
 
     def __start_event_loop(self) -> None:
         asyncio.set_event_loop(self.loop)

@@ -25,6 +25,7 @@ from swimai.warp import SyncRequest, CommandMessage, Envelope
 # Imports for type annotations
 if TYPE_CHECKING:
     from ..swim_client import SwimClient
+    from ..connections import DownlinkManager
 
 
 class ValueDownlinkModel:
@@ -37,7 +38,7 @@ class ValueDownlinkModel:
         self.form = None
         self.connection = None
         self.task = None
-        self.downlink = None
+        self.downlink_manager = None
         self.value = Value.absent()
 
         self.linked = asyncio.Event()
@@ -105,7 +106,7 @@ class ValueDownlinkModel:
         else:
             self.value = await self.record_to_object(message.body)
 
-        await self.downlink.subscribers_did_set(self.value, old_value)
+        await self.downlink_manager.subscribers_did_set(self.value, old_value)
 
     async def record_to_object(self, body):
         new_object = None
@@ -113,11 +114,11 @@ class ValueDownlinkModel:
         for item in body.get_items():
             if isinstance(item, Attr):
                 class_name = item.key.value
-                class_object = self.client.registered_classes.get(class_name)
+                class_object = self.downlink_manager.registered_classes.get(class_name)
 
                 if class_object is not None:
                     new_object = class_object()
-                elif not self.client.strict:
+                elif not self.downlink_manager.strict:
                     new_object = type(str(class_name), (object,), {})
                 else:
                     raise Exception(f'Missing class for {class_name}')
@@ -143,11 +144,12 @@ class ValueDownlinkView:
         self.node_uri = None
         self.lane_uri = None
         self.did_set_callback = None
-
         self.is_open = False
         self.initialised = asyncio.Event()
         self.model = None
         self.connection = None
+        self.registered_classes = dict()
+        self.strict = True
 
     @property
     def route(self) -> str:
@@ -169,12 +171,14 @@ class ValueDownlinkView:
 
         return self
 
-    async def create_downlink_model(self) -> 'ValueDownlinkModel':
+    async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'ValueDownlinkModel':
         model = ValueDownlinkModel(self.client)
+        downlink_manager.registered_classes = self.registered_classes
+        downlink_manager.strict = self.strict
+        model.downlink_manager = downlink_manager
         model.host_uri = self.host_uri
         model.node_uri = self.node_uri
         model.lane_uri = self.lane_uri
-
         return model
 
     def set_host_uri(self, host_uri: str) -> 'ValueDownlinkView':
@@ -197,6 +201,9 @@ class ValueDownlinkView:
             raise TypeError('Callback must be a coroutine or function!')
 
         return self
+
+    def set_strict(self, status: bool):
+        self.strict = status
 
     def get(self, wait_sync: bool = False) -> Any:
         """
@@ -246,3 +253,18 @@ class ValueDownlinkView:
         """
         await self.initialised.wait()
         await self.model.send_message(message)
+
+    def register_classes(self, classes_list: list) -> None:
+        for custom_class in classes_list:
+            self.client.schedule_task(self.__register_class, custom_class)
+
+    def register_class(self, custom_class: Any) -> None:
+        self.client.schedule_task(self.__register_class, custom_class)
+
+    def __register_class(self, custom_class: Any) -> None:
+        try:
+            custom_class()
+            self.registered_classes[custom_class.__name__] = custom_class
+        except Exception:
+            raise Exception(
+                f'Class {custom_class.__name__} must have a default constructor or default values for all arguments!')

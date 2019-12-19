@@ -15,16 +15,18 @@ def my_custom_exception_callback():
     print('custom exception callback')
 
 
-with SwimClient(strict=False) as swim_client:
+with SwimClient() as swim_client:
     host_uri = 'ws://localhost:9001'
     node_uri = '/unit/foo'
 
     # swim_client.register_class(Person)
     # swim_client.register_class(Pet)
 
-    swim_client.register_classes([Person, Pet])
+    # swim_client.register_classes([Person, Pet])
 
     value_downlink = swim_client.downlink_value()
+    value_downlink.register_class(Person)
+    value_downlink.register_class(Pet)
     value_downlink.set_host_uri('ws://localhost:9001')
     value_downlink.set_node_uri('/unit/foo')
     value_downlink.set_lane_uri('person')
