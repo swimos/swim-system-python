@@ -159,9 +159,8 @@ class WSConnection:
         if self.websocket is None or self.status == ConnectionStatus.CLOSED:
             await self.open()
 
-        if self.websocket:
-            # TODO Add exception handling
-            await self.websocket.send(message)
+        # TODO Add exception handling
+        await self.websocket.send(message)
 
     async def wait_for_messages(self) -> None:
         """
@@ -279,7 +278,6 @@ class DownlinkManager:
         :param downlink_view:       - Downlink view with the information about the remote agent.
         """
         self.downlink_model = await downlink_view.create_downlink_model(self)
-        # self.downlink_model.downlink_manager = self
         self.downlink_model.connection = self.connection
 
     async def add_view(self, downlink_view: 'ValueDownlinkView') -> None:
@@ -292,6 +290,10 @@ class DownlinkManager:
             await self.init_downlink_model(downlink_view)
 
         downlink_view.model = self.downlink_model
+        self.registered_classes.update(downlink_view.registered_classes)
+        self.strict = downlink_view.strict
+
+        downlink_view.downlink_manager = self
         downlink_view.initialised.set()
 
         if self.view_count == 0:

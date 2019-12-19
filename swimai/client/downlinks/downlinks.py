@@ -149,12 +149,35 @@ class ValueDownlinkView:
         self.initialised = asyncio.Event()
         self.model = None
         self.connection = None
-        self.registered_classes = dict()
-        self.strict = True
+        self.__registered_classes = dict()
+        self.__deregister_classes = set()
+        self.__strict = False
+        self.downlink_manager = None
 
     @property
     def route(self) -> str:
         return f'{self.node_uri}/{self.lane_uri}'
+
+    @property
+    def registered_classes(self):
+        if self.downlink_manager is None:
+            return self.__registered_classes
+        else:
+            return self.downlink_manager.registered_classes
+
+    @property
+    def strict(self):
+        if self.downlink_manager is None:
+            return self.__strict
+        else:
+            return self.downlink_manager.strict
+
+    @strict.setter
+    def strict(self, strict):
+        if self.downlink_manager is not None:
+            self.downlink_manager.strict = self.__strict
+        else:
+            self.__strict = strict
 
     def open(self) -> 'ValueDownlinkView':
 
@@ -174,8 +197,8 @@ class ValueDownlinkView:
 
     async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'ValueDownlinkModel':
         model = ValueDownlinkModel(self.client)
-        downlink_manager.registered_classes = self.registered_classes
-        downlink_manager.strict = self.strict
+        downlink_manager.registered_classes = self.__registered_classes
+        downlink_manager.strict = self.__strict
         model.downlink_manager = downlink_manager
         model.host_uri = self.host_uri
         model.node_uri = self.node_uri
@@ -205,10 +228,6 @@ class ValueDownlinkView:
             raise TypeError('Callback must be a coroutine or function!')
 
         return self
-
-    @before_open
-    def set_strict(self, status: bool):
-        self.strict = status
 
     def get(self, wait_sync: bool = False) -> Any:
         """
@@ -259,19 +278,41 @@ class ValueDownlinkView:
         await self.initialised.wait()
         await self.model.send_message(message)
 
-    @before_open
     def register_classes(self, classes_list: list) -> None:
         for custom_class in classes_list:
             self.client.schedule_task(self.__register_class, custom_class)
 
-    @before_open
     def register_class(self, custom_class: Any) -> None:
         self.client.schedule_task(self.__register_class, custom_class)
+
+    def deregister_all_classes(self):
+        if self.downlink_manager is not None:
+            self.__deregister_classes.update(set(self.downlink_manager.registered_classes.keys()))
+            self.downlink_manager.registered_classes.clear()
+        else:
+            self.__registered_classes.clear()
+
+    def deregister_classes(self, classes_list: list) -> None:
+        for custom_class in classes_list:
+            self.deregister_class(custom_class)
+
+    def deregister_class(self, custom_class: Any) -> None:
+        if self.downlink_manager is not None:
+            self.downlink_manager.registered_classes.pop(custom_class.__name__, None)
+        else:
+            self.__registered_classes.pop(custom_class.__name__, None)
+            self.__deregister_classes.add(custom_class.__name__)
 
     def __register_class(self, custom_class: Any) -> None:
         try:
             custom_class()
-            self.registered_classes[custom_class.__name__] = custom_class
+
+            if self.downlink_manager is not None:
+                self.downlink_manager.registered_classes[custom_class.__name__] = custom_class
+            else:
+                self.__registered_classes[custom_class.__name__] = custom_class
+                self.__deregister_classes.discard(custom_class.__name__)
+
         except Exception:
             raise Exception(
                 f'Class {custom_class.__name__} must have a default constructor or default values for all arguments!')
