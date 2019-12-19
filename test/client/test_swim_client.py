@@ -311,6 +311,21 @@ class TestSwimClient(unittest.TestCase):
         # Given
         mock_task = MockScheduleTask.get_mock_schedule_task()
         # When
+        with SwimClient() as swim_client:
+            actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
+
+        self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0].args[0])
+        mock_warn_tb.assert_not_called()
+        self.assertIsNone(actual)
+        mock_run_in_executor.assert_called_once()
+
+    @patch('warnings.warn')
+    @patch('traceback.print_tb')
+    @patch('asyncio.base_events.BaseEventLoop.run_in_executor', new_callable=MockRaiseException)
+    def test_swim_client_test_schedule_task_exception_debug(self, mock_run_in_executor, mock_warn_tb, mock_warn):
+        # Given
+        mock_task = MockScheduleTask.get_mock_schedule_task()
+        # When
         with SwimClient(debug=True) as swim_client:
             actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
 
