@@ -105,6 +105,7 @@ class WSConnection:
     async def open(self) -> None:
         if self.status == ConnectionStatus.CLOSED:
             self.status = ConnectionStatus.CONNECTING
+            # TODO Add exception handling
             self.websocket = await websockets.connect(self.host_uri)
             self.status = ConnectionStatus.IDLE
 
@@ -113,6 +114,7 @@ class WSConnection:
             self.status = ConnectionStatus.CLOSED
 
             if self.websocket:
+                self.websocket.close_timeout = 0.1
                 await self.websocket.close()
 
     def has_subscribers(self) -> bool:
@@ -157,6 +159,7 @@ class WSConnection:
         if self.websocket is None or self.status == ConnectionStatus.CLOSED:
             await self.open()
 
+        # TODO Add exception handling
         await self.websocket.send(message)
 
     async def wait_for_messages(self) -> None:
@@ -244,6 +247,8 @@ class DownlinkManager:
         self.connection = connection
         self.status = DownlinkManagerStatus.CLOSED
         self.downlink_model = None
+        self.registered_classes = dict()
+        self.strict = True
         self.__downlink_views = dict()
 
     @property
@@ -272,8 +277,7 @@ class DownlinkManager:
 
         :param downlink_view:       - Downlink view with the information about the remote agent.
         """
-        self.downlink_model = await downlink_view.create_downlink_model()
-        self.downlink_model.downlink = self
+        self.downlink_model = await downlink_view.create_downlink_model(self)
         self.downlink_model.connection = self.connection
 
     async def add_view(self, downlink_view: 'ValueDownlinkView') -> None:
@@ -286,6 +290,10 @@ class DownlinkManager:
             await self.init_downlink_model(downlink_view)
 
         downlink_view.model = self.downlink_model
+        self.registered_classes.update(downlink_view.registered_classes)
+        self.strict = downlink_view.strict
+
+        downlink_view.downlink_manager = self
         downlink_view.initialised.set()
 
         if self.view_count == 0:

@@ -231,3 +231,9 @@ class MockScheduleTask:
     @staticmethod
     def clear():
         MockScheduleTask.instance = None
+
+
+class MockClass:
+
+    def __init__(self):
+        pass

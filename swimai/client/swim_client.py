@@ -17,6 +17,7 @@ import inspect
 import os
 import sys
 import traceback
+import warnings
 
 from asyncio import Future
 from concurrent.futures import CancelledError
@@ -28,16 +29,18 @@ from .connections import ConnectionPool, WSConnection
 from .downlinks import ValueDownlinkView
 from .utils import URI
 from swimai.structures import Item
-from swimai.warp import CommandMessage, Envelope
+from swimai.warp import CommandMessage
 
 
 class SwimClient:
 
-    def __init__(self, terminate_on_exception: bool = False, execute_on_exception: Callable = None) -> None:
+    def __init__(self, terminate_on_exception: bool = False, execute_on_exception: Callable = None,
+                 debug: bool = False) -> None:
         self.loop = None
         self.loop_thread = None
         self.executor = None
         self.__connection_pool = ConnectionPool()
+        self.debug = debug
 
         self.execute_on_exception = execute_on_exception
         self.terminate_on_exception = terminate_on_exception
@@ -87,9 +90,7 @@ class SwimClient:
         :param lane_uri:        - Lane URI of the command lane of the remote agent.
         :param body:            - The message body.
         """
-        host_uri = URI.normalise_warp_scheme(host_uri)
-        message = CommandMessage(node_uri, lane_uri, body=body)
-        return self.schedule_task(self.__send_command, host_uri, message)
+        return self.schedule_task(self.__send_command, host_uri, node_uri, lane_uri, body)
 
     def downlink_value(self) -> 'ValueDownlinkView':
         """
@@ -166,8 +167,10 @@ class SwimClient:
         :param exc_value:       - Exception value.
         :param exc_traceback:   - Exception traceback.
         """
-        print(exc_value)
-        traceback.print_tb(exc_traceback)
+        warnings.warn(exc_value)
+
+        if self.debug:
+            traceback.print_tb(exc_traceback)
 
         if self.terminate_on_exception:
             os._exit(1)
@@ -176,13 +179,17 @@ class SwimClient:
         if self.execute_on_exception is not None:
             self.execute_on_exception()
 
-    async def __send_command(self, host_uri: str, message: 'Envelope') -> None:
+    async def __send_command(self, host_uri: str, node_uri: str, lane_uri: str, body: 'Item') -> None:
         """
         Send a command message to a given host.
 
-        :param host_uri:        - URI of the host.
-        :param message:         - Message to send to the host.
+        :param host_uri:        - Host URI of the remote agent.
+        :param node_uri:        - Node URI of the remote agent.
+        :param lane_uri:        - Lane URI of the command lane of the remote agent.
+        :param body:            - The message body.
         """
+        host_uri = URI.normalise_warp_scheme(host_uri)
+        message = CommandMessage(node_uri, lane_uri, body=body)
         connection = await self.get_connection(host_uri)
         await connection.send_message(await message.to_recon())
 

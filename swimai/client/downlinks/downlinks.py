@@ -19,12 +19,14 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from ..utils import URI
-from swimai.structures import Absent, Value
+from swimai.structures import Absent, Value, Attr, Slot, RecordMap, Bool, Num, Text
 from swimai.warp import SyncRequest, CommandMessage, Envelope
+from .downlink_utils import before_open
 
 # Imports for type annotations
 if TYPE_CHECKING:
     from ..swim_client import SwimClient
+    from ..connections import DownlinkManager
 
 
 class ValueDownlinkModel:
@@ -34,9 +36,10 @@ class ValueDownlinkModel:
         self.host_uri = None
         self.node_uri = None
         self.lane_uri = None
+        self.form = None
         self.connection = None
         self.task = None
-        self.downlink = None
+        self.downlink_manager = None
         self.value = Value.absent()
 
         self.linked = asyncio.Event()
@@ -99,10 +102,36 @@ class ValueDownlinkModel:
 
         if message.body == Absent.get_absent():
             self.value = None
-        else:
+        elif isinstance(message.body, (Text, Num, Bool)):
             self.value = message.body
+        else:
+            self.value = await self.record_to_object(message.body)
 
-        await self.downlink.subscribers_did_set(self.value, old_value)
+        await self.downlink_manager.subscribers_did_set(self.value, old_value)
+
+    async def record_to_object(self, body):
+        new_object = None
+
+        for item in body.get_items():
+            if isinstance(item, Attr):
+                class_name = item.key.value
+                class_object = self.downlink_manager.registered_classes.get(class_name)
+
+                if class_object is not None:
+                    new_object = class_object()
+                elif not self.downlink_manager.strict:
+                    new_object = type(str(class_name), (object,), {})
+                else:
+                    raise Exception(f'Missing class for {class_name}')
+
+            if isinstance(item, Slot):
+
+                if isinstance(item.value, RecordMap):
+                    setattr(new_object, item.key.value, await self.record_to_object(item.value))
+                else:
+                    setattr(new_object, item.key.value, item.value.value)
+
+        return new_object
 
     async def __close(self) -> None:
         self.task.cancel()
@@ -116,15 +145,39 @@ class ValueDownlinkView:
         self.node_uri = None
         self.lane_uri = None
         self.did_set_callback = None
-
         self.is_open = False
         self.initialised = asyncio.Event()
         self.model = None
         self.connection = None
+        self.__registered_classes = dict()
+        self.__deregister_classes = set()
+        self.__strict = False
+        self.downlink_manager = None
 
     @property
     def route(self) -> str:
         return f'{self.node_uri}/{self.lane_uri}'
+
+    @property
+    def registered_classes(self):
+        if self.downlink_manager is None:
+            return self.__registered_classes
+        else:
+            return self.downlink_manager.registered_classes
+
+    @property
+    def strict(self):
+        if self.downlink_manager is None:
+            return self.__strict
+        else:
+            return self.downlink_manager.strict
+
+    @strict.setter
+    def strict(self, strict):
+        if self.downlink_manager is not None:
+            self.downlink_manager.strict = self.__strict
+        else:
+            self.__strict = strict
 
     def open(self) -> 'ValueDownlinkView':
 
@@ -142,22 +195,27 @@ class ValueDownlinkView:
 
         return self
 
-    async def create_downlink_model(self) -> 'ValueDownlinkModel':
+    async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'ValueDownlinkModel':
         model = ValueDownlinkModel(self.client)
+        downlink_manager.registered_classes = self.__registered_classes
+        downlink_manager.strict = self.__strict
+        model.downlink_manager = downlink_manager
         model.host_uri = self.host_uri
         model.node_uri = self.node_uri
         model.lane_uri = self.lane_uri
-
         return model
 
+    @before_open
     def set_host_uri(self, host_uri: str) -> 'ValueDownlinkView':
         self.host_uri = URI.normalise_warp_scheme(host_uri)
         return self
 
+    @before_open
     def set_node_uri(self, node_uri: str) -> 'ValueDownlinkView':
         self.node_uri = node_uri
         return self
 
+    @before_open
     def set_lane_uri(self, lane_uri: str) -> 'ValueDownlinkView':
         self.lane_uri = lane_uri
         return self
@@ -219,3 +277,42 @@ class ValueDownlinkView:
         """
         await self.initialised.wait()
         await self.model.send_message(message)
+
+    def register_classes(self, classes_list: list) -> None:
+        for custom_class in classes_list:
+            self.client.schedule_task(self.__register_class, custom_class)
+
+    def register_class(self, custom_class: Any) -> None:
+        self.client.schedule_task(self.__register_class, custom_class)
+
+    def deregister_all_classes(self):
+        if self.downlink_manager is not None:
+            self.__deregister_classes.update(set(self.downlink_manager.registered_classes.keys()))
+            self.downlink_manager.registered_classes.clear()
+        else:
+            self.__registered_classes.clear()
+
+    def deregister_classes(self, classes_list: list) -> None:
+        for custom_class in classes_list:
+            self.deregister_class(custom_class)
+
+    def deregister_class(self, custom_class: Any) -> None:
+        if self.downlink_manager is not None:
+            self.downlink_manager.registered_classes.pop(custom_class.__name__, None)
+        else:
+            self.__registered_classes.pop(custom_class.__name__, None)
+            self.__deregister_classes.add(custom_class.__name__)
+
+    def __register_class(self, custom_class: Any) -> None:
+        try:
+            custom_class()
+
+            if self.downlink_manager is not None:
+                self.downlink_manager.registered_classes[custom_class.__name__] = custom_class
+            else:
+                self.__registered_classes[custom_class.__name__] = custom_class
+                self.__deregister_classes.discard(custom_class.__name__)
+
+        except Exception:
+            raise Exception(
+                f'Class {custom_class.__name__} must have a default constructor or default values for all arguments!')
