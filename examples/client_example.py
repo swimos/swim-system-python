@@ -19,11 +19,6 @@ with SwimClient() as swim_client:
     host_uri = 'ws://localhost:9001'
     node_uri = '/unit/foo'
 
-    # swim_client.register_class(Person)
-    # swim_client.register_class(Pet)
-
-    # swim_client.register_classes([Person, Pet])
-
     value_downlink = swim_client.downlink_value()
     value_downlink.register_class(Person)
     value_downlink.register_class(Pet)

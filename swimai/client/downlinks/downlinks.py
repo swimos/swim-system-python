@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 from ..utils import URI
 from swimai.structures import Absent, Value, Attr, Slot, RecordMap, Bool, Num, Text
 from swimai.warp import SyncRequest, CommandMessage, Envelope
+from .downlink_utils import before_open
 
 # Imports for type annotations
 if TYPE_CHECKING:
@@ -181,14 +182,17 @@ class ValueDownlinkView:
         model.lane_uri = self.lane_uri
         return model
 
+    @before_open
     def set_host_uri(self, host_uri: str) -> 'ValueDownlinkView':
         self.host_uri = URI.normalise_warp_scheme(host_uri)
         return self
 
+    @before_open
     def set_node_uri(self, node_uri: str) -> 'ValueDownlinkView':
         self.node_uri = node_uri
         return self
 
+    @before_open
     def set_lane_uri(self, lane_uri: str) -> 'ValueDownlinkView':
         self.lane_uri = lane_uri
         return self
@@ -202,6 +206,7 @@ class ValueDownlinkView:
 
         return self
 
+    @before_open
     def set_strict(self, status: bool):
         self.strict = status
 
@@ -254,10 +259,12 @@ class ValueDownlinkView:
         await self.initialised.wait()
         await self.model.send_message(message)
 
+    @before_open
     def register_classes(self, classes_list: list) -> None:
         for custom_class in classes_list:
             self.client.schedule_task(self.__register_class, custom_class)
 
+    @before_open
     def register_class(self, custom_class: Any) -> None:
         self.client.schedule_task(self.__register_class, custom_class)
 
