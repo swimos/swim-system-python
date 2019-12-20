@@ -12,20 +12,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-# Setting the value of a value lane on a remote agent.
 import time
 
 from examples.person import Person, Pet
 from swimai import SwimClient
 
 
-async def my_custom_callback_correct(new_value, old_value):
+async def my_custom_callback(new_value, old_value):
     print(f'New: {new_value}')
     print(f'Old: {old_value}')
-
-
-def my_custom_exception_callback():
-    print('custom exception callback')
 
 
 with SwimClient(debug=True) as swim_client:
@@ -33,12 +28,12 @@ with SwimClient(debug=True) as swim_client:
     node_uri = '/unit/foo'
 
     value_downlink = swim_client.downlink_value()
-    # value_downlink.register_class(Person)
-    # value_downlink.register_class(Pet)
+    value_downlink.register_class(Person)
+    value_downlink.register_class(Pet)
     value_downlink.set_host_uri('ws://localhost:9001')
     value_downlink.set_node_uri('/unit/foo')
     value_downlink.set_lane_uri('person')
-    value_downlink.did_set(my_custom_callback_correct)
+    value_downlink.did_set(my_custom_callback)
     value_downlink.open()
 
     time.sleep(2)
