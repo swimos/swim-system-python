@@ -64,6 +64,7 @@ class SwimClient:
         Create a new thread and starts an asyncio loop inside it.
         """
         loop = asyncio.new_event_loop()
+        asyncio.get_event_loop_policy().set_event_loop(loop)
         self.loop = loop
         self.loop_thread = Thread(target=self.__start_event_loop)
         self.loop_thread.start()
@@ -213,7 +214,7 @@ class SwimClient:
         if self.executor is not None:
             self.executor.shutdown(wait=False)
 
-        tasks = [task for task in asyncio.all_tasks(self.loop) if task is not asyncio.current_task(self.loop)]
+        tasks = [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
         [task.cancel() for task in tasks]
         await asyncio.gather(*tasks, return_exceptions=True)
 
