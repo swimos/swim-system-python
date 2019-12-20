@@ -25,7 +25,6 @@ interference from billions of queues.
 import time
 
 from swimai import SwimClient
-from swimai.structures import Text
 
 with SwimClient() as swim_client:
     host_uri = 'ws://localhost:9001'
@@ -38,7 +37,7 @@ with SwimClient() as swim_client:
     value_downlink.set_lane_uri('info')
     value_downlink.open()
 
-    new_value = Text.create_from('Hello from Python!')
+    new_value = 'Hello from Python!'
     value_downlink.set(new_value)
 
     print('Stopping the client in 2 seconds')
