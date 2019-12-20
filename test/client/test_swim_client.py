@@ -32,6 +32,8 @@ class TestSwimClient(unittest.TestCase):
     def setUp(self):
         MockWebsocket.clear()
         MockScheduleTask.clear()
+        asyncio.get_event_loop().stop()
+        asyncio.get_event_loop().close()
 
     def test_swim_client_start(self):
         # Given

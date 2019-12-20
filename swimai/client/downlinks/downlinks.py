@@ -19,7 +19,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from ..utils import URI
-from swimai.structures import Absent, Value, Attr, Slot, RecordMap, Bool, Num, Text
+from swimai.structures import Absent, Value, Attr, Slot, RecordMap, Bool, Num, Text, Extant, Item
 from swimai.warp import SyncRequest, CommandMessage, Envelope
 from .downlink_utils import before_open
 
@@ -132,6 +132,22 @@ class ValueDownlinkModel:
                     setattr(new_object, item.key.value, item.value.value)
 
         return new_object
+
+    async def object_to_record(self, obj):
+
+        if isinstance(obj, (str, float, int, bool)):
+            recon = Value.create_from(obj)
+        else:
+            recon = RecordMap.create()
+            attr_value = Text.create_from(obj.__class__.__name__)
+            recon.add(Attr.create_attr(attr_value, Extant.get_extant()))
+
+            for key, value in obj.__dict__.items():
+                slot_value = await self.object_to_record(value)
+                key_value = Text.create_from(key)
+                recon.add(Slot.create_slot(key_value, slot_value))
+
+        return recon
 
     async def __close(self) -> None:
         self.task.cancel()
@@ -253,8 +269,7 @@ class ValueDownlinkView:
         :param value:           - New value for the lane of the remote agent.
         """
         if self.is_open:
-            message = CommandMessage(self.node_uri, self.lane_uri, value)
-            self.client.schedule_task(self.send_message, message)
+            self.client.schedule_task(self.send_message, value)
         else:
             raise RuntimeError('Link is not open!')
 
@@ -269,13 +284,21 @@ class ValueDownlinkView:
         if self.did_set_callback:
             self.client.schedule_task(self.did_set_callback, current_value, old_value)
 
-    async def send_message(self, message: Envelope) -> None:
+    async def send_message(self, value: Any) -> None:
         """
         Send a message to the remote agent of the downlink.
 
-        :param message:         - Message to send to the remote agent.
+        :param value:           - New value for the lane of the remote agent.
         """
         await self.initialised.wait()
+
+        if isinstance(value, Item):
+            recon = value
+        else:
+            recon = await self.model.object_to_record(value)
+
+        message = CommandMessage(self.node_uri, self.lane_uri, recon)
+
         await self.model.send_message(message)
 
     def register_classes(self, classes_list: list) -> None:
