@@ -16,11 +16,12 @@ import asyncio
 import inspect
 
 from collections.abc import Callable
+from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from ..utils import URI
 from swimai.structures import Absent, Value, Attr, Slot, RecordMap, Bool, Num, Text, Extant, Item
-from swimai.warp import SyncRequest, CommandMessage, Envelope
+from swimai.warp import SyncRequest, CommandMessage, Envelope, LinkRequest
 from .downlink_utils import before_open
 
 # Imports for type annotations
@@ -29,29 +30,203 @@ if TYPE_CHECKING:
     from ..connections import DownlinkManager
 
 
-class ValueDownlinkModel:
+class DownlinkModel:
 
     def __init__(self, client: 'SwimClient') -> None:
         self.client = client
         self.host_uri = None
         self.node_uri = None
         self.lane_uri = None
-        self.form = None
-        self.connection = None
         self.task = None
-        self.downlink_manager = None
-        self.value = Value.absent()
-
+        self.connection = None
         self.linked = asyncio.Event()
-        self.synced = asyncio.Event()
 
-    def open(self) -> 'ValueDownlinkModel':
+        self.downlink_manager = None
+
+    def open(self) -> 'DownlinkModel':
         self.task = self.client.schedule_task(self.connection.wait_for_messages)
         return self
 
-    def close(self) -> 'ValueDownlinkModel':
+    def close(self) -> 'DownlinkModel':
         self.client.schedule_task(self.__close)
         return self
+
+    async def __close(self) -> None:
+        self.task.cancel()
+
+    @abstractmethod
+    async def establish_downlink(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def receive_message(self, message: 'Envelope') -> None:
+        raise NotImplementedError
+
+    # TODO move somewhere
+    async def record_to_object(self, body):
+        new_object = None
+
+        for item in body.get_items():
+            if isinstance(item, Attr):
+                class_name = item.key.value
+                class_object = self.downlink_manager.registered_classes.get(class_name)
+
+                if class_object is not None:
+                    new_object = class_object()
+                elif not self.downlink_manager.strict:
+                    new_object = type(str(class_name), (object,), {})
+                else:
+                    raise Exception(f'Missing class for {class_name}')
+
+            if isinstance(item, Slot):
+
+                if new_object is not None:
+                    if isinstance(item.value, RecordMap):
+                        setattr(new_object, item.key.value, await self.record_to_object(item.value))
+                    else:
+                        setattr(new_object, item.key.value, item.value.value)
+                else:
+                    # TODO refactor this
+                    return body
+
+        return new_object
+
+    # TODO move somewhere
+    async def object_to_record(self, obj):
+
+        if isinstance(obj, (str, float, int, bool)):
+            recon = Value.create_from(obj)
+        else:
+            recon = RecordMap.create()
+            attr_value = Text.create_from(obj.__class__.__name__)
+            recon.add(Attr.create_attr(attr_value, Extant.get_extant()))
+
+            for key, value in obj.__dict__.items():
+                slot_value = await self.object_to_record(value)
+                key_value = Text.create_from(key)
+                recon.add(Slot.create_slot(key_value, slot_value))
+
+        return recon
+
+
+class DownlinkView:
+
+    def __init__(self, client: 'SwimClient') -> None:
+        self.client = client
+        self.host_uri = None
+        self.node_uri = None
+        self.lane_uri = None
+        self.is_open = False
+        self.connection = None
+        self.model = None
+        self.downlink_manager = None
+
+    @property
+    def route(self) -> str:
+        return f'{self.node_uri}/{self.lane_uri}'
+
+    @before_open
+    def set_host_uri(self, host_uri: str) -> 'DownlinkView':
+        self.host_uri = URI.normalise_warp_scheme(host_uri)
+        return self
+
+    @before_open
+    def set_node_uri(self, node_uri: str) -> 'DownlinkView':
+        self.node_uri = node_uri
+        return self
+
+    @before_open
+    def set_lane_uri(self, lane_uri: str) -> 'DownlinkView':
+        self.lane_uri = lane_uri
+        return self
+
+    def open(self) -> 'DownlinkView':
+        if not self.is_open:
+            self.is_open = True
+            self.client.schedule_task(self.client.add_downlink_view, self)
+
+        return self
+
+    def close(self) -> 'DownlinkView':
+
+        if self.is_open:
+            self.is_open = False
+            self.client.schedule_task(self.client.remove_downlink_view, self)
+
+        return self
+
+    @abstractmethod
+    async def register_manager(self, manager: 'DownlinkManager') -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'DownlinkModel':
+        raise NotImplementedError
+
+
+class EventDownlinkModel(DownlinkModel):
+
+    async def establish_downlink(self) -> None:
+        link_request = LinkRequest(self.node_uri, self.lane_uri)
+        await self.connection.send_message(await link_request.to_recon())
+
+    async def receive_message(self, message: 'Envelope') -> None:
+        if message.tag == 'linked':
+            self.linked.set()
+        elif message.tag == 'event':
+            await self.receive_event(message)
+
+    async def receive_event(self, message: Envelope):
+
+        if message.body == Absent.get_absent():
+            event = Value.absent()
+        elif isinstance(message.body, (Text, Num, Bool)):
+            event = message.body
+        else:
+            event = await self.record_to_object(message.body)
+
+        await self.downlink_manager.subscribers_on_event(event)
+
+
+class EventDownlinkView(DownlinkView):
+
+    def __init__(self, client: 'SwimClient') -> None:
+        super().__init__(client)
+        self.on_event_callback = None
+
+    async def register_manager(self, manager: 'DownlinkManager') -> None:
+        self.model = manager.downlink_model
+        self.downlink_manager = manager
+
+    async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'DownlinkModel':
+        model = EventDownlinkModel(self.client)
+        model.downlink_manager = downlink_manager
+        model.host_uri = self.host_uri
+        model.node_uri = self.node_uri
+        model.lane_uri = self.lane_uri
+        return model
+
+    # noinspection PyAsyncCall
+    async def execute_on_event(self, event: Any) -> None:
+        if self.on_event_callback:
+            self.client.schedule_task(self.on_event_callback, event)
+
+    def on_event(self, function: Callable) -> 'EventDownlinkView':
+
+        if inspect.iscoroutinefunction(function) or isinstance(function, Callable):
+            self.on_event_callback = function
+        else:
+            raise TypeError('Callback must be a coroutine or function!')
+
+        return self
+
+
+class ValueDownlinkModel(DownlinkModel):
+
+    def __init__(self, client: 'SwimClient') -> None:
+        super().__init__(client)
+        self.value = Value.absent()
+        self.synced = asyncio.Event()
 
     async def establish_downlink(self) -> None:
         """
@@ -109,73 +284,21 @@ class ValueDownlinkModel:
 
         await self.downlink_manager.subscribers_did_set(self.value, old_value)
 
-    async def record_to_object(self, body):
-        new_object = None
 
-        for item in body.get_items():
-            if isinstance(item, Attr):
-                class_name = item.key.value
-                class_object = self.downlink_manager.registered_classes.get(class_name)
-
-                if class_object is not None:
-                    new_object = class_object()
-                elif not self.downlink_manager.strict:
-                    new_object = type(str(class_name), (object,), {})
-                else:
-                    raise Exception(f'Missing class for {class_name}')
-
-            if isinstance(item, Slot):
-
-                if isinstance(item.value, RecordMap):
-                    setattr(new_object, item.key.value, await self.record_to_object(item.value))
-                else:
-                    setattr(new_object, item.key.value, item.value.value)
-
-        return new_object
-
-    async def object_to_record(self, obj):
-
-        if isinstance(obj, (str, float, int, bool)):
-            recon = Value.create_from(obj)
-        else:
-            recon = RecordMap.create()
-            attr_value = Text.create_from(obj.__class__.__name__)
-            recon.add(Attr.create_attr(attr_value, Extant.get_extant()))
-
-            for key, value in obj.__dict__.items():
-                slot_value = await self.object_to_record(value)
-                key_value = Text.create_from(key)
-                recon.add(Slot.create_slot(key_value, slot_value))
-
-        return recon
-
-    async def __close(self) -> None:
-        self.task.cancel()
-
-
-class ValueDownlinkView:
+class ValueDownlinkView(DownlinkView):
 
     def __init__(self, client: 'SwimClient') -> None:
-        self.client = client
-        self.host_uri = None
-        self.node_uri = None
-        self.lane_uri = None
+        super().__init__(client)
         self.did_set_callback = None
-        self.is_open = False
         self.initialised = asyncio.Event()
-        self.model = None
-        self.connection = None
+
+        # TODO Maybe move to super class
         self.__registered_classes = dict()
         self.__deregister_classes = set()
         self.__strict = False
-        self.downlink_manager = None
 
     @property
-    def route(self) -> str:
-        return f'{self.node_uri}/{self.lane_uri}'
-
-    @property
-    def registered_classes(self):
+    async def registered_classes(self):
         if self.downlink_manager is None:
             return self.__registered_classes
         else:
@@ -195,21 +318,16 @@ class ValueDownlinkView:
         else:
             self.__strict = strict
 
-    def open(self) -> 'ValueDownlinkView':
+    async def register_manager(self, manager: 'DownlinkManager') -> None:
+        self.model = manager.downlink_model
+        manager.registered_classes.update(self.__registered_classes)
+        manager.strict = self.strict
+        self.downlink_manager = manager
 
-        if not self.is_open:
-            self.is_open = True
-            self.client.schedule_task(self.client.add_downlink_view, self)
+        if manager.is_open:
+            await self.execute_did_set(self.model.value, Value.absent())
 
-        return self
-
-    def close(self) -> 'ValueDownlinkView':
-
-        if self.is_open:
-            self.is_open = False
-            self.client.schedule_task(self.client.remove_downlink_view, self)
-
-        return self
+        self.initialised.set()
 
     async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'ValueDownlinkModel':
         model = ValueDownlinkModel(self.client)
@@ -220,21 +338,6 @@ class ValueDownlinkView:
         model.node_uri = self.node_uri
         model.lane_uri = self.lane_uri
         return model
-
-    @before_open
-    def set_host_uri(self, host_uri: str) -> 'ValueDownlinkView':
-        self.host_uri = URI.normalise_warp_scheme(host_uri)
-        return self
-
-    @before_open
-    def set_node_uri(self, node_uri: str) -> 'ValueDownlinkView':
-        self.node_uri = node_uri
-        return self
-
-    @before_open
-    def set_lane_uri(self, lane_uri: str) -> 'ValueDownlinkView':
-        self.lane_uri = lane_uri
-        return self
 
     def did_set(self, function: Callable) -> 'ValueDownlinkView':
 

@@ -13,7 +13,8 @@
 #  limitations under the License.
 
 from .warp import Envelope, SyncRequestForm, SyncedResponseForm, LinkedResponseForm, EventMessageForm, \
-    CommandMessageForm, SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage
+    CommandMessageForm, SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm, \
+    LinkRequest
 
 __all__ = [Envelope, SyncRequestForm, SyncedResponseForm, LinkedResponseForm, EventMessageForm, CommandMessageForm,
-           SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage]
+           SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm, LinkRequest]
