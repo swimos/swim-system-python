@@ -27,6 +27,8 @@ with SwimClient(debug=True) as swim_client:
     host_uri = 'ws://localhost:9001'
     node_uri = '/unit/foo'
 
+    print("Value downlink")
+
     value_downlink = swim_client.downlink_value()
     value_downlink.register_class(Person)
     value_downlink.register_class(Pet)
@@ -41,5 +43,34 @@ with SwimClient(debug=True) as swim_client:
     person = Person(name='Bar', age=14, salary=-5.9, pet=Pet(age=2, name='Bark'))
     value_downlink.set(person)
     time.sleep(2)
+
+    print("Value downlink 2")
+
+    value_downlink2 = swim_client.downlink_value()
+    value_downlink2.register_class(Person)
+    value_downlink2.register_class(Pet)
+    value_downlink2.set_host_uri('ws://localhost:9001')
+    value_downlink2.set_node_uri('/unit/foo')
+    value_downlink2.set_lane_uri('person')
+    value_downlink2.did_set(my_custom_callback)
+    value_downlink2.open()
+
+    time.sleep(2)
+
+    print("Value downlink 3")
+
+    value_downlink3 = swim_client.downlink_value()
+    value_downlink3.register_class(Person)
+    value_downlink3.register_class(Pet)
+    value_downlink3.set_host_uri('ws://localhost:9001')
+    value_downlink3.set_node_uri('/unit/foo')
+    value_downlink3.set_lane_uri('person')
+    value_downlink3.did_set(my_custom_callback)
+    value_downlink3.open()
+
+    time.sleep(2)
+
+    value_downlink3.set(person)
+
     print('Stopping the client in 2 seconds')
     time.sleep(2)
