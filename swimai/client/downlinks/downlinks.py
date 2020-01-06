@@ -101,7 +101,7 @@ class ValueDownlinkModel:
         old_value = self.value
 
         if message.body == Absent.get_absent():
-            self.value = None
+            self.value = Value.absent()
         elif isinstance(message.body, (Text, Num, Bool)):
             self.value = message.body
         else:

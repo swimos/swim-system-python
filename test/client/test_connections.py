@@ -19,7 +19,7 @@ from aiounittest import async_test
 from swimai import SwimClient
 from swimai.client import WSConnection, ConnectionStatus, ConnectionPool, DownlinkManagerPool, DownlinkManager, \
     DownlinkManagerStatus, ValueDownlinkModel
-from swimai.structures import Text
+from swimai.structures import Text, Value
 from swimai.warp import SyncedResponse, LinkedResponse, EventMessage
 from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, MockReceiveMessage, MockConnection, \
     MockDownlink, mock_did_set_callback, MockClass
@@ -1182,14 +1182,25 @@ class TestConnections(unittest.TestCase):
         # When
         await actual.subscribers_did_set('hello', 'world')
         # Then
-        self.assertEqual(4, mock_schedule_task.call_count)
+        self.assertEqual(6, mock_schedule_task.call_count)
         self.assertEqual(1, mock_send_message.call_count)
+
         self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[1][0][0])
-        self.assertEqual('hello', mock_schedule_task.call_args_list[1][0][1])
-        self.assertEqual('world', mock_schedule_task.call_args_list[1][0][2])
-        self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[1][0][0])
-        self.assertEqual('hello', mock_schedule_task.call_args_list[2][0][1])
-        self.assertEqual('world', mock_schedule_task.call_args_list[2][0][2])
-        self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual(Value.absent(), mock_schedule_task.call_args_list[1][0][1])
+        self.assertEqual(Value.absent(), mock_schedule_task.call_args_list[1][0][2])
+
+        self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[2][0][0])
+        self.assertEqual(Value.absent(), mock_schedule_task.call_args_list[2][0][1])
+        self.assertEqual(Value.absent(), mock_schedule_task.call_args_list[2][0][2])
+
+        self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[3][0][0])
         self.assertEqual('hello', mock_schedule_task.call_args_list[3][0][1])
         self.assertEqual('world', mock_schedule_task.call_args_list[3][0][2])
+
+        self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[4][0][0])
+        self.assertEqual('hello', mock_schedule_task.call_args_list[4][0][1])
+        self.assertEqual('world', mock_schedule_task.call_args_list[4][0][2])
+
+        self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[5][0][0])
+        self.assertEqual('hello', mock_schedule_task.call_args_list[5][0][1])
+        self.assertEqual('world', mock_schedule_task.call_args_list[5][0][2])

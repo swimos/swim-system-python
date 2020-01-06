@@ -15,6 +15,7 @@
 import websockets
 from enum import Enum
 
+from swimai.structures import Value
 from swimai.warp import Envelope
 from typing import TYPE_CHECKING, Any
 
@@ -288,8 +289,11 @@ class DownlinkManager:
         """
         if self.downlink_model is None:
             await self.init_downlink_model(downlink_view)
+            downlink_view.model = self.downlink_model
+        else:
+            downlink_view.model = self.downlink_model
+            await downlink_view.execute_did_set(self.downlink_model.value, Value.absent())
 
-        downlink_view.model = self.downlink_model
         self.registered_classes.update(downlink_view.registered_classes)
         self.strict = downlink_view.strict
 
