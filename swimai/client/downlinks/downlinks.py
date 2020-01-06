@@ -262,14 +262,19 @@ class ValueDownlinkView:
         else:
             raise RuntimeError('Link is not open!')
 
-    def set(self, value: Any) -> None:
+    def set(self, value: Any, blocking: bool = False) -> None:
         """
         Send a command message to set the value of the lane on the remote agent to the given value.
 
+        :param blocking:        - If True, block until the value has been sent to the server.
         :param value:           - New value for the lane of the remote agent.
         """
         if self.is_open:
-            self.client.schedule_task(self.send_message, value)
+            task = self.client.schedule_task(self.send_message, value)
+
+            if blocking:
+                task.result()
+
         else:
             raise RuntimeError('Link is not open!')
 
