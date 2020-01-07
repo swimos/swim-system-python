@@ -398,6 +398,69 @@ class Record(Value):
         string = f'Record({", ".join([str(item) for item in self.get_items()])})'
         return string
 
+    # TODO Add documentation and annotations
+    # TODO Maybe refactor by splitting into multiple functions
+    @staticmethod
+    async def object_to_record(obj: Any) -> 'Item':
+
+        if isinstance(obj, Item):
+            return obj
+
+        if isinstance(obj, (str, float, int, bool)):
+            recon = Value.create_from(obj)
+        elif isinstance(obj, dict):
+            recon = RecordMap.create()
+            for key, value in obj.items():
+                slot_value = await Record.object_to_record(value)
+                key_value = Text.create_from(key)
+                recon.add(Slot.create_slot(key_value, slot_value))
+
+        else:
+            recon = RecordMap.create()
+            attr_value = Text.create_from(obj.__class__.__name__)
+            recon.add(Attr.create_attr(attr_value, Extant.get_extant()))
+
+            for key, value in obj.__dict__.items():
+                slot_value = await Record.object_to_record(value)
+                key_value = Text.create_from(key)
+                recon.add(Slot.create_slot(key_value, slot_value))
+
+        return recon
+
+    @staticmethod
+    async def record_to_object(record: 'Record', classes: dict, strict: bool) -> 'Any':
+        new_object = None
+
+        for item in record.get_items():
+            if isinstance(item, Attr):
+                class_name = item.key.value
+                class_object = classes.get(class_name)
+
+                if class_object is not None:
+                    new_object = class_object()
+                elif not strict:
+                    new_object = type(str(class_name), (object,), {})
+                else:
+                    raise Exception(f'Missing class for {class_name}')
+
+            if isinstance(item, Slot):
+
+                if new_object is None:
+                    new_object = dict()
+
+                if isinstance(new_object, dict):
+                    if isinstance(item.value, RecordMap):
+                        new_object[item.key.value] = await Record.record_to_object(item.value, classes, strict)
+                    else:
+                        new_object[item.key.value] = item.value.value
+                else:
+                    if isinstance(item.value, RecordMap):
+                        setattr(new_object, item.key.value, await Record.record_to_object(item.value, classes, strict))
+                    else:
+                        setattr(new_object, item.key.value, item.value.value)
+
+        return new_object
+
     @staticmethod
     def create() -> 'RecordMap':
         """

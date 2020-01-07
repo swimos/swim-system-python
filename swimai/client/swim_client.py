@@ -29,7 +29,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from .connections import ConnectionPool, WSConnection
 from .downlinks import ValueDownlinkView, EventDownlinkView, DownlinkView
 from .utils import URI
-from swimai.structures import Item
+from swimai.structures import Item, Record
 from swimai.warp import CommandMessage
 
 
@@ -83,7 +83,7 @@ class SwimClient:
 
         return self
 
-    def command(self, host_uri: str, node_uri: str, lane_uri: str, body: 'Item') -> 'Future':
+    def command(self, host_uri: str, node_uri: str, lane_uri: str, body: Any) -> 'Future':
         """
         Send a command message to a command lane on a remote Swim agent.
 
@@ -92,7 +92,10 @@ class SwimClient:
         :param lane_uri:        - Lane URI of the command lane of the remote agent.
         :param body:            - The message body.
         """
-        return self.schedule_task(self.__send_command, host_uri, node_uri, lane_uri, body)
+
+        task = self.schedule_task(Record.object_to_record, body)
+        record = task.result()
+        return self.schedule_task(self.__send_command, host_uri, node_uri, lane_uri, record)
 
     def downlink_event(self) -> 'EventDownlinkView':
         """

@@ -20,7 +20,7 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from ..utils import URI
-from swimai.structures import Absent, Value, Attr, Slot, RecordMap, Bool, Num, Text, Extant, Item
+from swimai.structures import Absent, Value, Bool, Num, Text, Record
 from swimai.warp import SyncRequest, CommandMessage, Envelope, LinkRequest
 from .downlink_utils import before_open
 
@@ -62,52 +62,6 @@ class DownlinkModel:
     async def receive_message(self, message: 'Envelope') -> None:
         raise NotImplementedError
 
-    # TODO move somewhere
-    async def record_to_object(self, body):
-        new_object = None
-
-        for item in body.get_items():
-            if isinstance(item, Attr):
-                class_name = item.key.value
-                class_object = self.downlink_manager.registered_classes.get(class_name)
-
-                if class_object is not None:
-                    new_object = class_object()
-                elif not self.downlink_manager.strict:
-                    new_object = type(str(class_name), (object,), {})
-                else:
-                    raise Exception(f'Missing class for {class_name}')
-
-            if isinstance(item, Slot):
-
-                if new_object is not None:
-                    if isinstance(item.value, RecordMap):
-                        setattr(new_object, item.key.value, await self.record_to_object(item.value))
-                    else:
-                        setattr(new_object, item.key.value, item.value.value)
-                else:
-                    # TODO refactor this
-                    return body
-
-        return new_object
-
-    # TODO move somewhere
-    async def object_to_record(self, obj):
-
-        if isinstance(obj, (str, float, int, bool)):
-            recon = Value.create_from(obj)
-        else:
-            recon = RecordMap.create()
-            attr_value = Text.create_from(obj.__class__.__name__)
-            recon.add(Attr.create_attr(attr_value, Extant.get_extant()))
-
-            for key, value in obj.__dict__.items():
-                slot_value = await self.object_to_record(value)
-                key_value = Text.create_from(key)
-                recon.add(Slot.create_slot(key_value, slot_value))
-
-        return recon
-
 
 class DownlinkView:
 
@@ -120,6 +74,10 @@ class DownlinkView:
         self.connection = None
         self.model = None
         self.downlink_manager = None
+
+        self.__registered_classes = dict()
+        self.__deregister_classes = set()
+        self.__strict = False
 
     @property
     def route(self) -> str:
@@ -155,6 +113,66 @@ class DownlinkView:
 
         return self
 
+    @property
+    async def registered_classes(self):
+        if self.downlink_manager is None:
+            return self.__registered_classes
+        else:
+            return self.downlink_manager.registered_classes
+
+    @property
+    def strict(self):
+        if self.downlink_manager is None:
+            return self.__strict
+        else:
+            return self.downlink_manager.strict
+
+    @strict.setter
+    def strict(self, strict):
+        if self.downlink_manager is not None:
+            self.downlink_manager.strict = self.__strict
+        else:
+            self.__strict = strict
+
+    def register_classes(self, classes_list: list) -> None:
+        for custom_class in classes_list:
+            self.client.schedule_task(self.__register_class, custom_class)
+
+    def register_class(self, custom_class: Any) -> None:
+        self.client.schedule_task(self.__register_class, custom_class)
+
+    def deregister_all_classes(self):
+        if self.downlink_manager is not None:
+            self.__deregister_classes.update(set(self.downlink_manager.registered_classes.keys()))
+            self.downlink_manager.registered_classes.clear()
+        else:
+            self.__registered_classes.clear()
+
+    def deregister_classes(self, classes_list: list) -> None:
+        for custom_class in classes_list:
+            self.deregister_class(custom_class)
+
+    def deregister_class(self, custom_class: Any) -> None:
+        if self.downlink_manager is not None:
+            self.downlink_manager.registered_classes.pop(custom_class.__name__, None)
+        else:
+            self.__registered_classes.pop(custom_class.__name__, None)
+            self.__deregister_classes.add(custom_class.__name__)
+
+    def __register_class(self, custom_class: Any) -> None:
+        try:
+            custom_class()
+
+            if self.downlink_manager is not None:
+                self.downlink_manager.registered_classes[custom_class.__name__] = custom_class
+            else:
+                self.__registered_classes[custom_class.__name__] = custom_class
+                self.__deregister_classes.discard(custom_class.__name__)
+
+        except Exception:
+            raise Exception(
+                f'Class {custom_class.__name__} must have a default constructor or default values for all arguments!')
+
     @abstractmethod
     async def register_manager(self, manager: 'DownlinkManager') -> None:
         raise NotImplementedError
@@ -183,7 +201,8 @@ class EventDownlinkModel(DownlinkModel):
         elif isinstance(message.body, (Text, Num, Bool)):
             event = message.body
         else:
-            event = await self.record_to_object(message.body)
+            event = await Record.record_to_object(message.body, self.downlink_manager.registered_classes,
+                                                  self.downlink_manager.strict)
 
         await self.downlink_manager.subscribers_on_event(event)
 
@@ -200,6 +219,8 @@ class EventDownlinkView(DownlinkView):
 
     async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'DownlinkModel':
         model = EventDownlinkModel(self.client)
+        downlink_manager.registered_classes = await self.registered_classes
+        downlink_manager.strict = self.strict
         model.downlink_manager = downlink_manager
         model.host_uri = self.host_uri
         model.node_uri = self.node_uri
@@ -280,7 +301,8 @@ class ValueDownlinkModel(DownlinkModel):
         elif isinstance(message.body, (Text, Num, Bool)):
             self.value = message.body
         else:
-            self.value = await self.record_to_object(message.body)
+            self.value = await Record.record_to_object(message.body, self.downlink_manager.registered_classes,
+                                                       self.downlink_manager.strict)
 
         await self.downlink_manager.subscribers_did_set(self.value, old_value)
 
@@ -292,35 +314,9 @@ class ValueDownlinkView(DownlinkView):
         self.did_set_callback = None
         self.initialised = asyncio.Event()
 
-        # TODO Maybe move to super class
-        self.__registered_classes = dict()
-        self.__deregister_classes = set()
-        self.__strict = False
-
-    @property
-    async def registered_classes(self):
-        if self.downlink_manager is None:
-            return self.__registered_classes
-        else:
-            return self.downlink_manager.registered_classes
-
-    @property
-    def strict(self):
-        if self.downlink_manager is None:
-            return self.__strict
-        else:
-            return self.downlink_manager.strict
-
-    @strict.setter
-    def strict(self, strict):
-        if self.downlink_manager is not None:
-            self.downlink_manager.strict = self.__strict
-        else:
-            self.__strict = strict
-
     async def register_manager(self, manager: 'DownlinkManager') -> None:
         self.model = manager.downlink_model
-        manager.registered_classes.update(self.__registered_classes)
+        manager.registered_classes.update(await self.registered_classes)
         manager.strict = self.strict
         self.downlink_manager = manager
 
@@ -331,8 +327,8 @@ class ValueDownlinkView(DownlinkView):
 
     async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'ValueDownlinkModel':
         model = ValueDownlinkModel(self.client)
-        downlink_manager.registered_classes = self.__registered_classes
-        downlink_manager.strict = self.__strict
+        downlink_manager.registered_classes = await self.registered_classes
+        downlink_manager.strict = self.strict
         model.downlink_manager = downlink_manager
         model.host_uri = self.host_uri
         model.node_uri = self.node_uri
@@ -348,6 +344,17 @@ class ValueDownlinkView(DownlinkView):
 
         return self
 
+    @property
+    def value(self):
+        if self.model is None:
+            return Value.absent()
+        else:
+            return self.model.value
+
+    async def __get_value(self):
+        await self.initialised.wait()
+        return await self.model.get_value()
+
     def get(self, wait_sync: bool = False) -> Any:
         """
         Return the value of the downlink.
@@ -358,10 +365,10 @@ class ValueDownlinkView(DownlinkView):
         """
         if self.is_open:
             if wait_sync:
-                task = self.client.schedule_task(self.model.get_value)
+                task = self.client.schedule_task(self.__get_value)
                 return task.result()
             else:
-                return self.model.value
+                return self.value
         else:
             raise RuntimeError('Link is not open!')
 
@@ -400,50 +407,7 @@ class ValueDownlinkView(DownlinkView):
         """
         await self.initialised.wait()
 
-        if isinstance(value, Item):
-            recon = value
-        else:
-            recon = await self.model.object_to_record(value)
-
+        recon = await Record.object_to_record(value)
         message = CommandMessage(self.node_uri, self.lane_uri, recon)
 
         await self.model.send_message(message)
-
-    def register_classes(self, classes_list: list) -> None:
-        for custom_class in classes_list:
-            self.client.schedule_task(self.__register_class, custom_class)
-
-    def register_class(self, custom_class: Any) -> None:
-        self.client.schedule_task(self.__register_class, custom_class)
-
-    def deregister_all_classes(self):
-        if self.downlink_manager is not None:
-            self.__deregister_classes.update(set(self.downlink_manager.registered_classes.keys()))
-            self.downlink_manager.registered_classes.clear()
-        else:
-            self.__registered_classes.clear()
-
-    def deregister_classes(self, classes_list: list) -> None:
-        for custom_class in classes_list:
-            self.deregister_class(custom_class)
-
-    def deregister_class(self, custom_class: Any) -> None:
-        if self.downlink_manager is not None:
-            self.downlink_manager.registered_classes.pop(custom_class.__name__, None)
-        else:
-            self.__registered_classes.pop(custom_class.__name__, None)
-            self.__deregister_classes.add(custom_class.__name__)
-
-    def __register_class(self, custom_class: Any) -> None:
-        try:
-            custom_class()
-
-            if self.downlink_manager is not None:
-                self.downlink_manager.registered_classes[custom_class.__name__] = custom_class
-            else:
-                self.__registered_classes[custom_class.__name__] = custom_class
-                self.__deregister_classes.discard(custom_class.__name__)
-
-        except Exception:
-            raise Exception(
-                f'Class {custom_class.__name__} must have a default constructor or default values for all arguments!')

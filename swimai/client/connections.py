@@ -253,7 +253,7 @@ class DownlinkManager:
         self.status = DownlinkManagerStatus.CLOSED
         self.downlink_model = None
         self.registered_classes = dict()
-        self.strict = True
+        self.strict = False
         self.__downlink_views = dict()
 
     @property
