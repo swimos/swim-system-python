@@ -290,7 +290,15 @@ class LaneAddressedForm(Form):
             return self.create_envelope_from(node_uri, lane_uri, body)
 
 
-# TODO add annotations for parameters
+class SyncRequestForm(LinkAddressedForm):
+
+    @property
+    def tag(self) -> str:
+        return 'sync'
+
+    def create_envelope_from(self, node_uri: str, lane_uri: str, prio: float, rate: float, body: Item) -> 'Envelope':
+        return SyncRequest(node_uri, lane_uri, prio, rate, body=body)
+
 
 class SyncedResponseForm(LaneAddressedForm):
 
@@ -308,18 +316,8 @@ class LinkRequestForm(LinkAddressedForm):
     def tag(self):
         return 'link'
 
-    def create_envelope_from(self, node_uri, lane_uri, prio, rate, body) -> 'Envelope':
-        return LinkRequest(node_uri, lane_uri, prio, rate, body=body)
-
-
-class SyncRequestForm(LinkAddressedForm):
-
-    @property
-    def tag(self) -> str:
-        return 'sync'
-
     def create_envelope_from(self, node_uri: str, lane_uri: str, prio: float, rate: float, body: Item) -> 'Envelope':
-        return SyncRequest(node_uri, lane_uri, prio, rate, body=body)
+        return LinkRequest(node_uri, lane_uri, prio, rate, body=body)
 
 
 class LinkedResponseForm(LinkAddressedForm):

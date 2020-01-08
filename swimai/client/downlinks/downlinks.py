@@ -20,7 +20,7 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from ..utils import URI
-from swimai.structures import Absent, Value, Bool, Num, Text, Record
+from swimai.structures import Absent, Value, Bool, Num, Text, RecordConverter
 from swimai.warp import SyncRequest, CommandMessage, Envelope, LinkRequest
 from .downlink_utils import before_open
 
@@ -201,8 +201,9 @@ class EventDownlinkModel(DownlinkModel):
         elif isinstance(message.body, (Text, Num, Bool)):
             event = message.body
         else:
-            event = await Record.record_to_object(message.body, self.downlink_manager.registered_classes,
-                                                  self.downlink_manager.strict)
+            converter = RecordConverter.get_converter()
+            event = await converter.record_to_object(message.body, self.downlink_manager.registered_classes,
+                                                     self.downlink_manager.strict)
 
         await self.downlink_manager.subscribers_on_event(event)
 
@@ -301,8 +302,9 @@ class ValueDownlinkModel(DownlinkModel):
         elif isinstance(message.body, (Text, Num, Bool)):
             self.value = message.body
         else:
-            self.value = await Record.record_to_object(message.body, self.downlink_manager.registered_classes,
-                                                       self.downlink_manager.strict)
+            converter = RecordConverter.get_converter()
+            self.value = await converter.record_to_object(message.body, self.downlink_manager.registered_classes,
+                                                          self.downlink_manager.strict)
 
         await self.downlink_manager.subscribers_did_set(self.value, old_value)
 
@@ -407,7 +409,7 @@ class ValueDownlinkView(DownlinkView):
         """
         await self.initialised.wait()
 
-        recon = await Record.object_to_record(value)
+        recon = await RecordConverter.get_converter().object_to_record(value)
         message = CommandMessage(self.node_uri, self.lane_uri, recon)
 
         await self.model.send_message(message)

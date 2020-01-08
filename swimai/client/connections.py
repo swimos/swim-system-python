@@ -330,7 +330,7 @@ class DownlinkManager:
 
     async def subscribers_did_set(self, current_value: Any, old_value: Any) -> None:
         """
-        Execute the `did_set` method of all downlink views of the downlink manager.
+        Execute the `did_set` method of all value downlink views of the downlink manager.
 
         :param current_value:       - The new value of the downlink.
         :param old_value:           - The previous value of the downlink.
@@ -339,6 +339,12 @@ class DownlinkManager:
             await view.execute_did_set(current_value, old_value)
 
     async def subscribers_on_event(self, event: Any) -> None:
+        """
+        Execute the `on_event` method of all event downlink views of the downlink manager.
+
+        :param event:       - Event from the remote lane.
+        """
+
         for view in self.__downlink_views.values():
             await view.execute_on_event(event)
 

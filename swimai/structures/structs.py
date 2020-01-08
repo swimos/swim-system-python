@@ -398,69 +398,6 @@ class Record(Value):
         string = f'Record({", ".join([str(item) for item in self.get_items()])})'
         return string
 
-    # TODO Add documentation and annotations
-    # TODO Maybe refactor by splitting into multiple functions
-    @staticmethod
-    async def object_to_record(obj: Any) -> 'Item':
-
-        if isinstance(obj, Item):
-            return obj
-
-        if isinstance(obj, (str, float, int, bool)):
-            recon = Value.create_from(obj)
-        elif isinstance(obj, dict):
-            recon = RecordMap.create()
-            for key, value in obj.items():
-                slot_value = await Record.object_to_record(value)
-                key_value = Text.create_from(key)
-                recon.add(Slot.create_slot(key_value, slot_value))
-
-        else:
-            recon = RecordMap.create()
-            attr_value = Text.create_from(obj.__class__.__name__)
-            recon.add(Attr.create_attr(attr_value, Extant.get_extant()))
-
-            for key, value in obj.__dict__.items():
-                slot_value = await Record.object_to_record(value)
-                key_value = Text.create_from(key)
-                recon.add(Slot.create_slot(key_value, slot_value))
-
-        return recon
-
-    @staticmethod
-    async def record_to_object(record: 'Record', classes: dict, strict: bool) -> 'Any':
-        new_object = None
-
-        for item in record.get_items():
-            if isinstance(item, Attr):
-                class_name = item.key.value
-                class_object = classes.get(class_name)
-
-                if class_object is not None:
-                    new_object = class_object()
-                elif not strict:
-                    new_object = type(str(class_name), (object,), {})
-                else:
-                    raise Exception(f'Missing class for {class_name}')
-
-            if isinstance(item, Slot):
-
-                if new_object is None:
-                    new_object = dict()
-
-                if isinstance(new_object, dict):
-                    if isinstance(item.value, RecordMap):
-                        new_object[item.key.value] = await Record.record_to_object(item.value, classes, strict)
-                    else:
-                        new_object[item.key.value] = item.value.value
-                else:
-                    if isinstance(item.value, RecordMap):
-                        setattr(new_object, item.key.value, await Record.record_to_object(item.value, classes, strict))
-                    else:
-                        setattr(new_object, item.key.value, item.value.value)
-
-        return new_object
-
     @staticmethod
     def create() -> 'RecordMap':
         """
@@ -913,3 +850,142 @@ class ValueBuilder:
             self.record.add(item)
 
         return True
+
+
+class RecordConverter:
+    converter = None
+
+    @staticmethod
+    def get_converter() -> 'RecordConverter':
+        """
+        Create a Record Converter singleton if it does not exist and return it.
+
+        :return:                - Record Converter singleton.
+        """
+        if RecordConverter.converter is None:
+            RecordConverter.converter = RecordConverter()
+
+        return RecordConverter.converter
+
+    async def object_to_record(self, obj: Any) -> 'Item':
+        """
+        Convert an object into a Recon record.
+
+        :param obj:             - Object to convert.
+        :return:                - Recon record representing the original object.
+        """
+        if isinstance(obj, Item):
+            return obj
+
+        if isinstance(obj, (str, float, int, bool)):
+            record = Value.create_from(obj)
+
+        elif isinstance(obj, dict):
+            record = RecordMap.create()
+            await self.__process_entries(obj, record)
+
+        else:
+            record = RecordMap.create()
+            attr_value = Text.create_from(obj.__class__.__name__)
+            record.add(Attr.create_attr(attr_value, Extant.get_extant()))
+            await self.__process_entries(obj.__dict__, record)
+
+        return record
+
+    async def record_to_object(self, record: 'Record', classes: dict, strict: bool) -> 'Any':
+        """
+        Convert a Recon record into an object.
+
+        :param record:          - Recon record to convert.
+        :param classes:         - Specific Python classes to use in the conversion.
+        :param strict:          - Boolean flag indicating if the conversion should fail if a needed class is not
+                                  explicitly provided.
+        :return:                - The newly created object.
+        """
+
+        if isinstance(record.get_head(), Attr):
+            new_object = await self.__record_to_class(record, classes, strict)
+        else:
+            new_object = await self.__record_to_dict(record, classes, strict)
+
+        return new_object
+
+    @staticmethod
+    async def __attr_to_object(attribute: Item, classes: dict, strict: bool) -> Any:
+        """
+        Convert a Recon attribute item to a Python object.
+
+        :param attribute:       - Recon attribute item to convert.
+        :param classes:         - Specific Python classes to use in the conversion.
+        :param strict:          - Boolean flag indicating if the conversion should fail if a needed class is not
+                                  explicitly provided.
+        :return:                - The newly created object.
+        """
+
+        class_name = attribute.key.value
+        class_object = classes.get(class_name)
+
+        if class_object is not None:
+            return class_object()
+        elif not strict:
+            return type(str(class_name), (object,), {})
+        else:
+            raise Exception(f'Missing class for {class_name}')
+
+    async def __process_entries(self, entries: dict, record: 'Record') -> None:
+        """
+        Convert entries to Recon and add them to the main record.
+
+        :param entries:         - Dictionary of entries to convert.
+        :param record:          - Main record for appending the converted entries.
+        """
+        for key, value in entries.items():
+            slot_value = await self.object_to_record(value)
+            key_value = Text.create_from(key)
+            record.add(Slot.create_slot(key_value, slot_value))
+
+    async def __record_to_class(self, record: 'Record', classes: dict, strict: bool) -> Any:
+        """
+        Convert a Recon record to an instance of a Python class.
+
+        :param record:          - Recon record to convert.
+        :param classes:         - Specific Python classes to use in the conversion.
+        :param strict:          - Boolean flag indicating if the conversion should fail if a needed class is not
+                                  explicitly provided.
+        :return:                - The newly created object.
+        """
+
+        new_object = await self.__attr_to_object(record.get_head(), classes, strict)
+
+        items_iter = iter(record.get_items())
+        next(items_iter)
+
+        for item in items_iter:
+            record = item.value
+            if isinstance(record, RecordMap):
+                setattr(new_object, str(item.key.value), await self.record_to_object(record, classes, strict))
+            else:
+                setattr(new_object, str(item.key.value), item.value.value)
+
+        return new_object
+
+    async def __record_to_dict(self, record: 'Record', classes: dict, strict: bool) -> dict:
+        """
+        Convert a Recon record to a Python dictionary.
+
+        :param record:          - Recon record to convert.
+        :param classes:         - Specific Python classes to use in the conversion.
+        :param strict:          - Boolean flag indicating if the conversion should fail if a needed class is not
+                                  explicitly provided.
+        :return:                - The newly created dictionary.
+        """
+        new_object = dict()
+
+        for item in record.get_items():
+            record = item.value
+            if isinstance(record, RecordMap):
+                new_object[item.key.value] = await self.record_to_object(record, classes, strict)
+            else:
+                new_object[item.key.value] = item.value.value
+
+        return new_object

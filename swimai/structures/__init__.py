@@ -13,7 +13,7 @@
 #  limitations under the License.
 
 from .structs import Item, Field, Attr, Value, Text, Num, Bool, Absent, Extant, Slot, RecordFlags, Record, RecordMap, \
-    RecordMapView, ValueBuilder
+    RecordMapView, ValueBuilder, RecordConverter
 
 __all__ = [Item, Field, Attr, Value, Text, Num, Bool, Absent, Extant, Slot, RecordFlags, Record, RecordMap,
-           RecordMapView, ValueBuilder]
+           RecordMapView, ValueBuilder, RecordConverter]

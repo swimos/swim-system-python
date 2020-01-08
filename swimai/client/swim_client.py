@@ -29,7 +29,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from .connections import ConnectionPool, WSConnection
 from .downlinks import ValueDownlinkView, EventDownlinkView, DownlinkView
 from .utils import URI
-from swimai.structures import Item, Record
+from swimai.structures import Item, RecordConverter
 from swimai.warp import CommandMessage
 
 
@@ -93,7 +93,7 @@ class SwimClient:
         :param body:            - The message body.
         """
 
-        task = self.schedule_task(Record.object_to_record, body)
+        task = self.schedule_task(RecordConverter.get_converter().object_to_record, body)
         record = task.result()
         return self.schedule_task(self.__send_command, host_uri, node_uri, lane_uri, record)
 
