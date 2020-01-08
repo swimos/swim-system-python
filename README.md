@@ -58,7 +58,7 @@ with SwimClient() as swim_client:
 ##### With coverage:
 1) Install async test package: `pip install aiounittest`
 2) Install coverage package: `pip install coverage`
-3) Generate report: `coverage run --source=test -m unittest`
+3) Generate report: `coverage run --source=swimai -m unittest`
 4) View report: `coverage report -m`
 
 ### Run Lint
