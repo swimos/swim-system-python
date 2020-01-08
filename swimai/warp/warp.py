@@ -241,7 +241,7 @@ class LinkAddressedForm(Form):
 class LaneAddressedForm(Form):
 
     @abstractmethod
-    def create_envelope_from(self, node_uri, lane_uri, body) -> 'Envelope':
+    def create_envelope_from(self, node_uri: str, lane_uri: str, body: Item) -> 'Envelope':
         """
         :param node_uri:        - Node URI of the Envelope.
         :param lane_uri:        - Lane URI of the Envelope.
@@ -286,7 +286,7 @@ class SyncedResponseForm(LaneAddressedForm):
     def tag(self) -> str:
         return 'synced'
 
-    def create_envelope_from(self, node_uri, lane_uri, body) -> 'Envelope':
+    def create_envelope_from(self, node_uri: str, lane_uri: str, body: Item) -> 'Envelope':
         return SyncedResponse(node_uri, lane_uri, body=body)
 
 
@@ -296,7 +296,7 @@ class SyncRequestForm(LinkAddressedForm):
     def tag(self) -> str:
         return 'sync'
 
-    def create_envelope_from(self, node_uri, lane_uri, prio, rate, body) -> 'Envelope':
+    def create_envelope_from(self, node_uri: str, lane_uri: str, prio: float, rate: float, body: Item) -> 'Envelope':
         return SyncRequest(node_uri, lane_uri, prio, rate, body=body)
 
 
@@ -306,7 +306,7 @@ class LinkedResponseForm(LinkAddressedForm):
     def tag(self) -> str:
         return 'linked'
 
-    def create_envelope_from(self, node_uri, lane_uri, prio, rate, body) -> 'Envelope':
+    def create_envelope_from(self, node_uri: str, lane_uri: str, prio: float, rate: float, body: Item) -> 'Envelope':
         return LinkedResponse(node_uri, lane_uri, prio, rate, body=body)
 
 
@@ -316,7 +316,7 @@ class CommandMessageForm(LaneAddressedForm):
     def tag(self) -> str:
         return 'command'
 
-    def create_envelope_from(self, node_uri, lane_uri, body) -> 'Envelope':
+    def create_envelope_from(self, node_uri: str, lane_uri: str, body: Item) -> 'Envelope':
         return CommandMessage(node_uri, lane_uri, body=body)
 
 
@@ -326,5 +326,5 @@ class EventMessageForm(LaneAddressedForm):
     def tag(self) -> str:
         return 'event'
 
-    def create_envelope_from(self, node_uri, lane_uri, body) -> 'Envelope':
+    def create_envelope_from(self, node_uri: str, lane_uri: str, body: Item) -> 'Envelope':
         return EventMessage(node_uri, lane_uri, body)
