@@ -170,6 +170,11 @@ async def mock_did_set_callback(old, new):
     pass
 
 
+async def mock_on_event_callback(event):
+    str(event)
+    pass
+
+
 def mock_exception_callback():
     print('Mock exception callback')
 

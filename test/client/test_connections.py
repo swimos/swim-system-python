@@ -22,7 +22,7 @@ from swimai.client import WSConnection, ConnectionStatus, ConnectionPool, Downli
 from swimai.structures import Text, Value
 from swimai.warp import SyncedResponse, LinkedResponse, EventMessage
 from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, MockReceiveMessage, MockConnection, \
-    MockDownlink, mock_did_set_callback, MockClass
+    MockDownlink, mock_did_set_callback, MockClass, mock_on_event_callback
 
 
 class TestConnections(unittest.TestCase):
@@ -1204,3 +1204,66 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(did_set_callback, mock_schedule_task.call_args_list[5][0][0])
         self.assertEqual('hello', mock_schedule_task.call_args_list[5][0][1])
         self.assertEqual('world', mock_schedule_task.call_args_list[5][0][2])
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_subscribers_on_event_single(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://4.3.2.1:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_event()
+        downlink_view.set_node_uri('bar')
+        downlink_view.set_lane_uri('baz')
+        on_event_callback = mock_on_event_callback
+        downlink_view.on_event(on_event_callback)
+        actual = DownlinkManager(connection)
+        await actual.add_view(downlink_view)
+        # When
+        await actual.subscribers_on_event('Hello, friend!')
+        # Then
+        self.assertEqual(2, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+        self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual('Hello, friend!', mock_schedule_task.call_args_list[1][0][1])
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_subscribers_on_event_multiple(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://10.9.8.7:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        on_event_callback = mock_on_event_callback
+        first_downlink_view = client.downlink_event()
+        first_downlink_view.set_node_uri('pow')
+        first_downlink_view.set_lane_uri('poo')
+        first_downlink_view.on_event(on_event_callback)
+        second_downlink_view = client.downlink_event()
+        second_downlink_view.set_node_uri('bow')
+        second_downlink_view.set_lane_uri('boo')
+        second_downlink_view.on_event(on_event_callback)
+        third_downlink_view = client.downlink_event()
+        third_downlink_view.set_node_uri('wow')
+        third_downlink_view.set_lane_uri('woo')
+        third_downlink_view.on_event(on_event_callback)
+        actual = DownlinkManager(connection)
+        await actual.add_view(first_downlink_view)
+        await actual.add_view(second_downlink_view)
+        await actual.add_view(third_downlink_view)
+        # When
+        await actual.subscribers_on_event('Welcome home!')
+        # Then
+        self.assertEqual(4, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+
+        self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual('Welcome home!', mock_schedule_task.call_args_list[1][0][1])
+
+        self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[2][0][0])
+        self.assertEqual('Welcome home!', mock_schedule_task.call_args_list[2][0][1])
+
+        self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[3][0][0])
+        self.assertEqual('Welcome home!', mock_schedule_task.call_args_list[3][0][1])
