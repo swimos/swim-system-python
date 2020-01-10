@@ -66,6 +66,9 @@ class Envelope(ABC):
         :param tag:             - Name of the tag as string.
         :return:                - The form corresponding to the tag.
         """
+
+        if tag == 'link':
+            return LinkRequestForm()
         if tag == 'sync':
             return SyncRequestForm()
         if tag == 'synced':
@@ -109,6 +112,13 @@ class LaneAddressedEnvelope(Envelope):
 
     def __init__(self, node_uri: str, lane_uri: str, tag: str, form: 'Form', body=Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, tag, form, body)
+
+
+class LinkRequest(LinkAddressedEnvelope):
+
+    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0,
+                 body: Item = Value.absent()) -> None:
+        super().__init__(node_uri, lane_uri, prio, rate, tag='link', form=LinkRequestForm(), body=body)
 
 
 class SyncRequest(LinkAddressedEnvelope):
@@ -280,6 +290,16 @@ class LaneAddressedForm(Form):
             return self.create_envelope_from(node_uri, lane_uri, body)
 
 
+class SyncRequestForm(LinkAddressedForm):
+
+    @property
+    def tag(self) -> str:
+        return 'sync'
+
+    def create_envelope_from(self, node_uri: str, lane_uri: str, prio: float, rate: float, body: Item) -> 'Envelope':
+        return SyncRequest(node_uri, lane_uri, prio, rate, body=body)
+
+
 class SyncedResponseForm(LaneAddressedForm):
 
     @property
@@ -290,14 +310,14 @@ class SyncedResponseForm(LaneAddressedForm):
         return SyncedResponse(node_uri, lane_uri, body=body)
 
 
-class SyncRequestForm(LinkAddressedForm):
+class LinkRequestForm(LinkAddressedForm):
 
     @property
-    def tag(self) -> str:
-        return 'sync'
+    def tag(self):
+        return 'link'
 
     def create_envelope_from(self, node_uri: str, lane_uri: str, prio: float, rate: float, body: Item) -> 'Envelope':
-        return SyncRequest(node_uri, lane_uri, prio, rate, body=body)
+        return LinkRequest(node_uri, lane_uri, prio, rate, body=body)
 
 
 class LinkedResponseForm(LinkAddressedForm):

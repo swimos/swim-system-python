@@ -12,8 +12,19 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .structs import Item, Field, Attr, Value, Text, Num, Bool, Absent, Extant, Slot, RecordFlags, Record, RecordMap, \
-    RecordMapView, ValueBuilder, RecordConverter
+import time
 
-__all__ = [Item, Field, Attr, Value, Text, Num, Bool, Absent, Extant, Slot, RecordFlags, Record, RecordMap,
-           RecordMapView, ValueBuilder, RecordConverter]
+from swimai import SwimClient
+from swimai.structures import Value
+
+if __name__ == '__main__':
+    with SwimClient() as swim_client:
+        host_uri = 'ws://localhost:9001'
+        node_uri = '/unit/foo'
+
+        for i in range(0, 10):
+            swim_client.command(host_uri, node_uri, 'publish', Value.absent())
+            time.sleep(5)
+
+        print('Stopping the client in 2 seconds')
+        time.sleep(2)

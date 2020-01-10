@@ -16,7 +16,7 @@ import unittest
 
 from swimai.structures import Absent, Text
 from swimai.warp import Envelope, SyncRequestForm, SyncedResponseForm, LinkedResponseForm, EventMessageForm, \
-    CommandMessageForm, SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage
+    CommandMessageForm, SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm
 
 
 class TestEnvelopes(unittest.TestCase):
@@ -36,6 +36,14 @@ class TestEnvelopes(unittest.TestCase):
         actual = Envelope.resolve_form(tag)
         # Then
         self.assertIsInstance(actual, SyncedResponseForm)
+
+    def test_resolve_form_link(self):
+        # Given
+        tag = 'link'
+        # When
+        actual = Envelope.resolve_form(tag)
+        # Then
+        self.assertIsInstance(actual, LinkRequestForm)
 
     def test_resolve_form_linked(self):
         # Given

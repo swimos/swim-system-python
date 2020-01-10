@@ -170,6 +170,11 @@ async def mock_did_set_callback(old, new):
     pass
 
 
+async def mock_on_event_callback(event):
+    str(event)
+    pass
+
+
 def mock_exception_callback():
     print('Mock exception callback')
 
@@ -237,3 +242,25 @@ class MockClass:
 
     def __init__(self):
         pass
+
+
+class MockPerson:
+
+    def __init__(self, name=None, age=None, friend=None):
+        self.name = name
+        self.age = age
+        self.friend = friend
+
+
+class MockPet:
+    def __init__(self, name=None, age=None):
+        self.name = name
+        self.age = age
+
+
+class MockCar:
+
+    def __init__(self, make=None, model=None, year=None):
+        self.make = make
+        self.model = model
+        self.year = year

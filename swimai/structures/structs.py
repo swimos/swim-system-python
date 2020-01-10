@@ -850,3 +850,154 @@ class ValueBuilder:
             self.record.add(item)
 
         return True
+
+
+class RecordConverter:
+    converter = None
+
+    @staticmethod
+    def get_converter() -> 'RecordConverter':
+        """
+        Create a Record Converter singleton if it does not exist and return it.
+
+        :return:                - Record Converter singleton.
+        """
+        if RecordConverter.converter is None:
+            RecordConverter.converter = RecordConverter()
+
+        return RecordConverter.converter
+
+    def object_to_record(self, obj: Any) -> 'Item':
+        """
+        Convert an object into a Recon record.
+
+        :param obj:             - Object to convert.
+        :return:                - Recon record representing the original object.
+        """
+
+        if obj is None:
+            return RecordMap.create()
+
+        if isinstance(obj, Item):
+            return obj
+
+        if isinstance(obj, (str, float, int, bool)):
+            record = Value.create_from(obj)
+
+        elif isinstance(obj, dict):
+            record = RecordMap.create()
+            self.__process_entries(obj, record)
+
+        else:
+            record = RecordMap.create()
+            attr_value = Text.create_from(obj.__class__.__name__)
+            record.add(Attr.create_attr(attr_value, Extant.get_extant()))
+            self.__process_entries(obj.__dict__, record)
+
+        return record
+
+    def record_to_object(self, record: 'Record', classes: dict, strict: bool) -> 'Any':
+        """
+        Convert a Recon record into an object.
+
+        :param record:          - Recon record to convert.
+        :param classes:         - Specific Python classes to use in the conversion.
+        :param strict:          - Boolean flag indicating if the conversion should fail if a needed class is not
+                                  explicitly provided.
+        :return:                - The newly created object.
+        """
+
+        if isinstance(record.get_head(), Attr):
+            new_object = self.__record_to_class(record, classes, strict)
+        else:
+            new_object = self.__record_to_dict(record, classes, strict)
+
+        return new_object
+
+    def __process_entries(self, entries: dict, record: 'Record') -> None:
+        """
+        Convert entries to Recon and add them to the main record.
+
+        :param entries:         - Dictionary of entries to convert.
+        :param record:          - Main record for appending the converted entries.
+        """
+        for key, value in entries.items():
+
+            if value is not None:
+                slot_value = self.object_to_record(value)
+                key_value = Text.create_from(key)
+                record.add(Slot.create_slot(key_value, slot_value))
+
+    @staticmethod
+    def __attr_to_object(attribute: Item, classes: dict, strict: bool) -> Any:
+        """
+        Convert a Recon attribute item to a Python object.
+
+        :param attribute:       - Recon attribute item to convert.
+        :param classes:         - Specific Python classes to use in the conversion.
+        :param strict:          - Boolean flag indicating if the conversion should fail if a needed class is not
+                                  explicitly provided.
+        :return:                - The newly created object.
+        """
+
+        class_name = attribute.key.value
+        class_object = classes.get(class_name)
+
+        if class_object is not None:
+            return class_object()
+        elif not strict:
+            return type(str(class_name), (object,), {})
+        else:
+            raise Exception(f'Missing class for {class_name}.')
+
+    def __record_to_class(self, record: 'Record', classes: dict, strict: bool) -> Any:
+        """
+        Convert a Recon record to an instance of a Python class.
+
+        :param record:          - Recon record to convert.
+        :param classes:         - Specific Python classes to use in the conversion.
+        :param strict:          - Boolean flag indicating if the conversion should fail if a needed class is not
+                                  explicitly provided.
+        :return:                - The newly created object.
+        """
+
+        new_object = self.__attr_to_object(record.get_head(), classes, strict)
+
+        items_iter = iter(record.get_items())
+        next(items_iter)
+
+        for item in items_iter:
+            record = item.value
+            attribute = str(item.key.value)
+
+            if strict:
+                if not hasattr(new_object, attribute):
+                    raise Exception(f'Missing attribute {attribute} for class {type(new_object).__name__}.')
+
+            if isinstance(record, RecordMap):
+                setattr(new_object, attribute, self.record_to_object(record, classes, strict))
+            else:
+                setattr(new_object, attribute, item.value.value)
+
+        return new_object
+
+    def __record_to_dict(self, record: 'Record', classes: dict, strict: bool) -> dict:
+        """
+        Convert a Recon record to a Python dictionary.
+
+        :param record:          - Recon record to convert.
+        :param classes:         - Specific Python classes to use in the conversion.
+        :param strict:          - Boolean flag indicating if the conversion should fail if a needed class is not
+                                  explicitly provided.
+        :return:                - The newly created dictionary.
+        """
+        new_object = dict()
+
+        for item in record.get_items():
+            value = item.key.value
+            if isinstance(value, RecordMap):
+                new_object[item.key.key.value] = self.record_to_object(value, classes, strict)
+            else:
+                new_object[item.key.value] = item.value.value
+
+        return new_object

@@ -25,10 +25,11 @@ from threading import Thread
 from traceback import TracebackException
 from typing import Callable, Any, Optional
 from concurrent.futures.thread import ThreadPoolExecutor
+
 from .connections import ConnectionPool, WSConnection
-from .downlinks import ValueDownlinkView
+from .downlinks import ValueDownlinkView, EventDownlinkView, DownlinkView
 from .utils import URI
-from swimai.structures import Item
+from swimai.structures import RecordConverter
 from swimai.warp import CommandMessage
 
 
@@ -82,7 +83,7 @@ class SwimClient:
 
         return self
 
-    def command(self, host_uri: str, node_uri: str, lane_uri: str, body: 'Item') -> 'Future':
+    def command(self, host_uri: str, node_uri: str, lane_uri: str, body: Any) -> 'Future':
         """
         Send a command message to a command lane on a remote Swim agent.
 
@@ -91,7 +92,15 @@ class SwimClient:
         :param lane_uri:        - Lane URI of the command lane of the remote agent.
         :param body:            - The message body.
         """
+
         return self.schedule_task(self.__send_command, host_uri, node_uri, lane_uri, body)
+
+    def downlink_event(self) -> 'EventDownlinkView':
+        """
+        Create an Event Downlink.
+        """
+
+        return EventDownlinkView(self)
 
     def downlink_value(self) -> 'ValueDownlinkView':
         """
@@ -99,7 +108,7 @@ class SwimClient:
         """
         return ValueDownlinkView(self)
 
-    async def add_downlink_view(self, downlink_view: 'ValueDownlinkView') -> None:
+    async def add_downlink_view(self, downlink_view: 'DownlinkView') -> None:
         """
         Add a DownlinkView to the connection pool of the client.
 
@@ -107,7 +116,7 @@ class SwimClient:
         """
         await self.__connection_pool.add_downlink_view(downlink_view)
 
-    async def remove_downlink_view(self, downlink_view: 'ValueDownlinkView') -> None:
+    async def remove_downlink_view(self, downlink_view: 'DownlinkView') -> None:
         """
         Remove a DownlinkView from the connection pool of the client.
 
@@ -180,7 +189,7 @@ class SwimClient:
         if self.execute_on_exception is not None:
             self.execute_on_exception()
 
-    async def __send_command(self, host_uri: str, node_uri: str, lane_uri: str, body: 'Item') -> None:
+    async def __send_command(self, host_uri: str, node_uri: str, lane_uri: str, body: Any) -> None:
         """
         Send a command message to a given host.
 
@@ -189,8 +198,9 @@ class SwimClient:
         :param lane_uri:        - Lane URI of the command lane of the remote agent.
         :param body:            - The message body.
         """
+        record = RecordConverter.get_converter().object_to_record(body)
         host_uri = URI.normalise_warp_scheme(host_uri)
-        message = CommandMessage(node_uri, lane_uri, body=body)
+        message = CommandMessage(node_uri, lane_uri, body=record)
         connection = await self.get_connection(host_uri)
         await connection.send_message(await message.to_recon())
 

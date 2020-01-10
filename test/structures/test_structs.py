@@ -15,8 +15,8 @@ import os
 import unittest
 
 from swimai.structures import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value, \
-    RecordFlags, RecordMapView, ValueBuilder
-from test.utils import CustomString, CustomItem
+    RecordFlags, RecordMapView, ValueBuilder, RecordConverter
+from test.utils import CustomString, CustomItem, MockPerson, MockPet, MockCar
 
 
 class TestStructs(unittest.TestCase):
@@ -236,6 +236,18 @@ class TestStructs(unittest.TestCase):
         # Then
         message = error.exception.args[0]
         self.assertEqual('Empty value for attribute!', message)
+
+    def test_create_attr_from_extant_value(self):
+        # Given
+        key = 'Moo'
+        # When
+        actual = Attr.create_attr(key, Value.extant())
+        # Then
+        self.assertIsInstance(actual.key, Text)
+        self.assertEqual('Moo', actual.key.value)
+        self.assertIsInstance(actual.value, Extant)
+        self.assertEqual(Value.extant(), actual.value)
+        self.assertEqual(self.expected_strings.get(self.get_name()), str(actual))
 
     def test_key_equals_str_true(self):
         # Given
@@ -1671,3 +1683,332 @@ class TestStructs(unittest.TestCase):
         actual = value_builder.bind()
         # Then
         self.assertEqual(Absent.get_absent(), actual)
+
+    def test_get_converter_first(self):
+        # When
+        actual = RecordConverter.get_converter()
+        # Then
+        self.assertIsInstance(actual, RecordConverter)
+        self.assertEqual(RecordConverter.get_converter(), actual)
+        self.assertEqual(RecordConverter.converter, actual)
+
+    def test_get_converter_existing(self):
+        # Given
+        expected = RecordConverter.get_converter()
+        # When
+        actual = RecordConverter.get_converter()
+        # Then
+        self.assertIsInstance(actual, RecordConverter)
+        self.assertEqual(RecordConverter.get_converter(), actual)
+        self.assertEqual(RecordConverter.converter, actual)
+        self.assertEqual(expected, actual)
+
+    def test_converter_object_to_record_item(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        obj = Text.create_from('Boo')
+        # When
+        actual = converter.object_to_record(obj)
+        # Then
+        self.assertEqual(obj, actual)
+
+    def test_converter_object_to_record_str(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        obj = 'Moo'
+        # When
+        actual = converter.object_to_record(obj)
+        # Then
+        self.assertIsInstance(actual, Text)
+        self.assertEqual('Moo', actual.value)
+
+    def test_converter_object_to_record_float(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        obj = 13.37
+        # When
+        actual = converter.object_to_record(obj)
+        # Then
+        self.assertIsInstance(actual, Num)
+        self.assertEqual(13.37, actual.value)
+
+    def test_converter_object_to_record_int(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        obj = -1024
+        # When
+        actual = converter.object_to_record(obj)
+        # Then
+        self.assertIsInstance(actual, Num)
+        self.assertEqual(-1024, actual.value)
+
+    def test_converter_object_to_record_bool(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        obj = True
+        # When
+        actual = converter.object_to_record(obj)
+        # Then
+        self.assertIsInstance(actual, Bool)
+        self.assertEqual(Bool.TRUE, actual)
+
+    def test_converter_object_to_record_dict_single(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        obj = {'a': 5}
+        # When
+        actual = converter.object_to_record(obj)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertIsInstance(actual.get_item(0), Slot)
+        self.assertIsInstance(actual.get_item(0).key, Text)
+        self.assertEqual('a', actual.get_item(0).key.value)
+        self.assertIsInstance(actual.get_item(0).value, Num)
+        self.assertEqual(5, actual.get_item(0).value.value)
+
+    def test_convert_object_to_record_dict_empty(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        obj = {}
+        # When
+        actual = converter.object_to_record(obj)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(0, actual.size)
+
+    def test_converter_object_to_record_regular_object(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        obj = MockPerson('John', 20)
+        # When
+        actual = converter.object_to_record(obj)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertIsInstance(actual.get_item(0), Attr)
+        self.assertIsInstance(actual.get_item(1), Slot)
+        self.assertIsInstance(actual.get_item(2), Slot)
+        self.assertEqual('MockPerson', actual.get_item(0).key.value)
+        self.assertEqual('name', actual.get_item(1).key.value)
+        self.assertEqual('John', actual.get_item(1).value.value)
+        self.assertEqual('age', actual.get_item(2).key.value)
+        self.assertEqual(20, actual.get_item(2).value.value)
+
+    def test_converter_object_to_record_nested_object(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        friend = MockPerson('Mike', 23)
+        obj = MockPerson('George', 25, friend)
+        # When
+        actual = converter.object_to_record(obj)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertIsInstance(actual.get_item(3), Slot)
+        self.assertIsInstance(actual.get_item(2), Slot)
+        self.assertIsInstance(actual.get_item(1), Slot)
+        self.assertIsInstance(actual.get_item(0), Attr)
+        self.assertEqual('MockPerson', actual.get_item(0).key.value)
+        self.assertEqual('name', actual.get_item(1).key.value)
+        self.assertEqual('George', actual.get_item(1).value.value)
+        self.assertEqual('age', actual.get_item(2).key.value)
+        self.assertEqual(25, actual.get_item(2).value.value)
+        self.assertEqual('friend', actual.get_item(3).key.value)
+        self.assertIsInstance(actual.get_item(3).value, RecordMap)
+        self.assertIsInstance(actual.get_item(3).value.get_item(0), Attr)
+        self.assertIsInstance(actual.get_item(3).value.get_item(1), Slot)
+        self.assertIsInstance(actual.get_item(3).value.get_item(2), Slot)
+        self.assertEqual('MockPerson', actual.get_item(3).value.get_item(0).key.value)
+        self.assertEqual('name', actual.get_item(3).value.get_item(1).key.value)
+        self.assertEqual('Mike', actual.get_item(3).value.get_item(1).value.value)
+        self.assertEqual('age', actual.get_item(3).value.get_item(2).key.value)
+        self.assertEqual(23, actual.get_item(3).value.get_item(2).value.value)
+
+    def test_convert_object_to_record_empty(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        obj = None
+        # When
+        actual = converter.object_to_record(obj)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(0, actual.size)
+
+    def test_convert_record_to_object_dict_single(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = RecordMap.create()
+        record.add(Slot.create_slot(Text.create_from('Foo'), Text.create_from('Bar')))
+        classes = {}
+        strict = False
+        # When
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, dict)
+        self.assertEqual('Bar', actual['Foo'])
+
+    def test_convert_record_to_object_dict_multiple(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = RecordMap.create()
+        record.add(Slot.create_slot(Text.create_from('height'), Num.create_from(21)))
+        record.add(Slot.create_slot(Text.create_from('width'), Num.create_from(3.14)))
+        classes = {}
+        strict = False
+        # When
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, dict)
+        self.assertEqual(21, actual['height'])
+        self.assertEqual(3.14, actual['width'])
+
+    def test_convert_record_to_object_nested_dicts(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = RecordMap.create()
+        record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('John')))
+        pet_record = RecordMap.create()
+        pet_record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Bark')))
+        record.add(Slot.create_slot(Attr.create_attr(Text.create_from('pet'), pet_record)))
+        classes = {}
+        strict = False
+        # When
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, dict)
+        self.assertEqual('John', actual['name'])
+        self.assertIsInstance(actual['pet'], dict)
+        self.assertEqual('Bark', actual['pet']['name'])
+
+    def test_convert_record_to_object_regular_object(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = RecordMap.create()
+        record.add(Attr.create_attr(Text.create_from('MockPerson'), Value.extant()))
+        record.add(Slot.create_slot(Text.create_from('age'), Num.create_from(21)))
+        record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('foo')))
+        classes = dict()
+        classes['MockPerson'] = MockPerson
+        strict = False
+        # When
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, MockPerson)
+        self.assertEqual('foo', actual.name)
+        self.assertEqual(21, actual.age)
+
+    def test_convert_record_to_object_nested_objects(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = RecordMap.create()
+
+        pet_record = RecordMap.create()
+        pet_record.add(Attr.create_attr(Text.create_from('MockPet'), Value.extant()))
+        pet_record.add(Slot.create_slot(Text.create_from('age'), Num.create_from(33)))
+        pet_record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Bark')))
+
+        record.add(Attr.create_attr(Text.create_from('MockPerson'), Value.extant()))
+        record.add(Slot.create_slot(Text.create_from('age'), Num.create_from(19)))
+        record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Moo')))
+        record.add(Slot.create_slot(Text.create_from('friend'), pet_record))
+
+        classes = dict()
+        classes['MockPerson'] = MockPerson
+        classes['MockPet'] = MockPet
+        strict = False
+        # When
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, MockPerson)
+        self.assertEqual('Moo', actual.name)
+        self.assertEqual(19, actual.age)
+        self.assertIsInstance(actual.friend, MockPet)
+        self.assertEqual('Bark', actual.friend.name)
+        self.assertEqual(33, actual.friend.age)
+
+    def test_convert_record_to_object_missing_class_not_strict(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = RecordMap.create()
+
+        pet_record = RecordMap.create()
+        pet_record.add(Attr.create_attr(Text.create_from('MockPet'), Value.extant()))
+        pet_record.add(Slot.create_slot(Text.create_from('age'), Num.create_from(11)))
+        pet_record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Philip')))
+
+        record.add(Attr.create_attr(Text.create_from('MockPerson'), Value.extant()))
+        record.add(Slot.create_slot(Text.create_from('age'), Num.create_from(50)))
+        record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('John')))
+        record.add(Slot.create_slot(Text.create_from('friend'), pet_record))
+
+        classes = dict()
+        strict = False
+        classes['MockPerson'] = MockPerson
+        # When
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, MockPerson)
+        self.assertEqual('John', actual.name)
+        self.assertEqual(50, actual.age)
+        self.assertEqual('MockPet', actual.friend.__name__)
+        self.assertEqual('Philip', actual.friend.name)
+        self.assertEqual(11, actual.friend.age)
+
+    def test_convert_record_to_object_missing_class_strict(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = RecordMap.create()
+
+        pet_record = RecordMap.create()
+        pet_record.add(Attr.create_attr(Text.create_from('MockPet'), Value.extant()))
+        pet_record.add(Slot.create_slot(Text.create_from('age'), Num.create_from(23)))
+        pet_record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Michael')))
+
+        record.add(Attr.create_attr(Text.create_from('MockPerson'), Value.extant()))
+        record.add(Slot.create_slot(Text.create_from('age'), Num.create_from(28)))
+        record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Robert')))
+        record.add(Slot.create_slot(Text.create_from('friend'), pet_record))
+
+        classes = dict()
+        strict = True
+        classes['MockPerson'] = MockPerson
+        # When
+        with self.assertRaises(Exception) as error:
+            converter.record_to_object(record, classes, strict)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('Missing class for MockPet.', message)
+
+    def test_convert_record_to_object_class_not_matching_not_strict(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = RecordMap.create()
+        record.add(Attr.create_attr(Text.create_from('MockPerson'), Value.extant()))
+        record.add(Slot.create_slot(Text.create_from('age'), Num.create_from(39)))
+        record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('baz')))
+        classes = dict()
+        classes['MockPerson'] = MockCar
+        strict = False
+        # When
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, MockCar)
+        self.assertEqual('baz', actual.name)
+        self.assertEqual(39, actual.age)
+        self.assertIsNone(actual.model)
+        self.assertIsNone(actual.make)
+        self.assertIsNone(actual.year)
+
+    def test_convert_record_to_object_class_not_matching_strict(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = RecordMap.create()
+        record.add(Attr.create_attr(Text.create_from('MockPerson'), Value.extant()))
+        record.add(Slot.create_slot(Text.create_from('age'), Num.create_from(11)))
+        record.add(Slot.create_slot(Text.create_from('name'), Text.create_from('bar')))
+        classes = dict()
+        classes['MockPerson'] = MockCar
+        strict = True
+        with self.assertRaises(Exception) as error:
+            converter.record_to_object(record, classes, strict)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('Missing attribute age for class MockCar.', message)
