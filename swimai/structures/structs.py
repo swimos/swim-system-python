@@ -867,13 +867,17 @@ class RecordConverter:
 
         return RecordConverter.converter
 
-    async def object_to_record(self, obj: Any) -> 'Item':
+    def object_to_record(self, obj: Any) -> 'Item':
         """
         Convert an object into a Recon record.
 
         :param obj:             - Object to convert.
         :return:                - Recon record representing the original object.
         """
+
+        if obj is None:
+            return RecordMap.create()
+
         if isinstance(obj, Item):
             return obj
 
@@ -882,17 +886,17 @@ class RecordConverter:
 
         elif isinstance(obj, dict):
             record = RecordMap.create()
-            await self.__process_entries(obj, record)
+            self.__process_entries(obj, record)
 
         else:
             record = RecordMap.create()
             attr_value = Text.create_from(obj.__class__.__name__)
             record.add(Attr.create_attr(attr_value, Extant.get_extant()))
-            await self.__process_entries(obj.__dict__, record)
+            self.__process_entries(obj.__dict__, record)
 
         return record
 
-    async def record_to_object(self, record: 'Record', classes: dict, strict: bool) -> 'Any':
+    def record_to_object(self, record: 'Record', classes: dict, strict: bool) -> 'Any':
         """
         Convert a Recon record into an object.
 
@@ -904,14 +908,28 @@ class RecordConverter:
         """
 
         if isinstance(record.get_head(), Attr):
-            new_object = await self.__record_to_class(record, classes, strict)
+            new_object = self.__record_to_class(record, classes, strict)
         else:
-            new_object = await self.__record_to_dict(record, classes, strict)
+            new_object = self.__record_to_dict(record, classes, strict)
 
         return new_object
 
+    def __process_entries(self, entries: dict, record: 'Record') -> None:
+        """
+        Convert entries to Recon and add them to the main record.
+
+        :param entries:         - Dictionary of entries to convert.
+        :param record:          - Main record for appending the converted entries.
+        """
+        for key, value in entries.items():
+
+            if value is not None:
+                slot_value = self.object_to_record(value)
+                key_value = Text.create_from(key)
+                record.add(Slot.create_slot(key_value, slot_value))
+
     @staticmethod
-    async def __attr_to_object(attribute: Item, classes: dict, strict: bool) -> Any:
+    def __attr_to_object(attribute: Item, classes: dict, strict: bool) -> Any:
         """
         Convert a Recon attribute item to a Python object.
 
@@ -930,21 +948,9 @@ class RecordConverter:
         elif not strict:
             return type(str(class_name), (object,), {})
         else:
-            raise Exception(f'Missing class for {class_name}')
+            raise Exception(f'Missing class for {class_name}.')
 
-    async def __process_entries(self, entries: dict, record: 'Record') -> None:
-        """
-        Convert entries to Recon and add them to the main record.
-
-        :param entries:         - Dictionary of entries to convert.
-        :param record:          - Main record for appending the converted entries.
-        """
-        for key, value in entries.items():
-            slot_value = await self.object_to_record(value)
-            key_value = Text.create_from(key)
-            record.add(Slot.create_slot(key_value, slot_value))
-
-    async def __record_to_class(self, record: 'Record', classes: dict, strict: bool) -> Any:
+    def __record_to_class(self, record: 'Record', classes: dict, strict: bool) -> Any:
         """
         Convert a Recon record to an instance of a Python class.
 
@@ -955,21 +961,27 @@ class RecordConverter:
         :return:                - The newly created object.
         """
 
-        new_object = await self.__attr_to_object(record.get_head(), classes, strict)
+        new_object = self.__attr_to_object(record.get_head(), classes, strict)
 
         items_iter = iter(record.get_items())
         next(items_iter)
 
         for item in items_iter:
             record = item.value
+            attribute = str(item.key.value)
+
+            if strict:
+                if not hasattr(new_object, attribute):
+                    raise Exception(f'Missing attribute {attribute} for class {type(new_object).__name__}.')
+
             if isinstance(record, RecordMap):
-                setattr(new_object, str(item.key.value), await self.record_to_object(record, classes, strict))
+                setattr(new_object, attribute, self.record_to_object(record, classes, strict))
             else:
-                setattr(new_object, str(item.key.value), item.value.value)
+                setattr(new_object, attribute, item.value.value)
 
         return new_object
 
-    async def __record_to_dict(self, record: 'Record', classes: dict, strict: bool) -> dict:
+    def __record_to_dict(self, record: 'Record', classes: dict, strict: bool) -> dict:
         """
         Convert a Recon record to a Python dictionary.
 
@@ -982,9 +994,9 @@ class RecordConverter:
         new_object = dict()
 
         for item in record.get_items():
-            record = item.value
-            if isinstance(record, RecordMap):
-                new_object[item.key.value] = await self.record_to_object(record, classes, strict)
+            value = item.key.value
+            if isinstance(value, RecordMap):
+                new_object[item.key.key.value] = self.record_to_object(value, classes, strict)
             else:
                 new_object[item.key.value] = item.value.value
 

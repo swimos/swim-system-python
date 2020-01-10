@@ -4,6 +4,7 @@ test_bool_false=False
 test_bool_true=True
 test_create_attr_from_string_key=Attr("Foo", "Bar")
 test_create_attr_from_text_key=Attr("Ghost", Boo)
+test_create_attr_from_extant_value=Attr("Moo")
 test_create_num_from_negative_float=-9.9
 test_create_num_from_negative_integer=-99
 test_create_num_from_positive_float=9.9

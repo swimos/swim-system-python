@@ -202,8 +202,8 @@ class EventDownlinkModel(DownlinkModel):
             event = message.body
         else:
             converter = RecordConverter.get_converter()
-            event = await converter.record_to_object(message.body, self.downlink_manager.registered_classes,
-                                                     self.downlink_manager.strict)
+            event = converter.record_to_object(message.body, self.downlink_manager.registered_classes,
+                                               self.downlink_manager.strict)
 
         await self.downlink_manager.subscribers_on_event(event)
 
@@ -303,8 +303,8 @@ class ValueDownlinkModel(DownlinkModel):
             self.value = message.body
         else:
             converter = RecordConverter.get_converter()
-            self.value = await converter.record_to_object(message.body, self.downlink_manager.registered_classes,
-                                                          self.downlink_manager.strict)
+            self.value = converter.record_to_object(message.body, self.downlink_manager.registered_classes,
+                                                    self.downlink_manager.strict)
 
         await self.downlink_manager.subscribers_did_set(self.value, old_value)
 
@@ -409,7 +409,7 @@ class ValueDownlinkView(DownlinkView):
         """
         await self.initialised.wait()
 
-        recon = await RecordConverter.get_converter().object_to_record(value)
+        recon = RecordConverter.get_converter().object_to_record(value)
         message = CommandMessage(self.node_uri, self.lane_uri, recon)
 
         await self.model.send_message(message)
