@@ -11,7 +11,6 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-import asyncio
 import unittest
 
 from unittest.mock import patch
@@ -477,8 +476,8 @@ class TestConnections(unittest.TestCase):
         # When
         await connection.wait_for_messages()
         # Then
-        actual = await asyncio.gather(mock_receive_message.call_args[0][0].to_recon())
-        self.assertEqual(expected, actual[0])
+        actual = await mock_receive_message.call_args[0][0].to_recon()
+        self.assertEqual(expected, actual)
         self.assertEqual(ConnectionStatus.CLOSED, connection.status)
         mock_add_view.assert_called_once_with(downlink_view)
         mock_websocket.assert_called_once_with(host_uri)
@@ -516,9 +515,9 @@ class TestConnections(unittest.TestCase):
         await mock_receive_message.all_messages_has_been_sent().wait()
         # Then
         messages = mock_receive_message.call_args_list
-        first_actual_message = (await asyncio.gather(messages[0][0][0].to_recon()))[0]
-        second_actual_message = (await asyncio.gather(messages[1][0][0].to_recon()))[0]
-        third_actual_message = (await asyncio.gather(messages[2][0][0].to_recon()))[0]
+        first_actual_message = await messages[0][0][0].to_recon()
+        second_actual_message = await messages[1][0][0].to_recon()
+        third_actual_message = await messages[2][0][0].to_recon()
         actual = {first_actual_message, second_actual_message, third_actual_message}
         self.assertEqual(expected, actual)
         self.assertEqual(ConnectionStatus.CLOSED, connection.status)

@@ -17,7 +17,8 @@ import unittest
 
 from swimai.structures import Value, Text, RecordMap, Slot, Attr, Num
 from swimai.warp import SyncedResponseForm, SyncedResponse, SyncRequestForm, SyncRequest, LinkedResponseForm, \
-    CommandMessageForm, EventMessageForm, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm, LinkRequest
+    CommandMessageForm, EventMessageForm, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm, LinkRequest, \
+    UnlinkedResponseForm, UnlinkedResponse
 
 
 class TestForms(unittest.TestCase):
@@ -388,6 +389,65 @@ class TestForms(unittest.TestCase):
         self.assertEqual('linked_lane', actual.lane_uri)
         self.assertEqual(14, actual.prio)
         self.assertEqual(13, actual.rate)
+        self.assertEqual(body, actual.body.get_item(0))
+
+    def test_unlinked_form(self):
+        # Given
+        actual = UnlinkedResponseForm()
+        # Then
+        self.assertIsInstance(actual, UnlinkedResponseForm)
+        self.assertEqual('unlinked', actual.tag)
+
+    def test_unlinked_form_create_envelope(self):
+        # Given
+        form = UnlinkedResponseForm()
+        body = Text.create_from('unlinked_body')
+        # When
+        actual = form.create_envelope_from('oof', 'bar', prio=2, rate=6, body=body)
+        # Then
+        self.assertIsInstance(actual, UnlinkedResponse)
+        self.assertEqual('oof', actual.node_uri)
+        self.assertEqual('bar', actual.lane_uri)
+        self.assertEqual(2, actual.prio)
+        self.assertEqual(6, actual.rate)
+        self.assertEqual(body, actual.body)
+
+    def test_unlinked_form_mold(self):
+        # Given
+        form = UnlinkedResponseForm()
+        envelope = LinkedResponse('unlinked_node', 'unlinked_lane', prio=9, rate=10, body=Text.create_from('Baz'))
+        # When
+        actual = form.mold(envelope)
+        # Then
+        self.assertIsInstance(actual, RecordMap)
+        self.assertEqual(2, actual.size)
+        self.assertEqual('unlinked', actual.tag)
+        self.assertEqual('unlinked_node', actual.get_item(0).value.get_item(0).value.value)
+        self.assertEqual('unlinked_lane', actual.get_item(0).value.get_item(1).value.value)
+        self.assertEqual(9, actual.get_item(0).value.get_item(2).value.value)
+        self.assertEqual(10, actual.get_item(0).value.get_item(3).value.value)
+        self.assertEqual('Baz', actual.get_item(1).value)
+
+    def test_unlinked_form_cast(self):
+        # Given
+        form = UnlinkedResponseForm()
+        items = RecordMap.create()
+        items.add(Slot.create_slot(Text.create_from('node'), Text.create_from('unlinked_node')))
+        items.add(Slot.create_slot(Text.create_from('lane'), Text.create_from('unlinked_lane')))
+        items.add(Slot.create_slot(Text.create_from('prio'), Num.create_from(20)))
+        items.add(Slot.create_slot(Text.create_from('rate'), Num.create_from(25)))
+        body = Attr.create_attr(Text.create_from('body'), Text.create_from('unlinked_body'))
+        record_map = RecordMap.create()
+        record_map.add(Attr.create_attr(Text.create_from('unlinked'), items))
+        record_map.add(body)
+        # When
+        actual = form.cast(record_map)
+        # Then
+        self.assertIsInstance(actual, UnlinkedResponse)
+        self.assertEqual('unlinked_node', actual.node_uri)
+        self.assertEqual('unlinked_lane', actual.lane_uri)
+        self.assertEqual(20, actual.prio)
+        self.assertEqual(25, actual.rate)
         self.assertEqual(body, actual.body.get_item(0))
 
     def test_command_form(self):

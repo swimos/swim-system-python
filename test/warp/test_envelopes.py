@@ -16,7 +16,8 @@ import unittest
 
 from swimai.structures import Absent, Text
 from swimai.warp import Envelope, SyncRequestForm, SyncedResponseForm, LinkedResponseForm, EventMessageForm, \
-    CommandMessageForm, SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm
+    CommandMessageForm, SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm, \
+    UnlinkedResponseForm, LinkRequest, UnlinkedResponse
 
 
 class TestEnvelopes(unittest.TestCase):
@@ -52,6 +53,14 @@ class TestEnvelopes(unittest.TestCase):
         actual = Envelope.resolve_form(tag)
         # Then
         self.assertIsInstance(actual, LinkedResponseForm)
+
+    def test_resolve_form_unlinked(self):
+        # Given
+        tag = 'unlinked'
+        # When
+        actual = Envelope.resolve_form(tag)
+        # Then
+        self.assertIsInstance(actual, UnlinkedResponseForm)
 
     def test_resolve_form_event(self):
         # Given
@@ -143,6 +152,37 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual(body, actual.body)
         self.assertIsInstance(actual.form, SyncedResponseForm)
 
+    def test_link_request_empty_body(self):
+        # Given
+        node_uri = 'foo_link_node'
+        lane_uri = 'bar_link_lane'
+        # When
+        actual = LinkRequest(node_uri, lane_uri)
+        # Then
+        self.assertEqual('foo_link_node', actual.node_uri)
+        self.assertEqual('bar_link_lane', actual.lane_uri)
+        self.assertEqual('link', actual.tag)
+        self.assertEqual('foo_link_node/bar_link_lane', actual.route)
+        self.assertEqual(Absent.get_absent(), actual.body)
+        self.assertIsInstance(actual.form, LinkRequestForm)
+
+    def test_link_request_existing_body(self):
+        # Given
+        node_uri = 'foo_link_node'
+        lane_uri = 'bar_link_lane'
+        body = Text.create_from('Link_Body')
+        priority = 13.1
+        rate = 11.3
+        # When
+        actual = LinkRequest(node_uri, lane_uri, priority, rate, body)
+        # Then
+        self.assertEqual('foo_link_node', actual.node_uri)
+        self.assertEqual('bar_link_lane', actual.lane_uri)
+        self.assertEqual('link', actual.tag)
+        self.assertEqual('foo_link_node/bar_link_lane', actual.route)
+        self.assertEqual(body, actual.body)
+        self.assertIsInstance(actual.form, LinkRequestForm)
+
     def test_linked_response_empty_body(self):
         # Given
         node_uri = 'foo_linked_node'
@@ -173,6 +213,37 @@ class TestEnvelopes(unittest.TestCase):
         self.assertEqual('foo_linked_node/bar_linked_lane', actual.route)
         self.assertEqual(body, actual.body)
         self.assertIsInstance(actual.form, LinkedResponseForm)
+
+    def test_unlinked_response_empty_body(self):
+        # Given
+        node_uri = 'foo_unlinked_node'
+        lane_uri = 'bar_unlinked_lane'
+        # When
+        actual = UnlinkedResponse(node_uri, lane_uri)
+        # Then
+        self.assertEqual('foo_unlinked_node', actual.node_uri)
+        self.assertEqual('bar_unlinked_lane', actual.lane_uri)
+        self.assertEqual('unlinked', actual.tag)
+        self.assertEqual('foo_unlinked_node/bar_unlinked_lane', actual.route)
+        self.assertEqual(Absent.get_absent(), actual.body)
+        self.assertIsInstance(actual.form, UnlinkedResponseForm)
+
+    def test_unlinked_response_existing_body(self):
+        # Given
+        node_uri = 'foo_unlinked_node'
+        lane_uri = 'bar_unlinked_lane'
+        body = Text.create_from('Unlinked_Body')
+        priority = 5.11
+        rate = 6.13
+        # When
+        actual = UnlinkedResponse(node_uri, lane_uri, priority, rate, body)
+        # Then
+        self.assertEqual('foo_unlinked_node', actual.node_uri)
+        self.assertEqual('bar_unlinked_lane', actual.lane_uri)
+        self.assertEqual('unlinked', actual.tag)
+        self.assertEqual('foo_unlinked_node/bar_unlinked_lane', actual.route)
+        self.assertEqual(body, actual.body)
+        self.assertIsInstance(actual.form, UnlinkedResponseForm)
 
     def test_command_message_empty_body(self):
         # Given

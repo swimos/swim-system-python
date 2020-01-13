@@ -12,12 +12,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import asyncio
 import unittest
 
 from aiounittest import async_test
 from swimai.structures import Num, Text, RecordMap, Attr, Slot, Extant, Bool
-from swimai.warp import SyncRequest, SyncedResponse, EventMessage, LinkedResponse, CommandMessage
+from swimai.warp import SyncRequest, SyncedResponse, EventMessage, LinkedResponse, CommandMessage, LinkRequest, \
+    UnlinkedResponse
 
 
 class TestWriters(unittest.TestCase):
@@ -29,8 +29,7 @@ class TestWriters(unittest.TestCase):
         expected = '@sync(node:foo,lane:bar)'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -42,8 +41,7 @@ class TestWriters(unittest.TestCase):
         expected = '@sync(node:"bar/baz/",lane:"foo/bar")'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -55,8 +53,7 @@ class TestWriters(unittest.TestCase):
         expected = '@sync(node:"bar/baz/",lane:"foo/bar")42'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -68,8 +65,7 @@ class TestWriters(unittest.TestCase):
         expected = '@sync(node:"bar/baz/",lane:"foo/bar")33.22'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -81,8 +77,7 @@ class TestWriters(unittest.TestCase):
         expected = '@sync(node:"bar/baz/",lane:"foo/bar")false'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -94,8 +89,7 @@ class TestWriters(unittest.TestCase):
         expected = '@sync(node:"bar/baz/",lane:"foo/bar")"Hello, World!"'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -107,8 +101,7 @@ class TestWriters(unittest.TestCase):
         expected = '@sync(node:"bar/baz/",lane:"foo/bar",prio:33)"Hello, World!"'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -120,8 +113,7 @@ class TestWriters(unittest.TestCase):
         expected = '@sync(node:"bar/baz/",lane:"foo/bar",rate:0.3)"Hello, World!"'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -133,8 +125,7 @@ class TestWriters(unittest.TestCase):
         expected = '@sync(node:"bar/baz/",lane:"foo/bar",prio:33.2,rate:0.3)"Hello, World!"'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -146,8 +137,7 @@ class TestWriters(unittest.TestCase):
         expected = '@synced(node:foo,lane:bar)'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -159,8 +149,7 @@ class TestWriters(unittest.TestCase):
         expected = '@synced(node:"foo/bar/baz",lane:"baz/bar/foo")'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -172,8 +161,7 @@ class TestWriters(unittest.TestCase):
         expected = '@synced(node:"foo/bar/baz",lane:"baz/bar/foo")-13'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -185,8 +173,7 @@ class TestWriters(unittest.TestCase):
         expected = '@synced(node:"foo/bar/baz",lane:"baz/bar/foo")-13.04'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -198,8 +185,7 @@ class TestWriters(unittest.TestCase):
         expected = '@synced(node:"foo/bar/baz",lane:"baz/bar/foo")true'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -211,8 +197,115 @@ class TestWriters(unittest.TestCase):
         expected = '@synced(node:"foo/bar/baz",lane:"baz/bar/foo")"Hello, friend."'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_link(self):
+        # Given
+        envelope = LinkRequest('test', 'foo')
+        expected = '@link(node:test,lane:foo)'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_link_escaped(self):
+        # Given
+        envelope = LinkRequest('/unit/5', '/unit/3')
+        expected = '@link(node:"/unit/5",lane:"/unit/3")'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_link_body_int(self):
+        # Given
+        envelope = LinkRequest('/unit/5', '/unit/3', body=Num.create_from(-100))
+        expected = '@link(node:"/unit/5",lane:"/unit/3")-100'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_link_body_float(self):
+        # Given
+        envelope = LinkRequest('/unit/5', '/unit/3', body=Num.create_from(-100.0))
+        expected = '@link(node:"/unit/5",lane:"/unit/3")-100.0'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_link_body_bool(self):
+        # Given
+        envelope = LinkRequest('/unit/5', '/unit/3', body=Bool.create_from(False))
+        expected = '@link(node:"/unit/5",lane:"/unit/3")false'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_link_body_string(self):
+        # Given
+        envelope = LinkRequest('/unit/5', '/unit/3', body=Text.create_from('spam and \\ham/'))
+        expected = '@link(node:"/unit/5",lane:"/unit/3")"spam and \\ham/"'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_link_prio(self):
+        # Given
+        envelope = LinkRequest('/unit/5', '/unit/3', prio=33.2, body=Text.create_from('spam and \\ham/'))
+        expected = '@link(node:"/unit/5",lane:"/unit/3",prio:33.2)"spam and \\ham/"'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_link_rate(self):
+        # Given
+        envelope = LinkRequest('/unit/5', '/unit/3', rate=0.2, body=Text.create_from('spam and \\ham/'))
+        expected = '@link(node:"/unit/5",lane:"/unit/3",rate:0.2)"spam and \\ham/"'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_link_prio_rate(self):
+        # Given
+        envelope = LinkRequest('/unit/5', '/unit/3', prio=22.11, rate=0.2, body=Text.create_from('spam and \\ham/'))
+        expected = '@link(node:"/unit/5",lane:"/unit/3",prio:22.11,rate:0.2)"spam and \\ham/"'
+
+        # When
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -224,8 +317,7 @@ class TestWriters(unittest.TestCase):
         expected = '@linked(node:test,lane:foo)'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -237,8 +329,7 @@ class TestWriters(unittest.TestCase):
         expected = '@linked(node:"/unit/5",lane:"/unit/3")'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -250,8 +341,7 @@ class TestWriters(unittest.TestCase):
         expected = '@linked(node:"/unit/5",lane:"/unit/3")-100'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -263,8 +353,7 @@ class TestWriters(unittest.TestCase):
         expected = '@linked(node:"/unit/5",lane:"/unit/3")-100.0'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -276,8 +365,7 @@ class TestWriters(unittest.TestCase):
         expected = '@linked(node:"/unit/5",lane:"/unit/3")false'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -289,8 +377,7 @@ class TestWriters(unittest.TestCase):
         expected = '@linked(node:"/unit/5",lane:"/unit/3")"spam and \\ham/"'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -302,8 +389,7 @@ class TestWriters(unittest.TestCase):
         expected = '@linked(node:"/unit/5",lane:"/unit/3",prio:33.2)"spam and \\ham/"'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -315,8 +401,7 @@ class TestWriters(unittest.TestCase):
         expected = '@linked(node:"/unit/5",lane:"/unit/3",rate:0.2)"spam and \\ham/"'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -328,8 +413,116 @@ class TestWriters(unittest.TestCase):
         expected = '@linked(node:"/unit/5",lane:"/unit/3",prio:22.11,rate:0.2)"spam and \\ham/"'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_unlinked(self):
+        # Given
+        envelope = UnlinkedResponse('test', 'foo')
+        expected = '@unlinked(node:test,lane:foo)'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_unlinked_escaped(self):
+        # Given
+        envelope = UnlinkedResponse('/unit/5', '/unit/3')
+        expected = '@unlinked(node:"/unit/5",lane:"/unit/3")'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_unlinked_body_int(self):
+        # Given
+        envelope = UnlinkedResponse('/unit/5', '/unit/3', body=Num.create_from(-100))
+        expected = '@unlinked(node:"/unit/5",lane:"/unit/3")-100'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_unlinked_body_float(self):
+        # Given
+        envelope = UnlinkedResponse('/unit/5', '/unit/3', body=Num.create_from(-100.0))
+        expected = '@unlinked(node:"/unit/5",lane:"/unit/3")-100.0'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_unlinked_body_bool(self):
+        # Given
+        envelope = UnlinkedResponse('/unit/5', '/unit/3', body=Bool.create_from(False))
+        expected = '@unlinked(node:"/unit/5",lane:"/unit/3")false'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_unlinked_body_string(self):
+        # Given
+        envelope = UnlinkedResponse('/unit/5', '/unit/3', body=Text.create_from('spam and \\ham/'))
+        expected = '@unlinked(node:"/unit/5",lane:"/unit/3")"spam and \\ham/"'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_unlinked_prio(self):
+        # Given
+        envelope = UnlinkedResponse('/unit/5', '/unit/3', prio=33.2, body=Text.create_from('spam and \\ham/'))
+        expected = '@unlinked(node:"/unit/5",lane:"/unit/3",prio:33.2)"spam and \\ham/"'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_unlinked_rate(self):
+        # Given
+        envelope = UnlinkedResponse('/unit/5', '/unit/3', rate=0.2, body=Text.create_from('spam and \\ham/'))
+        expected = '@unlinked(node:"/unit/5",lane:"/unit/3",rate:0.2)"spam and \\ham/"'
+
+        # When
+        actual = await envelope.to_recon()
+
+        # Then
+        self.assertEqual(expected, actual)
+
+    @async_test
+    async def test_write_unlinked_prio_rate(self):
+        # Given
+        envelope = UnlinkedResponse('/unit/5', '/unit/3', prio=22.11, rate=0.2,
+                                    body=Text.create_from('spam and \\ham/'))
+        expected = '@unlinked(node:"/unit/5",lane:"/unit/3",prio:22.11,rate:0.2)"spam and \\ham/"'
+
+        # When
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -341,8 +534,7 @@ class TestWriters(unittest.TestCase):
         expected = '@command(node:test,lane:foo)'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -354,8 +546,7 @@ class TestWriters(unittest.TestCase):
         expected = '@command(node:"dead/parrot",lane:"spam/ham")'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -367,8 +558,7 @@ class TestWriters(unittest.TestCase):
         expected = '@command(node:"dead/parrot",lane:"spam/ham")911'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -380,8 +570,7 @@ class TestWriters(unittest.TestCase):
         expected = '@command(node:"dead/parrot",lane:"spam/ham")-911.119'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -393,8 +582,7 @@ class TestWriters(unittest.TestCase):
         expected = '@command(node:"dead/parrot",lane:"spam/ham")true'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -406,8 +594,7 @@ class TestWriters(unittest.TestCase):
         expected = '@command(node:"dead/parrot",lane:"spam/ham")"Polly the parrot."'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -424,8 +611,7 @@ class TestWriters(unittest.TestCase):
         expected = '@command(node:"/unit/foo",lane:shoppingCart)@remove(key:FromClientLink)'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -437,8 +623,7 @@ class TestWriters(unittest.TestCase):
         expected = '@event(node:test,lane:foo)'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -450,8 +635,7 @@ class TestWriters(unittest.TestCase):
         expected = '@event(node:"/this/is/spam",lane:hello)'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -463,8 +647,7 @@ class TestWriters(unittest.TestCase):
         expected = '@event(node:"/this/is/spam",lane:hello)1224'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -476,8 +659,7 @@ class TestWriters(unittest.TestCase):
         expected = '@event(node:"/this/is/spam",lane:hello)33.12'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -489,8 +671,7 @@ class TestWriters(unittest.TestCase):
         expected = '@event(node:"/this/is/spam",lane:hello)false'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -502,8 +683,7 @@ class TestWriters(unittest.TestCase):
         expected = '@event(node:"/this/is/spam",lane:hello)"-33.12 / 6"'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -521,8 +701,7 @@ class TestWriters(unittest.TestCase):
         expected = '@event(node:"/this/is/spam",lane:hello)@Person{name:Bar,age:14,salary:-5.9}'
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
@@ -549,8 +728,7 @@ class TestWriters(unittest.TestCase):
         expected = '@event(node:"/this/is/spam",lane:hello)' + person
 
         # When
-        responses = await asyncio.gather(envelope.to_recon())
-        actual = responses[0]
+        actual = await envelope.to_recon()
 
         # Then
         self.assertEqual(expected, actual)
