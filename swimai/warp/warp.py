@@ -75,6 +75,8 @@ class Envelope(ABC):
             return SyncedResponseForm()
         if tag == 'linked':
             return LinkedResponseForm()
+        if tag == 'unlinked':
+            return UnlinkedResponseForm()
         if tag == 'event':
             return EventMessageForm()
         if tag == 'command':
@@ -133,6 +135,12 @@ class LinkedResponse(LinkAddressedEnvelope):
     def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0,
                  body: Item = Value.absent()) -> None:
         super().__init__(node_uri, lane_uri, prio, rate, tag='linked', form=LinkedResponseForm(), body=body)
+
+
+class UnlinkedResponse(LinkAddressedEnvelope):
+    def __init__(self, node_uri: str, lane_uri: str, prio: float = 0.0, rate: float = 0.0,
+                 body: Item = Value.absent()) -> None:
+        super().__init__(node_uri, lane_uri, prio, rate, tag='unlinked', form=UnlinkedResponseForm(), body=body)
 
 
 class SyncedResponse(LaneAddressedEnvelope):
@@ -328,6 +336,16 @@ class LinkedResponseForm(LinkAddressedForm):
 
     def create_envelope_from(self, node_uri: str, lane_uri: str, prio: float, rate: float, body: Item) -> 'Envelope':
         return LinkedResponse(node_uri, lane_uri, prio, rate, body=body)
+
+
+class UnlinkedResponseForm(LinkAddressedForm):
+
+    @property
+    def tag(self) -> str:
+        return 'unlinked'
+
+    def create_envelope_from(self, node_uri: str, lane_uri: str, prio: float, rate: float, body: 'Item') -> 'Envelope':
+        return UnlinkedResponse(node_uri, lane_uri, prio, rate, body=body)
 
 
 class CommandMessageForm(LaneAddressedForm):

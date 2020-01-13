@@ -14,7 +14,8 @@
 
 from .warp import Envelope, SyncRequestForm, SyncedResponseForm, LinkedResponseForm, EventMessageForm, \
     CommandMessageForm, SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm, \
-    LinkRequest
+    LinkRequest, UnlinkedResponse, UnlinkedResponseForm
 
 __all__ = [Envelope, SyncRequestForm, SyncedResponseForm, LinkedResponseForm, EventMessageForm, CommandMessageForm,
-           SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm, LinkRequest]
+           SyncRequest, SyncedResponse, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm, LinkRequest,
+           UnlinkedResponse, UnlinkedResponseForm]

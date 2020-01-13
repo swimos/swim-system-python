@@ -193,6 +193,9 @@ class EventDownlinkModel(DownlinkModel):
             self.linked.set()
         elif message.tag == 'event':
             await self.receive_event(message)
+        elif message.tag == 'unlinked':
+            if message.body.tag == 'laneNotFound':
+                raise Exception(f'Lane "{self.lane_uri}" was not found on the remote agent!')
 
     async def receive_event(self, message: Envelope):
 
@@ -269,6 +272,9 @@ class ValueDownlinkModel(DownlinkModel):
             self.synced.set()
         elif message.tag == 'event':
             await self.__set_value(message)
+        elif message.tag == 'unlinked':
+            if message.body.tag == 'laneNotFound':
+                raise Exception(f'Lane "{self.lane_uri}" was not found on the remote agent!')
 
     async def send_message(self, message: 'Envelope') -> None:
         """
