@@ -13,6 +13,7 @@
 #  limitations under the License.
 
 from .downlinks import ValueDownlinkModel, ValueDownlinkView, EventDownlinkView, EventDownlinkModel, DownlinkView, \
-    DownlinkModel
+    DownlinkModel, MapDownlinkModel, MapDownlinkView
 
-__all__ = [ValueDownlinkModel, ValueDownlinkView, EventDownlinkView, EventDownlinkModel, DownlinkView, DownlinkModel]
+__all__ = [ValueDownlinkModel, ValueDownlinkView, EventDownlinkView, EventDownlinkModel, DownlinkView, DownlinkModel,
+           MapDownlinkModel, MapDownlinkView]

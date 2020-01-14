@@ -20,7 +20,7 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from ..utils import URI
-from swimai.structures import Absent, Value, Bool, Num, Text, RecordConverter
+from swimai.structures import Absent, Value, Bool, Num, Text, RecordConverter, Attr, Slot, RecordMap
 from swimai.warp import SyncRequest, CommandMessage, Envelope, LinkRequest
 from .downlink_utils import before_open
 
@@ -218,6 +218,7 @@ class EventDownlinkView(DownlinkView):
         self.on_event_callback = None
 
     async def register_manager(self, manager: 'DownlinkManager') -> None:
+        # TODO register classes or refactor to base class
         self.model = manager.downlink_model
         self.downlink_manager = manager
 
@@ -419,3 +420,118 @@ class ValueDownlinkView(DownlinkView):
         message = CommandMessage(self.node_uri, self.lane_uri, recon)
 
         await self.model.send_message(message)
+
+
+class MapDownlinkView(DownlinkView):
+
+    def __init__(self, client: 'SwimClient') -> None:
+        super().__init__(client)
+        self.did_update_callback = None
+        self.did_remove_callback = None
+        self.initialised = asyncio.Event()
+
+    async def register_manager(self, manager: 'DownlinkManager') -> None:
+        self.model = manager.downlink_model
+        self.downlink_manager = manager
+
+        if manager.is_open:
+            # TODO
+            pass
+            # await self.execute_did_set(self.model.value, Value.absent())
+
+        self.initialised.set()
+
+    async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'MapDownlinkModel':
+        model = MapDownlinkModel(self.client)
+        downlink_manager.registered_classes = await self.registered_classes
+        downlink_manager.strict = self.strict
+        model.downlink_manager = downlink_manager
+        model.host_uri = self.host_uri
+        model.node_uri = self.node_uri
+        model.lane_uri = self.lane_uri
+        return model
+
+    def put(self, key: Any, value: Any, blocking: bool = False) -> None:
+        """
+        Send a command message to put the given key and value in the remote map lane.
+
+        :param key:             - Entry key.
+        :param value:           - Entry value.
+        :param blocking:        - If True, block until the value has been sent to the server.
+        """
+        if self.is_open:
+            task = self.client.schedule_task(self.put_message, key, value)
+
+            if blocking:
+                task.result()
+
+        else:
+            raise RuntimeError('Link is not open!')
+
+    def remove(self, key: Any, blocking: bool = False) -> None:
+        # Todo
+        pass
+
+    async def put_message(self, key: Any, value: Any) -> None:
+        """
+        Send a message to the remote agent of the downlink.
+
+        :param key:             - Key for the new entry in the map lane of the remote agent.
+        :param value:           - Value for the new entry in the map lane of the remote agent.
+        """
+        await self.initialised.wait()
+
+        record = RecordMap.create()
+        record.add(Slot.create_slot(Text.create_from('key'), Text.create_from(key)))
+
+        body = RecordMap.create_record_map(Attr.create_attr(Text.create_from('update'), record))
+        body.add(Num.create_from(value))
+
+        message = CommandMessage(self.node_uri, self.lane_uri, body)
+
+        await self.model.send_message(message)
+
+
+class MapDownlinkModel(DownlinkModel):
+
+    def __init__(self, client: 'SwimClient') -> None:
+        super().__init__(client)
+        self.value = Value.absent()
+        self.synced = asyncio.Event()
+
+    async def establish_downlink(self) -> None:
+        """
+        Send a `sync` request in order to initiate a connection to a lane from the remote agent.
+        """
+        sync_request = SyncRequest(self.node_uri, self.lane_uri)
+        await self.connection.send_message(await sync_request.to_recon())
+
+    async def receive_message(self, message: 'Envelope') -> None:
+        """
+        Handle a message from the remote agent.
+
+        :param message:         - Message received from the remote agent.
+        """
+        if message.tag == 'linked':
+            self.linked.set()
+        elif message.tag == 'synced':
+            self.synced.set()
+        elif message.tag == 'event':
+            # TODO handle the different events
+            # await self.__set_value(message)
+            pass
+        elif message.tag == 'unlinked':
+            if message.body.tag == 'laneNotFound':
+                raise Exception(f'Lane "{self.lane_uri}" was not found on the remote agent!')
+
+    async def __set_value(self, message):
+        pass
+
+    async def send_message(self, message: 'Envelope') -> None:
+        """
+        Send a message to the remote agent of the downlink.
+
+        :param message:         - Message to send to the remote agent.
+        """
+        await self.linked.wait()
+        await self.connection.send_message(await message.to_recon())
