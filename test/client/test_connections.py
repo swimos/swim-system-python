@@ -16,8 +16,9 @@ import unittest
 from unittest.mock import patch
 from aiounittest import async_test
 from swimai import SwimClient
-from swimai.client import WSConnection, ConnectionStatus, ConnectionPool, DownlinkManagerPool, DownlinkManager, \
-    DownlinkManagerStatus, ValueDownlinkModel
+from swimai.client.connections import WSConnection, ConnectionStatus, ConnectionPool, DownlinkManagerPool, \
+    DownlinkManager, DownlinkManagerStatus
+from swimai.client.downlinks import ValueDownlinkModel
 from swimai.structures import Text, Value
 from swimai.warp import SyncedResponse, LinkedResponse, EventMessage
 from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, MockReceiveMessage, MockConnection, \

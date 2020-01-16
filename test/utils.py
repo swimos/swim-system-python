@@ -15,7 +15,7 @@ import asyncio
 from typing import Any
 from unittest.mock import MagicMock
 
-from swimai.client import ConnectionStatus
+from swimai.client.connections import ConnectionStatus
 from swimai.structures import Item
 
 

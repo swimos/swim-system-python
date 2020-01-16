@@ -1948,7 +1948,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, MockPerson)
         self.assertEqual('John', actual.name)
         self.assertEqual(50, actual.age)
-        self.assertEqual('MockPet', actual.friend.__name__)
+        self.assertEqual('MockPet', type(actual.friend).__name__)
         self.assertEqual('Philip', actual.friend.name)
         self.assertEqual(11, actual.friend.age)
 
