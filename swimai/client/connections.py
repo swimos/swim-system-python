@@ -348,6 +348,27 @@ class DownlinkManager:
         for view in self.__downlink_views.values():
             await view.execute_on_event(event)
 
+    async def subscribers_did_update(self, key, new_value, old_value):
+        """
+        Execute the `did_update` method of all map downlink views of the downlink manager.
+
+        :param key:                 - The key of the entry.
+        :param new_value:           - The new value of entry.
+        :param old_value:           - The previous value of the entry.
+        """
+        for view in self.__downlink_views.values():
+            await view.execute_did_update(key, new_value, old_value)
+
+    async def subscribers_did_remove(self, key, old_value):
+        """
+         Execute the `did_remove` method of all map downlink views of the downlink manager.
+
+         :param key:                 - The key of the entry.
+         :param old_value:           - The previous value of the entry.
+         """
+        for view in self.__downlink_views.values():
+            await view.execute_did_remove(key, old_value)
+
 
 class DownlinkManagerStatus(Enum):
     CLOSED = 0

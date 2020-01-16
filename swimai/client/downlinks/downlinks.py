@@ -19,6 +19,7 @@ from collections.abc import Callable
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
+from swimai.recon import Recon
 from ..utils import URI
 from swimai.structures import Absent, Value, Bool, Num, Text, RecordConverter, Attr, Slot, RecordMap
 from swimai.warp import SyncRequest, CommandMessage, Envelope, LinkRequest
@@ -56,10 +57,12 @@ class DownlinkModel:
 
     @abstractmethod
     async def establish_downlink(self) -> None:
+        # TODO Move implementations here
         raise NotImplementedError
 
     @abstractmethod
     async def receive_message(self, message: 'Envelope') -> None:
+        # TODO Move implementations here
         raise NotImplementedError
 
 
@@ -422,81 +425,11 @@ class ValueDownlinkView(DownlinkView):
         await self.model.send_message(message)
 
 
-class MapDownlinkView(DownlinkView):
-
-    def __init__(self, client: 'SwimClient') -> None:
-        super().__init__(client)
-        self.did_update_callback = None
-        self.did_remove_callback = None
-        self.initialised = asyncio.Event()
-
-    async def register_manager(self, manager: 'DownlinkManager') -> None:
-        self.model = manager.downlink_model
-        self.downlink_manager = manager
-
-        if manager.is_open:
-            # TODO
-            pass
-            # await self.execute_did_set(self.model.value, Value.absent())
-
-        self.initialised.set()
-
-    async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'MapDownlinkModel':
-        model = MapDownlinkModel(self.client)
-        downlink_manager.registered_classes = await self.registered_classes
-        downlink_manager.strict = self.strict
-        model.downlink_manager = downlink_manager
-        model.host_uri = self.host_uri
-        model.node_uri = self.node_uri
-        model.lane_uri = self.lane_uri
-        return model
-
-    def put(self, key: Any, value: Any, blocking: bool = False) -> None:
-        """
-        Send a command message to put the given key and value in the remote map lane.
-
-        :param key:             - Entry key.
-        :param value:           - Entry value.
-        :param blocking:        - If True, block until the value has been sent to the server.
-        """
-        if self.is_open:
-            task = self.client.schedule_task(self.put_message, key, value)
-
-            if blocking:
-                task.result()
-
-        else:
-            raise RuntimeError('Link is not open!')
-
-    def remove(self, key: Any, blocking: bool = False) -> None:
-        # Todo
-        pass
-
-    async def put_message(self, key: Any, value: Any) -> None:
-        """
-        Send a message to the remote agent of the downlink.
-
-        :param key:             - Key for the new entry in the map lane of the remote agent.
-        :param value:           - Value for the new entry in the map lane of the remote agent.
-        """
-        await self.initialised.wait()
-
-        record = RecordMap.create()
-        record.add(Slot.create_slot(Text.create_from('key'), Text.create_from(key)))
-
-        body = RecordMap.create_record_map(Attr.create_attr(Text.create_from('update'), record))
-        body.add(Num.create_from(value))
-
-        message = CommandMessage(self.node_uri, self.lane_uri, body)
-
-        await self.model.send_message(message)
-
-
 class MapDownlinkModel(DownlinkModel):
 
     def __init__(self, client: 'SwimClient') -> None:
         super().__init__(client)
-        self.value = Value.absent()
+        self.map = {}
         self.synced = asyncio.Event()
 
     async def establish_downlink(self) -> None:
@@ -517,15 +450,46 @@ class MapDownlinkModel(DownlinkModel):
         elif message.tag == 'synced':
             self.synced.set()
         elif message.tag == 'event':
-            # TODO handle the different events
-            # await self.__set_value(message)
-            pass
+            if message.body.tag == 'update':
+                await self.__receive_update(message)
+            if message.body.tag == 'remove':
+                await self.__receive_remove(message)
         elif message.tag == 'unlinked':
             if message.body.tag == 'laneNotFound':
                 raise Exception(f'Lane "{self.lane_uri}" was not found on the remote agent!')
 
-    async def __set_value(self, message):
-        pass
+    async def __receive_update(self, message):
+        # TODO handle custom object creations
+
+        key = RecordConverter.get_converter().record_to_object(message.body.get_item(0).value.get_item(0).value,
+                                                               self.downlink_manager.registered_classes,
+                                                               self.downlink_manager.strict)
+        value = message.body.get_item(1).value
+
+        # record = RecordConverter.get_converter().object_to_record(key)
+        recon_key = await Recon.to_string(message.body.get_item(0).value.get_item(0).value)
+
+        # if message.body == Absent.get_absent():
+        #     self.value = Value.absent()
+        # elif isinstance(message.body, (Text, Num, Bool)):
+        #     self.value = message.body
+        # else:
+        #     converter = RecordConverter.get_converter()
+        #     self.value = converter.record_to_object(message.body, self.downlink_manager.registered_classes,
+        #                                             self.downlink_manager.strict)
+
+        old_value = self.map.get(recon_key, [Value.absent()])[0]
+        self.map[recon_key] = (key, value)
+        await self.downlink_manager.subscribers_did_update(key, value, old_value)
+
+    async def __receive_remove(self, message):
+        # TODO handle custom object creations
+
+        key = message.body.get_item(0).value.get_item(0).value
+        recon_key = await Recon.to_string(message.body.get_item(0).value.get_item(0).value)
+
+        old_value = self.map.pop(recon_key, [Value.absent()])[0]
+        await self.downlink_manager.subscribers_did_remove(key, old_value)
 
     async def send_message(self, message: 'Envelope') -> None:
         """
@@ -535,3 +499,162 @@ class MapDownlinkModel(DownlinkModel):
         """
         await self.linked.wait()
         await self.connection.send_message(await message.to_recon())
+
+    async def get_value(self, key=None) -> Any:
+        """
+        Get the value of the downlink after it has been synced.
+
+        :return:                - The current value of the downlink.
+        """
+        await self.synced.wait()
+
+        if key is None:
+            return self.map.values()
+        else:
+            return self.map.get(key, [Value.absent()])[0]
+
+
+class MapDownlinkView(DownlinkView):
+
+    def __init__(self, client: 'SwimClient') -> None:
+        super().__init__(client)
+        self.did_update_callback = None
+        self.did_remove_callback = None
+        self.initialised = asyncio.Event()
+
+        self.did_update_callback = None
+
+    async def register_manager(self, manager: 'DownlinkManager') -> None:
+        self.model = manager.downlink_model
+        self.downlink_manager = manager
+
+        if manager.is_open:
+
+            for key, value in await self.model.get_value():
+                await self.execute_did_update(key, value, Value.absent())
+
+        self.initialised.set()
+
+    async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'MapDownlinkModel':
+        model = MapDownlinkModel(self.client)
+        downlink_manager.registered_classes = await self.registered_classes
+        downlink_manager.strict = self.strict
+        model.downlink_manager = downlink_manager
+        model.host_uri = self.host_uri
+        model.node_uri = self.node_uri
+        model.lane_uri = self.lane_uri
+        return model
+
+    def map(self, key):
+        if self.model is None:
+            return Value.absent()
+        else:
+            if key is None:
+                return self.model.map.values()
+            else:
+                return self.model.map.get(key, Value.absent())
+
+    async def __get_value(self, key):
+        await self.initialised.wait()
+        return await self.model.get_value(key)
+
+    def get(self, key=None, wait_sync: bool = False) -> Any:
+        if self.is_open:
+            if wait_sync:
+                task = self.client.schedule_task(self.__get_value, key)
+                return task.result()
+            else:
+                return self.map(key)
+        else:
+            raise RuntimeError('Link is not open!')
+
+    def put(self, key: Any, value: Any, blocking: bool = False) -> None:
+        """
+        Send a command message to put the given key and value in the remote map lane.
+
+        :param key:             - Entry key.
+        :param value:           - Entry value.
+        :param blocking:        - If True, block until the value has been sent to the server.
+        """
+        if self.is_open:
+            task = self.client.schedule_task(self.put_message, key, value)
+
+            if blocking:
+                task.result()
+
+        else:
+            raise RuntimeError('Link is not open!')
+
+    def remove(self, key: Any, blocking: bool = False) -> None:
+        """
+        Send a command message to remove the given key from the remote map lane.
+
+        :param key:             - Entry key.
+        :param blocking:        - If True, block until the value has been sent to the server.
+        """
+        if self.is_open:
+            task = self.client.schedule_task(self.remove_message, key)
+
+            if blocking:
+                task.result()
+
+        else:
+            raise RuntimeError('Link is not open!')
+
+    async def put_message(self, key: Any, value: Any) -> None:
+        """
+        Send a message to the remote agent of the downlink.
+
+        :param key:             - Key for the new entry in the map lane of the remote agent.
+        :param value:           - Value for the new entry in the map lane of the remote agent.
+        """
+        await self.initialised.wait()
+
+        record = RecordMap.create()
+        # TODO generalise this
+        record.add(Slot.create_slot(Text.create_from('key'), RecordConverter.get_converter().object_to_record(key)))
+
+        body = RecordMap.create_record_map(Attr.create_attr(Text.create_from('update'), record))
+        # TODO generalise this
+        body.add(Num.create_from(value))
+
+        message = CommandMessage(self.node_uri, self.lane_uri, body)
+
+        await self.model.send_message(message)
+
+    async def remove_message(self, key: Any) -> None:
+        await self.initialised.wait()
+
+        record = RecordMap.create()
+        record.add(Slot.create_slot(Text.create_from('key'), RecordConverter.get_converter().object_to_record(key)))
+
+        body = RecordMap.create_record_map(Attr.create_attr(Text.create_from('remove'), record))
+        message = CommandMessage(self.node_uri, self.lane_uri, body)
+
+        await self.model.send_message(message)
+
+    # noinspection PyAsyncCall
+    async def execute_did_update(self, key, new_value: Any, old_value: Any) -> None:
+        if self.did_update_callback:
+            self.client.schedule_task(self.did_update_callback, key, new_value, old_value)
+
+    # noinspection PyAsyncCall
+    async def execute_did_remove(self, key, old_value: Any) -> None:
+        if self.did_remove_callback:
+            self.client.schedule_task(self.did_remove_callback, key, old_value)
+
+    def did_update(self, function):
+        if inspect.iscoroutinefunction(function) or isinstance(function, Callable):
+            self.did_update_callback = function
+        else:
+            raise TypeError('Callback must be a coroutine or function!')
+
+        return self
+
+    def did_remove(self, function):
+        if inspect.iscoroutinefunction(function) or isinstance(function, Callable):
+            self.did_remove_callback = function
+        else:
+            raise TypeError('Callback must be a coroutine or function!')
+
+        return self

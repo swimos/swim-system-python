@@ -209,6 +209,9 @@ class Text(Value):
         :param string:          - String value.
         :return:                - Converted string as a Text object.
         """
+        if not isinstance(string, str):
+            raise Exception('Cannot create a Text object with non string value!')
+
         if not string:
             return Text.get_empty()
         return Text(string)
@@ -254,6 +257,9 @@ class Num(Value):
         :param obj:             - Integer or Float value.
         :return:                - Converted value as a Num object.
         """
+
+        if not isinstance(obj, (float, int)):
+            raise Exception('Cannot create a Num object with non numeric value!')
 
         return Num(obj)
 
@@ -906,7 +912,8 @@ class RecordConverter:
                                   explicitly provided.
         :return:                - The newly created object.
         """
-
+        if isinstance(record, (Text, Num, Bool)):
+            return record.value
         if isinstance(record.get_head(), Attr):
             new_object = self.__record_to_class(record, classes, strict)
         else:
@@ -946,7 +953,8 @@ class RecordConverter:
         if class_object is not None:
             return class_object()
         elif not strict:
-            return type(str(class_name), (object,), {})
+            dynamic_type = type(str(class_name), (object,), {})
+            return dynamic_type()
         else:
             raise Exception(f'Missing class for {class_name}.')
 
