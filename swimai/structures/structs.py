@@ -282,6 +282,9 @@ class Bool(Value):
     def __str__(self) -> str:
         return str(self.value)
 
+    def __bool__(self):
+        return self.value
+
     @property
     def value(self) -> bool:
         return self.__value
@@ -321,6 +324,9 @@ class Absent(Value):
     def __str__(self) -> str:
         return 'Absent()'
 
+    def __bool__(self):
+        return False
+
     @staticmethod
     def get_absent() -> 'Absent':
         """
@@ -339,6 +345,9 @@ class Extant(Value):
 
     def __str__(self) -> str:
         return 'Extant()'
+
+    def __bool__(self):
+        return False
 
     @staticmethod
     def get_extant() -> 'Extant':
@@ -912,9 +921,11 @@ class RecordConverter:
                                   explicitly provided.
         :return:                - The newly created object.
         """
+        if isinstance(record, Absent):
+            return Value.absent()
         if isinstance(record, (Text, Num, Bool)):
             return record.value
-        if isinstance(record.get_head(), Attr):
+        if isinstance(record, Record) and isinstance(record.get_head(), Attr):
             new_object = self.__record_to_class(record, classes, strict)
         else:
             new_object = self.__record_to_dict(record, classes, strict)

@@ -12,6 +12,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import warnings
+from typing import Any
+
+from swimai.structures import RecordMap, Slot, Text, RecordConverter, Attr, Record, Item
 
 
 def before_open(function):
@@ -22,3 +25,40 @@ def before_open(function):
             return function(*args)
 
     return wrapper
+
+
+class MapRequest:
+
+    def __init__(self, key: Any, value: Any = None) -> None:
+        self.key = key
+        self.value = value
+
+    def get_key_item(self) -> 'Record':
+        key_slot = RecordMap.create()
+        key_slot.add(
+            Slot.create_slot(Text.create_from('key'), RecordConverter.get_converter().object_to_record(self.key)))
+
+        return key_slot
+
+    def get_value_item(self) -> 'Item':
+        value_slot = RecordConverter.get_converter().object_to_record(self.value)
+        return value_slot
+
+
+class UpdateRequest(MapRequest):
+
+    def to_record(self) -> 'Record':
+        key_slot = self.get_key_item()
+        value_slot = self.get_value_item()
+
+        update_record = RecordMap.create_record_map(Attr.create_attr(Text.create_from('update'), key_slot))
+        update_record.add(value_slot)
+        return update_record
+
+
+class RemoveRequest(MapRequest):
+    def to_record(self) -> 'Record':
+        key_slot = self.get_key_item()
+
+        remove_record = RecordMap.create_record_map(Attr.create_attr(Text.create_from('remove'), key_slot))
+        return remove_record
