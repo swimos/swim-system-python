@@ -16,12 +16,14 @@ import unittest
 from unittest.mock import patch
 from aiounittest import async_test
 from swimai import SwimClient
-from swimai.client import WSConnection, ConnectionStatus, ConnectionPool, DownlinkManagerPool, DownlinkManager, \
-    DownlinkManagerStatus, ValueDownlinkModel
+from swimai.client.connections import WSConnection, ConnectionStatus, ConnectionPool, DownlinkManagerPool, \
+    DownlinkManager, DownlinkManagerStatus
+from swimai.client.downlinks import ValueDownlinkModel
 from swimai.structures import Text, Value
 from swimai.warp import SyncedResponse, LinkedResponse, EventMessage
 from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, MockReceiveMessage, MockConnection, \
-    MockDownlink, mock_did_set_callback, MockClass, mock_on_event_callback
+    MockDownlink, mock_did_set_callback, MockClass, mock_on_event_callback, mock_did_update_callback, \
+    mock_did_remove_callback
 
 
 class TestConnections(unittest.TestCase):
@@ -1266,3 +1268,141 @@ class TestConnections(unittest.TestCase):
 
         self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[3][0][0])
         self.assertEqual('Welcome home!', mock_schedule_task.call_args_list[3][0][1])
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_subscribers_did_update_single(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://4.3.2.1:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_map()
+        downlink_view.set_node_uri('bar')
+        downlink_view.set_lane_uri('baz')
+        did_update_callback = mock_did_update_callback
+        downlink_view.did_update(did_update_callback)
+        actual = DownlinkManager(connection)
+        await actual.add_view(downlink_view)
+        # When
+        await actual.subscribers_did_update('Key', 'New_value', 'Old_Value')
+        # Then
+        self.assertEqual(2, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+        self.assertEqual(did_update_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual('Key', mock_schedule_task.call_args_list[1][0][1])
+        self.assertEqual('New_value', mock_schedule_task.call_args_list[1][0][2])
+        self.assertEqual('Old_Value', mock_schedule_task.call_args_list[1][0][3])
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_subscribers_did_update_multiple(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://10.9.8.7:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        did_update_callback = mock_did_update_callback
+        first_downlink_view = client.downlink_map()
+        first_downlink_view.set_node_uri('pow')
+        first_downlink_view.set_lane_uri('poo')
+        first_downlink_view.did_update(did_update_callback)
+        second_downlink_view = client.downlink_map()
+        second_downlink_view.set_node_uri('bow')
+        second_downlink_view.set_lane_uri('boo')
+        second_downlink_view.did_update(did_update_callback)
+        third_downlink_view = client.downlink_map()
+        third_downlink_view.set_node_uri('wow')
+        third_downlink_view.set_lane_uri('woo')
+        third_downlink_view.did_update(did_update_callback)
+        actual = DownlinkManager(connection)
+        await actual.add_view(first_downlink_view)
+        await actual.add_view(second_downlink_view)
+        await actual.add_view(third_downlink_view)
+        # When
+        await actual.subscribers_did_update('KeY', 'NeW', 'OlD')
+        # Then
+        self.assertEqual(4, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+
+        self.assertEqual(mock_did_update_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual('KeY', mock_schedule_task.call_args_list[1][0][1])
+        self.assertEqual('NeW', mock_schedule_task.call_args_list[1][0][2])
+        self.assertEqual('OlD', mock_schedule_task.call_args_list[1][0][3])
+
+        self.assertEqual(mock_did_update_callback, mock_schedule_task.call_args_list[2][0][0])
+        self.assertEqual('KeY', mock_schedule_task.call_args_list[2][0][1])
+        self.assertEqual('NeW', mock_schedule_task.call_args_list[2][0][2])
+        self.assertEqual('OlD', mock_schedule_task.call_args_list[2][0][3])
+
+        self.assertEqual(mock_did_update_callback, mock_schedule_task.call_args_list[3][0][0])
+        self.assertEqual('KeY', mock_schedule_task.call_args_list[3][0][1])
+        self.assertEqual('NeW', mock_schedule_task.call_args_list[3][0][2])
+        self.assertEqual('OlD', mock_schedule_task.call_args_list[3][0][3])
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_subscribers_did_remove_single(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://4.3.2.1:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_map()
+        downlink_view.set_node_uri('bar')
+        downlink_view.set_lane_uri('baz')
+        did_remove_callback = mock_did_remove_callback
+        downlink_view.did_remove(did_remove_callback)
+        actual = DownlinkManager(connection)
+        await actual.add_view(downlink_view)
+        # When
+        await actual.subscribers_did_remove('Key', 'Old_Value')
+        # Then
+        self.assertEqual(2, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+        self.assertEqual(did_remove_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual('Key', mock_schedule_task.call_args_list[1][0][1])
+        self.assertEqual('Old_Value', mock_schedule_task.call_args_list[1][0][2])
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_subscribers_did_remove_multiple(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://10.9.8.7:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        on_event_callback = mock_on_event_callback
+        first_downlink_view = client.downlink_map()
+        first_downlink_view.set_node_uri('fall')
+        first_downlink_view.set_lane_uri('boom')
+        first_downlink_view.did_remove(on_event_callback)
+        second_downlink_view = client.downlink_map()
+        second_downlink_view.set_node_uri('fall')
+        second_downlink_view.set_lane_uri('boom')
+        second_downlink_view.did_remove(on_event_callback)
+        third_downlink_view = client.downlink_map()
+        third_downlink_view.set_node_uri('fall')
+        third_downlink_view.set_lane_uri('boom')
+        third_downlink_view.did_remove(on_event_callback)
+        actual = DownlinkManager(connection)
+        await actual.add_view(first_downlink_view)
+        await actual.add_view(second_downlink_view)
+        await actual.add_view(third_downlink_view)
+        # When
+        await actual.subscribers_did_remove('Bar', 'Baz')
+        # Then
+        self.assertEqual(4, mock_schedule_task.call_count)
+        self.assertEqual(1, mock_send_message.call_count)
+
+        self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual('Bar', mock_schedule_task.call_args_list[1][0][1])
+        self.assertEqual('Baz', mock_schedule_task.call_args_list[1][0][2])
+
+        self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[2][0][0])
+        self.assertEqual('Bar', mock_schedule_task.call_args_list[2][0][1])
+        self.assertEqual('Baz', mock_schedule_task.call_args_list[2][0][2])
+
+        self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[3][0][0])
+        self.assertEqual('Bar', mock_schedule_task.call_args_list[3][0][1])
+        self.assertEqual('Baz', mock_schedule_task.call_args_list[3][0][2])

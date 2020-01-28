@@ -15,7 +15,7 @@ import asyncio
 from typing import Any
 from unittest.mock import MagicMock
 
-from swimai.client import ConnectionStatus
+from swimai.client.connections import ConnectionStatus
 from swimai.structures import Item
 
 
@@ -172,6 +172,19 @@ async def mock_did_set_callback(old, new):
 
 async def mock_on_event_callback(event):
     str(event)
+    pass
+
+
+async def mock_did_update_callback(key, old, new):
+    str(key)
+    str(old)
+    str(new)
+    pass
+
+
+async def mock_did_remove_callback(key, old):
+    str(key)
+    str(old)
     pass
 
 

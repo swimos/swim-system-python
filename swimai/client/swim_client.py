@@ -27,7 +27,7 @@ from typing import Callable, Any, Optional
 from concurrent.futures.thread import ThreadPoolExecutor
 
 from .connections import ConnectionPool, WSConnection
-from .downlinks import ValueDownlinkView, EventDownlinkView, DownlinkView
+from .downlinks import ValueDownlinkView, EventDownlinkView, DownlinkView, MapDownlinkView
 from .utils import URI
 from swimai.structures import RecordConverter
 from swimai.warp import CommandMessage
@@ -107,6 +107,12 @@ class SwimClient:
         Create a Value Downlink.
         """
         return ValueDownlinkView(self)
+
+    def downlink_map(self) -> 'MapDownlinkView':
+        """
+        Create a Map Downlink.
+        """
+        return MapDownlinkView(self)
 
     async def add_downlink_view(self, downlink_view: 'DownlinkView') -> None:
         """
