@@ -348,7 +348,7 @@ class DownlinkManager:
         for view in self.__downlink_views.values():
             await view.execute_on_event(event)
 
-    async def subscribers_did_update(self, key, new_value, old_value):
+    async def subscribers_did_update(self, key: Any, new_value: Any, old_value: Any) -> None:
         """
         Execute the `did_update` method of all map downlink views of the downlink manager.
 
@@ -359,7 +359,7 @@ class DownlinkManager:
         for view in self.__downlink_views.values():
             await view.execute_did_update(key, new_value, old_value)
 
-    async def subscribers_did_remove(self, key, old_value):
+    async def subscribers_did_remove(self, key: Any, old_value: Any) -> None:
         """
          Execute the `did_remove` method of all map downlink views of the downlink manager.
 

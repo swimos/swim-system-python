@@ -22,14 +22,14 @@ from test.utils import CustomString, CustomItem, MockPerson, MockPet, MockCar
 class TestStructs(unittest.TestCase):
 
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         file_location = os.path.dirname(__file__)
         with open(os.path.join(file_location, 'expected_strings.txt')) as golden_file:
-            self.expected_strings = dict()
+            cls.expected_strings = dict()
 
             for line in golden_file:
                 (key, val) = line.strip().split('=')
-                self.expected_strings[key] = val
+                cls.expected_strings[key] = val
 
     def get_name(self):
         return self.id().split('.')[-1]
@@ -398,6 +398,17 @@ class TestStructs(unittest.TestCase):
         self.assertEqual('', actual.value)
         self.assertEqual(self.expected_strings.get(self.get_name()), str(actual))
 
+    def test_create_text_from_invalid(self):
+        # Given
+        string = 12
+        # When
+        with self.assertRaises(Exception) as error:
+            # noinspection PyTypeChecker
+            Text.create_from(string)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('Cannot create a Text object with non string value!', message)
+
     def test_text_get_empty_first_time(self):
         # When
         actual = Text.get_empty()
@@ -479,6 +490,17 @@ class TestStructs(unittest.TestCase):
         self.assertEqual(-9.9, actual.get_num_value())
         self.assertEqual(self.expected_strings.get(self.get_name()), str(num))
 
+    def test_create_num_from_invalid(self):
+        # Given
+        num = 'False'
+        # When
+        with self.assertRaises(Exception) as error:
+            # noinspection PyTypeChecker
+            Num.create_from(num)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('Cannot create a Num object with non numeric value!', message)
+
     def test_bool_true(self):
         # Given
         boolean = Bool(True)
@@ -486,6 +508,7 @@ class TestStructs(unittest.TestCase):
         self.assertTrue(boolean.value)
         self.assertTrue(boolean.get_bool_value())
         self.assertEqual(self.expected_strings.get(self.get_name()), str(boolean))
+        self.assertTrue(boolean)
 
     def test_bool_false(self):
         # Given
@@ -494,6 +517,7 @@ class TestStructs(unittest.TestCase):
         self.assertFalse(boolean.value)
         self.assertFalse(boolean.get_bool_value())
         self.assertEqual(self.expected_strings.get(self.get_name()), str(boolean))
+        self.assertFalse(boolean)
 
     def test_create_bool_from_true_once(self):
         # Given
@@ -504,6 +528,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, Bool)
         self.assertEqual(Bool.TRUE, actual)
         self.assertTrue(actual.get_bool_value())
+        self.assertTrue(actual)
 
     def test_create_bool_from_true_twice(self):
         # Given
@@ -515,6 +540,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, Bool)
         self.assertEqual(Bool.TRUE, actual)
         self.assertTrue(actual.get_bool_value())
+        self.assertTrue(actual)
 
     def test_create_bool_from_false_once(self):
         # Given
@@ -525,6 +551,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, Bool)
         self.assertEqual(Bool.FALSE, actual)
         self.assertFalse(actual.get_bool_value())
+        self.assertFalse(actual)
 
     def test_create_bool_from_false_twice(self):
         # Given
@@ -536,6 +563,7 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, Bool)
         self.assertEqual(Bool.FALSE, actual)
         self.assertFalse(actual.get_bool_value())
+        self.assertFalse(actual)
 
     def test_get_absent_once(self):
         # When
@@ -544,6 +572,9 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, Absent)
         self.assertEqual(Absent.absent, actual)
         self.assertEqual(Absent.get_absent(), actual)
+        self.assertFalse(Absent.get_absent())
+        self.assertFalse(actual)
+        self.assertFalse(Absent.absent)
 
     def test_get_absent_twice(self):
         # Given
@@ -554,6 +585,9 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, Absent)
         self.assertEqual(Absent.absent, actual)
         self.assertEqual(Absent.get_absent(), actual)
+        self.assertFalse(actual)
+        self.assertFalse(Absent.get_absent())
+        self.assertFalse(Absent.absent)
 
     def test_get_extant_once(self):
         # When
@@ -562,6 +596,9 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, Extant)
         self.assertEqual(Extant.extant, actual)
         self.assertEqual(Extant.get_extant(), actual)
+        self.assertFalse(Extant.extant)
+        self.assertFalse(actual)
+        self.assertFalse(Extant.get_extant())
 
     def test_get_extant_twice(self):
         # Given
@@ -572,6 +609,9 @@ class TestStructs(unittest.TestCase):
         self.assertIsInstance(actual, Extant)
         self.assertEqual(Extant.extant, actual)
         self.assertEqual(Extant.get_extant(), actual)
+        self.assertFalse(Extant.extant)
+        self.assertFalse(actual)
+        self.assertFalse(Extant.get_extant())
 
     def test_slot_key_value(self):
         # Given
@@ -1831,6 +1871,71 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(0, actual.size)
+
+    def test_convert_record_to_object_absent(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = Absent.get_absent()
+        classes = {}
+        strict = False
+        # When
+        # noinspection PyTypeChecker
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, Absent)
+        self.assertEqual(Absent.get_absent(), actual)
+
+    def test_convert_record_to_object_text(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = Text.create_from("Foo")
+        classes = {}
+        strict = False
+        # When
+        # noinspection PyTypeChecker
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, str)
+        self.assertEqual("Foo", actual)
+
+    def test_convert_record_to_object_int(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = Num.create_from(0)
+        classes = {}
+        strict = False
+        # When
+        # noinspection PyTypeChecker
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, int)
+        self.assertEqual(0, actual)
+
+    def test_convert_record_to_object_float(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = Num.create_from(-75.21)
+        classes = {}
+        strict = False
+        # When
+        # noinspection PyTypeChecker
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, float)
+        self.assertEqual(-75.21, actual)
+
+    def test_convert_record_to_object_bool(self):
+        # Given
+        converter = RecordConverter.get_converter()
+        record = Bool.create_from(True)
+        classes = {}
+        strict = False
+        # When
+        # noinspection PyTypeChecker
+        actual = converter.record_to_object(record, classes, strict)
+        # Then
+        self.assertIsInstance(actual, bool)
+        self.assertEqual(True, actual)
 
     def test_convert_record_to_object_dict_single(self):
         # Given

@@ -20,7 +20,7 @@ from threading import Thread
 from unittest.mock import patch
 
 from aiounittest import async_test
-from swimai.client.downlinks import ValueDownlinkView
+from swimai.client.downlinks import ValueDownlinkView, MapDownlinkView, EventDownlinkView
 from swimai.structures import Text
 from test.utils import MockWebsocketConnect, MockWebsocket, MockAsyncFunction, MockScheduleTask, MockRaiseException, \
     mock_exception_callback
@@ -199,6 +199,26 @@ class TestSwimClient(unittest.TestCase):
         self.assertIsInstance(actual, futures.Future)
         mock_websocket_connect.assert_called_once_with(host_uri)
         self.assertEqual(expected, MockWebsocket.get_mock_websocket().sent_messages[0])
+
+    def test_swim_client_downlink_event(self):
+        # Given
+        with SwimClient() as swim_client:
+            # When
+            downlink_event = swim_client.downlink_event()
+
+        # Then
+        self.assertIsInstance(downlink_event, EventDownlinkView)
+        self.assertEqual(downlink_event.client, swim_client)
+
+    def test_swim_client_downlink_map(self):
+        # Given
+        with SwimClient() as swim_client:
+            # When
+            downlink_map = swim_client.downlink_map()
+
+        # Then
+        self.assertIsInstance(downlink_map, MapDownlinkView)
+        self.assertEqual(downlink_map.client, swim_client)
 
     def test_swim_client_downlink_value(self):
         # Given

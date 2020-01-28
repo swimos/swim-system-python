@@ -175,6 +175,19 @@ async def mock_on_event_callback(event):
     pass
 
 
+async def mock_did_update_callback(key, old, new):
+    str(key)
+    str(old)
+    str(new)
+    pass
+
+
+async def mock_did_remove_callback(key, old):
+    str(key)
+    str(old)
+    pass
+
+
 def mock_exception_callback():
     print('Mock exception callback')
 
