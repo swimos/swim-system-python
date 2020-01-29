@@ -1372,19 +1372,19 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://10.9.8.7:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
-        on_event_callback = mock_on_event_callback
+        did_remove_callback = mock_on_event_callback
         first_downlink_view = client.downlink_map()
         first_downlink_view.set_node_uri('fall')
         first_downlink_view.set_lane_uri('boom')
-        first_downlink_view.did_remove(on_event_callback)
+        first_downlink_view.did_remove(did_remove_callback)
         second_downlink_view = client.downlink_map()
         second_downlink_view.set_node_uri('fall')
         second_downlink_view.set_lane_uri('boom')
-        second_downlink_view.did_remove(on_event_callback)
+        second_downlink_view.did_remove(did_remove_callback)
         third_downlink_view = client.downlink_map()
         third_downlink_view.set_node_uri('fall')
         third_downlink_view.set_lane_uri('boom')
-        third_downlink_view.did_remove(on_event_callback)
+        third_downlink_view.did_remove(did_remove_callback)
         actual = DownlinkManager(connection)
         await actual.add_view(first_downlink_view)
         await actual.add_view(second_downlink_view)
@@ -1395,14 +1395,14 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(4, mock_schedule_task.call_count)
         self.assertEqual(1, mock_send_message.call_count)
 
-        self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[1][0][0])
+        self.assertEqual(did_remove_callback, mock_schedule_task.call_args_list[1][0][0])
         self.assertEqual('Bar', mock_schedule_task.call_args_list[1][0][1])
         self.assertEqual('Baz', mock_schedule_task.call_args_list[1][0][2])
 
-        self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[2][0][0])
+        self.assertEqual(did_remove_callback, mock_schedule_task.call_args_list[2][0][0])
         self.assertEqual('Bar', mock_schedule_task.call_args_list[2][0][1])
         self.assertEqual('Baz', mock_schedule_task.call_args_list[2][0][2])
 
-        self.assertEqual(on_event_callback, mock_schedule_task.call_args_list[3][0][0])
+        self.assertEqual(did_remove_callback, mock_schedule_task.call_args_list[3][0][0])
         self.assertEqual('Bar', mock_schedule_task.call_args_list[3][0][1])
         self.assertEqual('Baz', mock_schedule_task.call_args_list[3][0][2])

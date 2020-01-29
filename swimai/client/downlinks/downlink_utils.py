@@ -12,12 +12,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import warnings
-from typing import Any
+from typing import Any, Callable
 
 from swimai.structures import RecordMap, Slot, Text, RecordConverter, Attr, Record, Item
 
 
-def before_open(function):
+def before_open(function: 'Callable') -> 'Callable':
     def wrapper(*args):
         if args[0].is_open:
             warnings.warn(f'Cannot execute "{function.__name__}" after the downlink has been open!')
@@ -25,6 +25,13 @@ def before_open(function):
             return function(*args)
 
     return wrapper
+
+
+def convert_to_async(function: 'Any') -> 'Callable':
+    async def async_func(*args):
+        return function(*args)
+
+    return async_func
 
 
 class MapRequest:

@@ -13,7 +13,6 @@
 #  limitations under the License.
 
 import asyncio
-import inspect
 import os
 import sys
 import traceback
@@ -24,7 +23,6 @@ from concurrent.futures import CancelledError
 from threading import Thread
 from traceback import TracebackException
 from typing import Callable, Any, Optional
-from concurrent.futures.thread import ThreadPoolExecutor
 
 from .connections import ConnectionPool, WSConnection
 from .downlinks import ValueDownlinkView, EventDownlinkView, DownlinkView, MapDownlinkView
@@ -39,7 +37,6 @@ class SwimClient:
                  debug: bool = False) -> None:
         self.loop = None
         self.loop_thread = None
-        self.executor = None
         self.__connection_pool = ConnectionPool()
         self.debug = debug
 
@@ -144,19 +141,14 @@ class SwimClient:
         """
         Schedule a task for execution in the asyncio loop.
 
-        :param task:            - Coroutine or function to be executed in the asyncio loop.
-        :param args:            - Arguments to be passed to the coroutine or function.
+        :param task:            - Coroutine to be executed in the asyncio loop.
+        :param args:            - Arguments to be passed to the coroutine.
         :return:                - Future object that holds information about the task execution and final result.
         """
         try:
-            if inspect.iscoroutinefunction(task):
-                future = asyncio.run_coroutine_threadsafe(task(*args), loop=self.loop)
-            else:
-                future = self.loop.run_in_executor(self.__get_pool_executor(), task, *args)
-
+            future = asyncio.run_coroutine_threadsafe(task(*args), loop=self.loop)
             future.add_done_callback(self.__exception_handler)
             return future
-
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             self.__handle_exception(exc_value, exc_traceback)
@@ -210,25 +202,11 @@ class SwimClient:
         connection = await self.get_connection(host_uri)
         await connection.send_message(await message.to_recon())
 
-    def __get_pool_executor(self) -> 'ThreadPoolExecutor':
-        """
-        Return the singleton Thread pool executor or create one if it does not exist.
-
-        :return:                - Thread pool executor.
-        """
-        if self.executor is None:
-            self.executor = ThreadPoolExecutor()
-
-        return self.executor
-
     def __start_event_loop(self) -> None:
         asyncio.set_event_loop(self.loop)
         asyncio.get_event_loop().run_forever()
 
     async def __stop_event_loop(self) -> None:
-
-        if self.executor is not None:
-            self.executor.shutdown(wait=False)
 
         tasks = [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
         [task.cancel() for task in tasks]

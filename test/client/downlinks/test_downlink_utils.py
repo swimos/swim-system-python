@@ -11,13 +11,16 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+import inspect
 import unittest
+from collections import Callable
 from unittest.mock import patch
+from aiounittest import async_test
 
 from swimai.client.downlinks import DownlinkView
-from swimai.client.downlinks.downlink_utils import MapRequest, UpdateRequest, RemoveRequest
+from swimai.client.downlinks.downlink_utils import MapRequest, UpdateRequest, RemoveRequest, convert_to_async
 from swimai.structures import RecordMap, Slot, Num, Attr
-from test.utils import MockPerson
+from test.utils import MockPerson, mock_func
 
 
 class TestDownlinkUtils(unittest.TestCase):
@@ -138,3 +141,15 @@ class TestDownlinkUtils(unittest.TestCase):
         self.assertEqual('key', actual.get_item(0).value.get_item(0).key.value)
         self.assertEqual('Boo', actual.get_item(0).value.get_item(0).value.value)
         self.assertEqual('Record(Attr("remove", Record(Slot("key", "Boo"))))', str(actual))
+
+    @async_test
+    async def test_convert_to_async_function(self):
+        # Given
+        function = mock_func
+        # When
+        actual = convert_to_async(function)
+        response = await actual()
+        # Then
+        self.assertIsInstance(actual, Callable)
+        self.assertTrue(inspect.iscoroutinefunction(actual))
+        self.assertEqual(response, 'mock_func_response')

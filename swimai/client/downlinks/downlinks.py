@@ -20,10 +20,10 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from swimai.recon import Recon
-from ..utils import URI
 from swimai.structures import Absent, Value, Bool, Num, Text, RecordConverter
 from swimai.warp import SyncRequest, CommandMessage, Envelope, LinkRequest
-from .downlink_utils import before_open, UpdateRequest, RemoveRequest
+from ..utils import URI
+from .downlink_utils import before_open, UpdateRequest, RemoveRequest, convert_to_async
 
 # Imports for type annotations
 if TYPE_CHECKING:
@@ -158,10 +158,10 @@ class DownlinkView:
 
     def register_classes(self, classes_list: list) -> None:
         for custom_class in classes_list:
-            self.client.schedule_task(self.__register_class, custom_class)
+            self.__register_class(custom_class)
 
     def register_class(self, custom_class: Any) -> None:
-        self.client.schedule_task(self.__register_class, custom_class)
+        self.__register_class(custom_class)
 
     def deregister_all_classes(self) -> None:
         if self.downlink_manager is not None:
@@ -208,6 +208,17 @@ class DownlinkView:
         model.host_uri = self.host_uri
         model.node_uri = self.node_uri
         model.lane_uri = self.lane_uri
+
+    @staticmethod
+    def validate_callback(callback: 'Callable') -> 'Callable':
+
+        if not inspect.iscoroutinefunction(callback) and isinstance(callback, Callable):
+            callback = convert_to_async(callback)
+
+        if inspect.iscoroutinefunction(callback):
+            return callback
+        else:
+            raise TypeError('Callback must be a coroutine or a function!')
 
     @abstractmethod
     async def register_manager(self, manager: 'DownlinkManager') -> None:
@@ -261,12 +272,7 @@ class EventDownlinkView(DownlinkView):
             self.client.schedule_task(self.on_event_callback, event)
 
     def on_event(self, function: Callable) -> 'EventDownlinkView':
-
-        if inspect.iscoroutinefunction(function) or isinstance(function, Callable):
-            self.on_event_callback = function
-        else:
-            raise TypeError('Callback must be a coroutine or function!')
-
+        self.on_event_callback = self.validate_callback(function)
         return self
 
 
@@ -350,12 +356,7 @@ class ValueDownlinkView(DownlinkView):
         return model
 
     def did_set(self, function: Callable) -> 'ValueDownlinkView':
-
-        if inspect.iscoroutinefunction(function) or isinstance(function, Callable):
-            self.did_set_callback = function
-        else:
-            raise TypeError('Callback must be a coroutine or function!')
-
+        self.did_set_callback = self.validate_callback(function)
         return self
 
     @property
@@ -607,17 +608,9 @@ class MapDownlinkView(DownlinkView):
             self.client.schedule_task(self.did_remove_callback, key, old_value)
 
     def did_update(self, function: Callable) -> 'MapDownlinkView':
-        if inspect.iscoroutinefunction(function) or isinstance(function, Callable):
-            self.did_update_callback = function
-        else:
-            raise TypeError('Callback must be a coroutine or function!')
-
+        self.did_update_callback = self.validate_callback(function)
         return self
 
     def did_remove(self, function: Callable) -> 'MapDownlinkView':
-        if inspect.iscoroutinefunction(function) or isinstance(function, Callable):
-            self.did_remove_callback = function
-        else:
-            raise TypeError('Callback must be a coroutine or function!')
-
+        self.did_remove_callback = self.validate_callback(function)
         return self

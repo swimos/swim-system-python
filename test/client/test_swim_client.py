@@ -13,17 +13,15 @@
 #  limitations under the License.
 import asyncio
 import unittest
-from asyncio import Future
 from concurrent import futures
-from concurrent.futures.thread import ThreadPoolExecutor
 from threading import Thread
 from unittest.mock import patch
 
 from aiounittest import async_test
 from swimai.client.downlinks import ValueDownlinkView, MapDownlinkView, EventDownlinkView
 from swimai.structures import Text
-from test.utils import MockWebsocketConnect, MockWebsocket, MockAsyncFunction, MockScheduleTask, MockRaiseException, \
-    mock_exception_callback
+from test.utils import MockWebsocketConnect, MockWebsocket, MockAsyncFunction, MockScheduleTask, \
+    mock_exception_callback, MockRunWithExceptionOnce, MockExceptionOnce
 from swimai import SwimClient
 
 
@@ -32,6 +30,7 @@ class TestSwimClient(unittest.TestCase):
     def setUp(self):
         MockWebsocket.clear()
         MockScheduleTask.clear()
+        MockExceptionOnce.clear()
         asyncio.get_event_loop().stop()
         asyncio.get_event_loop().close()
 
@@ -46,7 +45,6 @@ class TestSwimClient(unittest.TestCase):
         self.assertIsInstance(actual.loop_thread, Thread)
         self.assertFalse(actual.loop.is_closed())
         self.assertTrue(actual.loop_thread.is_alive())
-        self.assertIsNone(actual.executor)
         client.stop()
 
     def test_swim_client_stop(self):
@@ -61,7 +59,6 @@ class TestSwimClient(unittest.TestCase):
         self.assertIsInstance(actual.loop_thread, Thread)
         self.assertTrue(actual.loop.is_closed())
         self.assertFalse(actual.loop_thread.is_alive())
-        self.assertIsNone(actual.executor)
 
     def test_swim_client_with_statement(self):
         # When
@@ -76,7 +73,6 @@ class TestSwimClient(unittest.TestCase):
         self.assertIsInstance(swim_client.loop_thread, Thread)
         self.assertTrue(swim_client.loop.is_closed())
         self.assertFalse(swim_client.loop_thread.is_alive())
-        self.assertIsNone(swim_client.executor)
 
     @patch('warnings.warn')
     @patch('traceback.print_tb')
@@ -100,7 +96,6 @@ class TestSwimClient(unittest.TestCase):
         self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0].args[0])
         self.assertTrue(swim_client.loop.is_closed())
         self.assertFalse(swim_client.loop_thread.is_alive())
-        self.assertIsNone(swim_client.executor)
 
     @patch('warnings.warn')
     @patch('traceback.print_tb')
@@ -126,7 +121,6 @@ class TestSwimClient(unittest.TestCase):
         mock_warn.assert_called_once()
         mock_exit.assert_called_once_with(1)
         self.assertFalse(swim_client.loop_thread.is_alive())
-        self.assertIsNone(swim_client.executor)
 
     @patch('warnings.warn')
     @patch('traceback.print_tb')
@@ -179,7 +173,6 @@ class TestSwimClient(unittest.TestCase):
         self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0].args[0])
         mock_warn_tb.assert_called_once()
         mock_warn.assert_called_once()
-        self.assertIsNone(swim_client.executor)
         self.assertFalse(swim_client.loop_thread.is_alive())
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
@@ -297,7 +290,7 @@ class TestSwimClient(unittest.TestCase):
         mock_get_connection.assert_called_once_with(host_uri)
 
     @async_test
-    async def test_swim_client_test_schedule_task_async(self):
+    async def test_swim_client_test_schedule_task(self):
         #  Given
         mock_task = MockScheduleTask.get_mock_schedule_task()
         with SwimClient() as swim_client:
@@ -311,54 +304,50 @@ class TestSwimClient(unittest.TestCase):
         self.assertEqual('foo', mock_task.message)
         self.assertIsInstance(actual, futures.Future)
 
-    def test_swim_client_test_schedule_task_sync(self):
+    @patch('warnings.warn')
+    @patch('traceback.print_tb')
+    def test_swim_client_test_schedule_task_exception(self, mock_print_tb, mock_warn):
         # Given
         mock_task = MockScheduleTask.get_mock_schedule_task()
-        with SwimClient() as swim_client:
+        original_run = asyncio.run_coroutine_threadsafe
+
+        with patch('asyncio.run_coroutine_threadsafe', new_callable=MockRunWithExceptionOnce) as mock_run:
+            mock_exception_once = MockExceptionOnce.get_mock_exception_once()
+            mock_exception_once.actual_function = original_run
+            mock_run.side_effect = mock_exception_once.side_effect
+
             # When
-            actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
-            while not actual.done():
-                pass
+            with SwimClient() as swim_client:
+                actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
 
-        # Then
-        self.assertEqual(1, mock_task.call_count)
-        self.assertEqual('foo', mock_task.message)
-        self.assertIsInstance(actual, Future)
-        self.assertIsInstance(swim_client.executor, ThreadPoolExecutor)
+            self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0].args[0])
+            mock_print_tb.assert_not_called()
+            self.assertIsNone(actual)
+            self.assertEqual(2, mock_run.call_count)
 
     @patch('warnings.warn')
     @patch('traceback.print_tb')
-    @patch('asyncio.base_events.BaseEventLoop.run_in_executor', new_callable=MockRaiseException)
-    def test_swim_client_test_schedule_task_exception(self, mock_run_in_executor, mock_warn_tb, mock_warn):
+    def test_swim_client_test_schedule_task_exception_debug(self, mock_print_tb, mock_warn):
         # Given
         mock_task = MockScheduleTask.get_mock_schedule_task()
-        # When
-        with SwimClient() as swim_client:
-            actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
+        original_run = asyncio.run_coroutine_threadsafe
 
-        self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0].args[0])
-        mock_warn_tb.assert_not_called()
-        self.assertIsNone(actual)
-        mock_run_in_executor.assert_called_once()
+        with patch('asyncio.run_coroutine_threadsafe', new_callable=MockRunWithExceptionOnce) as mock_run:
+            mock_exception_once = MockExceptionOnce.get_mock_exception_once()
+            mock_exception_once.actual_function = original_run
+            mock_run.side_effect = mock_exception_once.side_effect
 
-    @patch('warnings.warn')
-    @patch('traceback.print_tb')
-    @patch('asyncio.base_events.BaseEventLoop.run_in_executor', new_callable=MockRaiseException)
-    def test_swim_client_test_schedule_task_exception_debug(self, mock_run_in_executor, mock_warn_tb, mock_warn):
-        # Given
-        mock_task = MockScheduleTask.get_mock_schedule_task()
-        # When
-        with SwimClient(debug=True) as swim_client:
-            actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
+            # When
+            with SwimClient(debug=True) as swim_client:
+                actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
 
-        self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0].args[0])
-        mock_warn_tb.assert_called_once()
-        self.assertIsNone(actual)
-        mock_run_in_executor.assert_called_once()
+            self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0].args[0])
+            mock_print_tb.assert_called_once()
+            self.assertIsNone(actual)
 
     @patch('warnings.warn')
     @patch('traceback.print_tb')
-    def test_swim_client_test_schedule_async_task_that_raises_exception(self, mock_warn_tb, mock_warn):
+    def test_swim_client_test_schedule_task_that_raises_exception(self, mock_warn_tb, mock_warn):
         # Given
         mock_task = MockScheduleTask.get_mock_schedule_task()
         with SwimClient(debug=True) as swim_client:
@@ -375,26 +364,7 @@ class TestSwimClient(unittest.TestCase):
         self.assertEqual('foo', mock_task.message)
         self.assertIsInstance(actual, futures.Future)
 
-    @patch('warnings.warn')
-    @patch('traceback.print_tb')
-    def test_swim_client_test_schedule_sync_task_that_raises_exception(self, mock_warn_tb, mock_warn):
-        # Given
-        mock_task = MockScheduleTask.get_mock_schedule_task()
-        with SwimClient(debug=True) as swim_client:
-            # When
-            actual = swim_client.schedule_task(mock_task.sync_exception_execute, 'foo')
-            while not actual.done():
-                pass
-
-        # Then
-        mock_warn_tb.assert_called_once()
-        mock_warn.assert_called_once()
-        self.assertEqual(1, mock_task.call_count)
-        self.assertEqual('Mock sync execute exception', mock_warn.call_args_list[0][0][0].args[0])
-        self.assertEqual('foo', mock_task.message)
-        self.assertIsInstance(actual, Future)
-
-    def test_swim_client_test_schedule_async_task_that_is_cancelled(self):
+    def test_swim_client_test_schedule_task_that_is_cancelled(self):
         # Given
         mock_task = MockScheduleTask.get_mock_schedule_task()
         with SwimClient() as swim_client:

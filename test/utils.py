@@ -192,17 +192,43 @@ def mock_exception_callback():
     print('Mock exception callback')
 
 
-class MockRaiseException(MagicMock):
+class MockExceptionOnce:
+    instance = None
+
+    def __init__(self):
+        self.calls = 0
+        self.actual_function = None
+
+    @staticmethod
+    def get_mock_exception_once():
+        if MockExceptionOnce.instance is None:
+            MockExceptionOnce.instance = MockExceptionOnce()
+
+        return MockExceptionOnce.instance
+
+    @staticmethod
+    def clear():
+        MockExceptionOnce.instance = None
+
+    def side_effect(self, *args, **kwargs):
+        if self.calls == 0:
+            self.calls = self.calls + 1
+            self.exception()
+        else:
+            return self.normal(*args, **kwargs)
+
+    @staticmethod
+    def exception():
+        raise Exception('Mock exception')
+
+    def normal(self, *args, **kwargs):
+        return self.actual_function(*args, **kwargs)
+
+
+class MockRunWithExceptionOnce(MagicMock):
 
     def __call__(self, *args, **kwargs):
-        return super(MockRaiseException, self).__call__(*args, **kwargs)
-
-    @property
-    def return_value(self):
-        return self.mock_raise_exception()
-
-    def mock_raise_exception(self):
-        raise Exception('Mock exception')
+        return super(MockRunWithExceptionOnce, self).__call__(*args, **kwargs)
 
 
 class MockScheduleTask:
@@ -227,12 +253,6 @@ class MockScheduleTask:
         MockScheduleTask.instance.message = message
         MockScheduleTask.instance.call_count = MockScheduleTask.instance.call_count + 1
         raise Exception('Mock async execute exception')
-
-    @staticmethod
-    def sync_exception_execute(message):
-        MockScheduleTask.instance.message = message
-        MockScheduleTask.instance.call_count = MockScheduleTask.instance.call_count + 1
-        raise Exception('Mock sync execute exception')
 
     @staticmethod
     async def async_infinite_cancel_execute():
@@ -277,3 +297,7 @@ class MockCar:
         self.make = make
         self.model = model
         self.year = year
+
+
+def mock_func():
+    return 'mock_func_response'
