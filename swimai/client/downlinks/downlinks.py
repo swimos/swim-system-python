@@ -16,7 +16,7 @@ import asyncio
 import inspect
 
 from collections.abc import Callable
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import TYPE_CHECKING, Any
 
 from swimai.recon import Recon
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from ..connections import DownlinkManager
 
 
-class DownlinkModel:
+class DownlinkModel(ABC):
 
     def __init__(self, client: 'SwimClient') -> None:
         self.client = client
@@ -41,7 +41,6 @@ class DownlinkModel:
         self.task = None
         self.connection = None
         self.linked = asyncio.Event()
-
         self.downlink_manager = None
 
     def open(self) -> 'DownlinkModel':
@@ -68,7 +67,7 @@ class DownlinkModel:
     async def receive_linked(self):
         self.linked.set()
 
-    async def receive_unlinked(self, message: 'Envelope'):
+    async def receive_unlinked(self, message: 'Envelope') -> None:
         if message.body.tag == 'laneNotFound':
             raise Exception(f'Lane "{self.lane_uri}" was not found on the remote agent!')
 
@@ -85,7 +84,7 @@ class DownlinkModel:
         raise NotImplementedError
 
 
-class DownlinkView:
+class DownlinkView(ABC):
 
     def __init__(self, client: 'SwimClient') -> None:
         self.client = client
@@ -136,7 +135,7 @@ class DownlinkView:
         return self
 
     @property
-    async def registered_classes(self) -> dict:
+    def registered_classes(self) -> dict:
         if self.downlink_manager is None:
             return self.__registered_classes
         else:
@@ -197,12 +196,12 @@ class DownlinkView:
 
     async def assign_manager(self, manager: 'DownlinkManager') -> None:
         self.model = manager.downlink_model
-        manager.registered_classes.update(await self.registered_classes)
+        manager.registered_classes.update(self.registered_classes)
         manager.strict = self.strict
         self.downlink_manager = manager
 
     async def initalise_model(self, downlink_manager: 'DownlinkManager', model: 'DownlinkModel') -> None:
-        downlink_manager.registered_classes = await self.registered_classes
+        downlink_manager.registered_classes = self.registered_classes
         downlink_manager.strict = self.strict
         model.downlink_manager = downlink_manager
         model.host_uri = self.host_uri

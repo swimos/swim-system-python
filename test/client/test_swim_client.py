@@ -93,7 +93,7 @@ class TestSwimClient(unittest.TestCase):
 
         mock_warn.assert_called_once()
         mock_warn_tb.assert_called_once()
-        self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0].args[0])
+        self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0])
         self.assertTrue(swim_client.loop.is_closed())
         self.assertFalse(swim_client.loop_thread.is_alive())
 
@@ -116,7 +116,7 @@ class TestSwimClient(unittest.TestCase):
             swim_client.task_with_exception()
 
         self.assertTrue(swim_client.loop.is_closed())
-        self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0].args[0])
+        self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0])
         mock_warn_tb.assert_called_once()
         mock_warn.assert_called_once()
         mock_exit.assert_called_once_with(1)
@@ -143,7 +143,7 @@ class TestSwimClient(unittest.TestCase):
             swim_client.task_with_exception()
 
         self.assertEqual('Mock exception callback', mock_print.call_args_list[0][0][0])
-        self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0].args[0])
+        self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0])
         self.assertTrue(swim_client.loop.is_closed())
         mock_warn_tb.assert_called_once()
         self.assertFalse(swim_client.loop_thread.is_alive())
@@ -170,7 +170,7 @@ class TestSwimClient(unittest.TestCase):
 
         mock_exit.assert_called_once_with(1)
         self.assertTrue(swim_client.loop.is_closed())
-        self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0].args[0])
+        self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0])
         mock_warn_tb.assert_called_once()
         mock_warn.assert_called_once()
         self.assertFalse(swim_client.loop_thread.is_alive())
@@ -320,7 +320,7 @@ class TestSwimClient(unittest.TestCase):
             with SwimClient() as swim_client:
                 actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
 
-            self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0].args[0])
+            self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0])
             mock_print_tb.assert_not_called()
             self.assertIsNone(actual)
             self.assertEqual(2, mock_run.call_count)
@@ -341,7 +341,7 @@ class TestSwimClient(unittest.TestCase):
             with SwimClient(debug=True) as swim_client:
                 actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
 
-            self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0].args[0])
+            self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0])
             mock_print_tb.assert_called_once()
             self.assertIsNone(actual)
 
@@ -359,7 +359,7 @@ class TestSwimClient(unittest.TestCase):
         # Then
         mock_warn_tb.assert_called_once()
         mock_warn.assert_called_once()
-        self.assertEqual('Mock async execute exception', mock_warn.call_args_list[0][0][0].args[0])
+        self.assertEqual('Mock async execute exception', mock_warn.call_args_list[0][0][0])
         self.assertEqual(1, mock_task.call_count)
         self.assertEqual('foo', mock_task.message)
         self.assertIsInstance(actual, futures.Future)

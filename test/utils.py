@@ -144,7 +144,9 @@ class MockConnection:
     instance = None
 
     def __init__(self):
+        self.owner = None
         self.messages_sent = list()
+        self.messages_to_receive = list()
 
     @staticmethod
     def get_mock_connection():
@@ -158,7 +160,12 @@ class MockConnection:
         MockConnection.instance = None
 
     async def wait_for_messages(self):
-        pass
+        while True:
+            if len(self.messages_to_receive) > 0 and self.owner is not None:
+                message = self.messages_to_receive.pop()
+                await self.owner.receive_message(message)
+
+            await asyncio.sleep(1)
 
     async def send_message(self, message):
         self.messages_sent.append(message)
@@ -301,3 +308,24 @@ class MockCar:
 
 def mock_func():
     return 'mock_func_response'
+
+
+class MockExecuteOnException:
+    instance = None
+
+    def __init__(self):
+        self.called = False
+
+    def __call__(self, *args, **kwargs):
+        self.called = True
+
+    @staticmethod
+    def get_mock_execute_on_exception():
+        if MockExecuteOnException.instance is None:
+            MockExecuteOnException.instance = MockExecuteOnException()
+
+        return MockExecuteOnException.instance
+
+    @staticmethod
+    def clear():
+        MockExecuteOnException.instance = None

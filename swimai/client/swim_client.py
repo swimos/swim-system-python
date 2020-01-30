@@ -175,7 +175,7 @@ class SwimClient:
         :param exc_value:       - Exception value.
         :param exc_traceback:   - Exception traceback.
         """
-        warnings.warn(exc_value)
+        warnings.warn(str(exc_value))
 
         if self.debug:
             traceback.print_tb(exc_traceback)

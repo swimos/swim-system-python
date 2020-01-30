@@ -13,11 +13,11 @@
 #  limitations under the License.
 import inspect
 import unittest
-from collections import Callable
+from collections.abc import Callable
 from unittest.mock import patch
 from aiounittest import async_test
 
-from swimai.client.downlinks import DownlinkView
+from swimai.client.downlinks import EventDownlinkView
 from swimai.client.downlinks.downlink_utils import MapRequest, UpdateRequest, RemoveRequest, convert_to_async
 from swimai.structures import RecordMap, Slot, Num, Attr
 from test.utils import MockPerson, mock_func
@@ -29,7 +29,7 @@ class TestDownlinkUtils(unittest.TestCase):
     def test_before_open_false(self, mock_warn):
         # Given
         # noinspection PyTypeChecker
-        downlink_view = DownlinkView(None)
+        downlink_view = EventDownlinkView(None)
         downlink_view.is_open = False
         # When
         downlink_view.set_node_uri('foo')
@@ -40,7 +40,7 @@ class TestDownlinkUtils(unittest.TestCase):
     def test_before_open_true(self, mock_warn):
         # Given
         # noinspection PyTypeChecker
-        downlink_view = DownlinkView(None)
+        downlink_view = EventDownlinkView(None)
         downlink_view.is_open = True
         # When
         downlink_view.set_node_uri('foo')
@@ -152,4 +152,4 @@ class TestDownlinkUtils(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Callable)
         self.assertTrue(inspect.iscoroutinefunction(actual))
-        self.assertEqual(response, 'mock_func_response')
+        self.assertEqual('mock_func_response', response)
