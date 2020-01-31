@@ -104,17 +104,26 @@ class WSConnection:
         self.status = ConnectionStatus.CLOSED
         self.__subscribers = DownlinkManagerPool()
 
+    # TODO Add unit test
     async def open(self) -> None:
         if self.status == ConnectionStatus.CLOSED:
             self.status = ConnectionStatus.CONNECTING
-            # TODO Add exception handling
-            self.websocket = await websockets.connect(self.host_uri)
+
+            try:
+                self.websocket = await websockets.connect(self.host_uri)
+            except Exception as error:
+                self.status = ConnectionStatus.CLOSED
+                raise error
+
             self.status = ConnectionStatus.IDLE
             self.connected.set()
 
     async def close(self) -> None:
         if self.status != ConnectionStatus.CLOSED:
             self.status = ConnectionStatus.CLOSED
+
+            # TODO
+            # self.__subscribers.close()
 
             if self.websocket:
                 self.websocket.close_timeout = 0.1
@@ -163,7 +172,6 @@ class WSConnection:
         if self.websocket is None or self.status == ConnectionStatus.CLOSED:
             await self.open()
 
-        # TODO Add exception handling
         await self.connected.wait()
         await self.websocket.send(message)
 

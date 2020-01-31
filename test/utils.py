@@ -14,7 +14,6 @@
 import asyncio
 from typing import Any
 from unittest.mock import MagicMock
-
 from swimai.client.connections import ConnectionStatus
 from swimai.structures import Item
 
@@ -109,6 +108,7 @@ class MockWebsocket:
         self.sent_messages = list()
         self.messages_to_send = list()
         self.raise_exception = False
+        self.custom_recv_func = None
 
     @staticmethod
     def get_mock_websocket():
@@ -129,15 +129,31 @@ class MockWebsocket:
 
     async def recv(self):
 
-        if self.raise_exception:
-            raise Exception('WebSocket Exception!')
+        if self.custom_recv_func is None:
 
-        message = self.messages_to_send.pop()
+            if self.raise_exception:
+                raise Exception('WebSocket Exception!')
 
-        if len(self.messages_to_send) == 0:
-            self.connection.status = ConnectionStatus.CLOSED
+            message = self.messages_to_send.pop()
 
-        return message
+            if len(self.messages_to_send) == 0:
+                self.connection.status = ConnectionStatus.CLOSED
+
+            return message
+
+        else:
+            return await self.custom_recv_func()
+
+
+class ReceiveLoop:
+
+    def __init__(self):
+        self.call_count = 0
+
+    async def recv_loop(self):
+        while True:
+            self.call_count = self.call_count + 1
+            await asyncio.sleep(1)
 
 
 class MockConnection:
@@ -169,6 +185,11 @@ class MockConnection:
 
     async def send_message(self, message):
         self.messages_sent.append(message)
+
+
+def mock_did_set_confirmation():
+    print(1)
+    pass
 
 
 async def mock_did_set_callback(old, new):
