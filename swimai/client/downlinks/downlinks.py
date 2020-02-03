@@ -91,14 +91,18 @@ class DownlinkView(ABC):
         self.host_uri = None
         self.node_uri = None
         self.lane_uri = None
-        self.is_open = False
         self.connection = None
         self.model = None
         self.downlink_manager = None
 
+        self.__is_open = False
         self.__registered_classes = dict()
-        self.__deregister_classes = set()
+        self.__deregistered_classes = set()
         self.__strict = False
+
+    @property
+    def is_open(self):
+        return self.model is not None and not self.model.task.cancelled() and self.__is_open
 
     @property
     def route(self) -> str:
@@ -121,17 +125,16 @@ class DownlinkView(ABC):
 
     def open(self) -> 'DownlinkView':
         if not self.is_open:
-            self.is_open = True
             self.client.schedule_task(self.client.add_downlink_view, self)
 
+        self.__is_open = True
         return self
 
     def close(self) -> 'DownlinkView':
-
         if self.is_open:
-            self.is_open = False
             self.client.schedule_task(self.client.remove_downlink_view, self)
 
+        self.__is_open = False
         return self
 
     @property
@@ -150,10 +153,10 @@ class DownlinkView(ABC):
 
     @strict.setter
     def strict(self, strict: bool) -> None:
-        if self.downlink_manager is not None:
-            self.downlink_manager.strict = self.__strict
-        else:
+        if self.downlink_manager is None:
             self.__strict = strict
+        else:
+            self.downlink_manager.strict = strict
 
     def register_classes(self, classes_list: list) -> None:
         for custom_class in classes_list:
@@ -164,7 +167,7 @@ class DownlinkView(ABC):
 
     def deregister_all_classes(self) -> None:
         if self.downlink_manager is not None:
-            self.__deregister_classes.update(set(self.downlink_manager.registered_classes.keys()))
+            self.__deregistered_classes.update(set(self.downlink_manager.registered_classes.keys()))
             self.downlink_manager.registered_classes.clear()
         else:
             self.__registered_classes.clear()
@@ -178,7 +181,7 @@ class DownlinkView(ABC):
             self.downlink_manager.registered_classes.pop(custom_class.__name__, None)
         else:
             self.__registered_classes.pop(custom_class.__name__, None)
-            self.__deregister_classes.add(custom_class.__name__)
+            self.__deregistered_classes.add(custom_class.__name__)
 
     def __register_class(self, custom_class: Any) -> None:
         try:
@@ -188,8 +191,7 @@ class DownlinkView(ABC):
                 self.downlink_manager.registered_classes[custom_class.__name__] = custom_class
             else:
                 self.__registered_classes[custom_class.__name__] = custom_class
-                self.__deregister_classes.discard(custom_class.__name__)
-
+                self.__deregistered_classes.discard(custom_class.__name__)
         except Exception:
             raise Exception(
                 f'Class {custom_class.__name__} must have a default constructor or default values for all arguments!')

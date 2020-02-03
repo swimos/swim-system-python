@@ -20,33 +20,35 @@ from aiounittest import async_test
 from swimai.client.downlinks import EventDownlinkView
 from swimai.client.downlinks.downlink_utils import MapRequest, UpdateRequest, RemoveRequest, convert_to_async
 from swimai.structures import RecordMap, Slot, Num, Attr
-from test.utils import MockPerson, mock_func
+from test.utils import MockPerson, mock_func, return_true, return_false
 
 
 class TestDownlinkUtils(unittest.TestCase):
 
     @patch('warnings.warn')
-    def test_before_open_false(self, mock_warn):
+    @patch('swimai.client.downlinks.downlinks.DownlinkView.is_open', new_callable=return_false)
+    def test_before_open_false(self, mock_is_open, mock_warn):
         # Given
         # noinspection PyTypeChecker
         downlink_view = EventDownlinkView(None)
-        downlink_view.is_open = False
         # When
         downlink_view.set_node_uri('foo')
         # Then
         self.assertEqual(0, mock_warn.call_count)
+        self.assertFalse(mock_is_open)
 
     @patch('warnings.warn')
-    def test_before_open_true(self, mock_warn):
+    @patch('swimai.client.downlinks.downlinks.DownlinkView.is_open', new_callable=return_true)
+    def test_before_open_true(self, mock_is_open, mock_warn):
         # Given
         # noinspection PyTypeChecker
         downlink_view = EventDownlinkView(None)
-        downlink_view.is_open = True
         # When
         downlink_view.set_node_uri('foo')
         # Then
         self.assertEqual('Cannot execute "set_node_uri" after the downlink has been open!',
                          mock_warn.mock_calls[0][1][0])
+        self.assertTrue(mock_is_open)
 
     def test_map_request_get_key_item_primitive(self):
         # Given

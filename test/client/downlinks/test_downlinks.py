@@ -36,7 +36,7 @@ from swimai.client.downlinks import EventDownlinkModel, DownlinkModel, ValueDown
 from swimai.structures import Record, Text, Attr, RecordMap
 from swimai.warp import LinkedResponse, SyncedResponse, EventMessage, UnlinkedResponse
 from test.utils import MockConnection, MockExecuteOnException, MockWebsocketConnect, MockWebsocket, \
-    mock_did_set_confirmation, ReceiveLoop
+    mock_did_set_confirmation, ReceiveLoop, MockPerson, MockPet
 
 
 class TestDownlinks(unittest.TestCase):
@@ -259,12 +259,12 @@ class TestDownlinks(unittest.TestCase):
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
     @async_test
     async def test_downlink_view_open(self, mock_websocket_connect):
+        # Given
         message = '@event(node:"boo/bar",lane:shop)'
         MockWebsocket.get_mock_websocket().messages_to_send.append(message)
         loop_class = ReceiveLoop()
         MockWebsocket.get_mock_websocket().custom_recv_func = loop_class.recv_loop
-        # Given
-        with SwimClient(debug=True) as client:
+        with SwimClient() as client:
             downlink = ValueDownlinkView(client)
             downlink.set_host_uri('ws://127.0.0.1')
             downlink.set_node_uri('boo/bar')
@@ -279,11 +279,224 @@ class TestDownlinks(unittest.TestCase):
             # Then
             self.assertTrue(actual.is_open)
 
-        # await asyncio.sleep(2)
-        # self.assertFalse(actual.is_open)
+        self.assertFalse(actual.is_open)
+        self.assertTrue(mock_websocket_connect.called)
+        self.assertIsInstance(actual.model, DownlinkModel)
+
+    @patch('websockets.connect', new_callable=MockWebsocketConnect)
+    @async_test
+    async def test_downlink_view_close(self, mock_websocket_connect):
+        # Given
+        message = '@event(node:"boo/bar",lane:shop)'
+        MockWebsocket.get_mock_websocket().messages_to_send.append(message)
+        loop_class = ReceiveLoop()
+        MockWebsocket.get_mock_websocket().custom_recv_func = loop_class.recv_loop
+        with SwimClient() as client:
+            downlink = ValueDownlinkView(client)
+            downlink.set_host_uri('ws://127.0.0.1')
+            downlink.set_node_uri('boo/bar')
+            downlink.set_lane_uri('shop')
+            downlink.did_set(mock_did_set_confirmation)
+            downlink.open()
+            while loop_class.call_count == 0:
+                pass
+            # When
+            actual = downlink.close()
+
+        # Then
+        self.assertFalse(actual.is_open)
         self.assertTrue(mock_websocket_connect.called)
         self.assertIsInstance(actual.model, DownlinkModel)
 
     @async_test
-    async def test_downlink_view_close(self):
+    async def test_downlink_view_get_registered_classes_from_self(self):
+        # Given
+        with SwimClient() as client:
+            downlink = ValueDownlinkView(client)
+            # When
+            mock_person_class = MockPerson
+            downlink.register_class(mock_person_class)
+
+        # Then
+        self.assertEqual(1, len(downlink.registered_classes))
+        self.assertEqual(mock_person_class, downlink.registered_classes.get('MockPerson'))
+
+    @patch('websockets.connect', new_callable=MockWebsocketConnect)
+    @async_test
+    async def test_downlink_view_get_registered_classes_from_manager(self, mock_websocket_connect):
+        # Given
+        message = '@event(node:"boo/bar",lane:shop)'
+        MockWebsocket.get_mock_websocket().messages_to_send.append(message)
+        loop_class = ReceiveLoop()
+        MockWebsocket.get_mock_websocket().custom_recv_func = loop_class.recv_loop
+
+        with SwimClient() as client:
+            downlink = ValueDownlinkView(client)
+            downlink.set_host_uri('ws://127.0.0.1')
+            downlink.set_node_uri('boo/bar')
+            downlink.set_lane_uri('shop')
+            downlink.did_set(mock_did_set_confirmation)
+
+            # When
+            mock_person_class = MockPerson
+            downlink.register_class(mock_person_class)
+            downlink.open()
+            while loop_class.call_count == 0:
+                pass
+
+        # Then
+        self.assertEqual(1, len(downlink.registered_classes))
+        self.assertTrue(mock_websocket_connect.called)
+        self.assertEqual(mock_person_class, downlink.registered_classes.get('MockPerson'))
+
+    @async_test
+    async def test_downlink_view_get_strict_from_self(self):
+        # Given
+        with SwimClient() as client:
+            # When
+            downlink = ValueDownlinkView(client)
+
+        # Then
+        self.assertFalse(downlink.strict)
+
+    @patch('websockets.connect', new_callable=MockWebsocketConnect)
+    @async_test
+    async def test_downlink_view_get_strict_from_manager(self, mock_websocket_connect):
+        # Given
+        message = '@event(node:"boo/bar",lane:shop)'
+        MockWebsocket.get_mock_websocket().messages_to_send.append(message)
+        loop_class = ReceiveLoop()
+        MockWebsocket.get_mock_websocket().custom_recv_func = loop_class.recv_loop
+
+        with SwimClient() as client:
+            downlink = ValueDownlinkView(client)
+            downlink.set_host_uri('ws://127.0.0.1')
+            downlink.set_node_uri('boo/bar')
+            downlink.set_lane_uri('shop')
+            downlink.did_set(mock_did_set_confirmation)
+
+            # When
+            downlink.open()
+            while loop_class.call_count == 0:
+                pass
+
+        # Then
+        self.assertFalse(downlink.strict)
+        self.assertTrue(mock_websocket_connect.called)
+
+    @async_test
+    async def test_downlink_view_set_strict_to_self(self):
+        # Given
+        with SwimClient() as client:
+            downlink = ValueDownlinkView(client)
+            # When
+            downlink.strict = True
+
+        # Then
+        self.assertTrue(downlink.strict)
+
+    @patch('websockets.connect', new_callable=MockWebsocketConnect)
+    @async_test
+    async def test_downlink_view_set_strict_to_manager(self, mock_websocket_connect):
+        # Given
+        message = '@event(node:"boo/bar",lane:shop)'
+        MockWebsocket.get_mock_websocket().messages_to_send.append(message)
+        loop_class = ReceiveLoop()
+        MockWebsocket.get_mock_websocket().custom_recv_func = loop_class.recv_loop
+
+        with SwimClient() as client:
+            downlink = ValueDownlinkView(client)
+            downlink.set_host_uri('ws://127.0.0.1')
+            downlink.set_node_uri('boo/bar')
+            downlink.set_lane_uri('shop')
+            downlink.did_set(mock_did_set_confirmation)
+            downlink.open()
+            while loop_class.call_count == 0:
+                pass
+
+            # When
+            downlink.strict = True
+
+        # Then
+        self.assertTrue(downlink.strict)
+        self.assertTrue(mock_websocket_connect.called)
+
+    @async_test
+    async def test_downlink_view_register_classes(self):
+        # Given
+        with SwimClient() as client:
+            downlink = ValueDownlinkView(client)
+            # When
+            mock_person_class = MockPerson
+            mock_pet_class = MockPet
+            downlink.register_classes([mock_person_class, mock_pet_class])
+
+        # Then
+        self.assertEqual(2, len(downlink.registered_classes))
+        self.assertEqual(mock_person_class, downlink.registered_classes.get('MockPerson'))
+        self.assertEqual(mock_pet_class, downlink.registered_classes.get('MockPet'))
+
+    @async_test
+    async def test_downlink_view_register_class_self(self):
+        # Given
+        with SwimClient() as client:
+            downlink = ValueDownlinkView(client)
+            # When
+            mock_pet_class = MockPet
+            downlink.register_class(mock_pet_class)
+
+        # Then
+        self.assertEqual(1, len(downlink.registered_classes))
+        self.assertEqual(mock_pet_class, downlink.registered_classes.get('MockPet'))
+
+    @async_test
+    async def test_downlink_view_register_deregistered_class_self(self):
+        # Given
+        with SwimClient() as client:
+            downlink = ValueDownlinkView(client)
+            # When
+            mock_pet_class = MockPet
+            downlink.register_class(mock_pet_class)
+            self.assertEqual(1, len(downlink.registered_classes))
+            downlink.deregister_class(mock_pet_class)
+            self.assertEqual(0, len(downlink.registered_classes))
+            downlink.register_class(mock_pet_class)
+
+        # Then
+        self.assertEqual(1, len(downlink.registered_classes))
+        self.assertEqual(mock_pet_class, downlink.registered_classes.get('MockPet'))
+
+    @async_test
+    async def test_downlink_view_overwrite_register_class_self(self):
+        # Given
+        # When
+        # Then
+        pass
+
+    @async_test
+    async def test_downlink_view_register_class_downlink_manager(self):
+        # Given
+        # When
+        # Then
+        pass
+
+    @async_test
+    async def test_downlink_view_overwrite_register_class_downlink_manager(self):
+        # Given
+        # When
+        # Then
+        pass
+
+    @async_test
+    async def test_downlink_view_register_class_exception_no_constructor(self):
+        # Given
+        # When
+        # Then
+        pass
+
+    @async_test
+    async def test_downlink_view_register_class_exception_no_default_values(self):
+        # Given
+        # When
+        # Then
         pass

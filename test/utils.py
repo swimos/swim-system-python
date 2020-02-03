@@ -350,3 +350,11 @@ class MockExecuteOnException:
     @staticmethod
     def clear():
         MockExecuteOnException.instance = None
+
+
+def return_false():
+    return False
+
+
+def return_true():
+    return True
