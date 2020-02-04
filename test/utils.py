@@ -331,6 +331,10 @@ def mock_func():
     return 'mock_func_response'
 
 
+async def mock_coro():
+    return 'mock_coro_response'
+
+
 class MockExecuteOnException:
     instance = None
 
@@ -352,9 +356,17 @@ class MockExecuteOnException:
         MockExecuteOnException.instance = None
 
 
-def return_false():
-    return False
+class NewScope:
+    class MockPerson:
+        def __init__(self, name='Uriel'):
+            self.name = name
 
 
-def return_true():
-    return True
+class MockNoDefaultConstructor:
+
+    def __init__(self, name):
+        self.name = name
+
+
+class MockModel:
+    pass

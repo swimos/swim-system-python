@@ -377,6 +377,11 @@ class DownlinkManager:
         for view in self.__downlink_views.values():
             await view.execute_did_remove(key, old_value)
 
+    # TODO add unit test
+    def close_views(self) -> None:
+        for view in self.__downlink_views.values():
+            view.is_open = False
+
 
 class DownlinkManagerStatus(Enum):
     CLOSED = 0

@@ -14,6 +14,7 @@
 
 import asyncio
 import inspect
+from asyncio import Future
 
 from collections.abc import Callable
 from abc import abstractmethod, ABC
@@ -45,7 +46,14 @@ class DownlinkModel(ABC):
 
     def open(self) -> 'DownlinkModel':
         self.task = self.client.schedule_task(self.connection.wait_for_messages)
+        self.task.add_done_callback(self.__close_views)
         return self
+
+    # TODO Add unit test
+    # noinspection PyUnusedLocal
+    def __close_views(self, future: Future) -> None:
+        if self.downlink_manager is not None:
+            self.downlink_manager.close_views()
 
     def close(self) -> 'DownlinkModel':
         self.client.schedule_task(self.__close)
@@ -95,14 +103,10 @@ class DownlinkView(ABC):
         self.model = None
         self.downlink_manager = None
 
-        self.__is_open = False
+        self.is_open = False
         self.__registered_classes = dict()
         self.__deregistered_classes = set()
         self.__strict = False
-
-    @property
-    def is_open(self):
-        return self.model is not None and not self.model.task.cancelled() and self.__is_open
 
     @property
     def route(self) -> str:
@@ -126,15 +130,15 @@ class DownlinkView(ABC):
     def open(self) -> 'DownlinkView':
         if not self.is_open:
             self.client.schedule_task(self.client.add_downlink_view, self)
+            self.is_open = True
 
-        self.__is_open = True
         return self
 
     def close(self) -> 'DownlinkView':
         if self.is_open:
             self.client.schedule_task(self.client.remove_downlink_view, self)
+            self.is_open = False
 
-        self.__is_open = False
         return self
 
     @property
@@ -177,11 +181,11 @@ class DownlinkView(ABC):
             self.deregister_class(custom_class)
 
     def deregister_class(self, custom_class: Any) -> None:
-        if self.downlink_manager is not None:
-            self.downlink_manager.registered_classes.pop(custom_class.__name__, None)
-        else:
+        if self.downlink_manager is None:
             self.__registered_classes.pop(custom_class.__name__, None)
             self.__deregistered_classes.add(custom_class.__name__)
+        else:
+            self.downlink_manager.registered_classes.pop(custom_class.__name__, None)
 
     def __register_class(self, custom_class: Any) -> None:
         try:
@@ -194,18 +198,22 @@ class DownlinkView(ABC):
                 self.__deregistered_classes.discard(custom_class.__name__)
         except Exception:
             raise Exception(
-                f'Class {custom_class.__name__} must have a default constructor or default values for all arguments!')
+                f'Class "{custom_class.__name__}" must have a default constructor or default values for all arguments!')
 
     async def assign_manager(self, manager: 'DownlinkManager') -> None:
         self.model = manager.downlink_model
         manager.registered_classes.update(self.registered_classes)
+
+        for klass in self.__deregistered_classes:
+            manager.registered_classes.pop(klass)
+
         manager.strict = self.strict
         self.downlink_manager = manager
 
-    async def initalise_model(self, downlink_manager: 'DownlinkManager', model: 'DownlinkModel') -> None:
-        downlink_manager.registered_classes = self.registered_classes
-        downlink_manager.strict = self.strict
-        model.downlink_manager = downlink_manager
+    async def initalise_model(self, manager: 'DownlinkManager', model: 'DownlinkModel') -> None:
+        manager.registered_classes = self.registered_classes
+        manager.strict = self.strict
+        model.downlink_manager = manager
         model.host_uri = self.host_uri
         model.node_uri = self.node_uri
         model.lane_uri = self.lane_uri
