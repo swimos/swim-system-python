@@ -122,9 +122,6 @@ class WSConnection:
         if self.status != ConnectionStatus.CLOSED:
             self.status = ConnectionStatus.CLOSED
 
-            # TODO
-            # self.__subscribers.close()
-
             if self.websocket:
                 self.websocket.close_timeout = 0.1
                 await self.websocket.close()

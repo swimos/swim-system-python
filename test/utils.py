@@ -370,3 +370,46 @@ class MockNoDefaultConstructor:
 
 class MockModel:
     pass
+
+
+class MockDownlinkManager:
+
+    def __init__(self):
+        self.called = 0
+        self.event = None
+        self.did_set_new = None
+        self.did_set_old = None
+        self.strict = False
+        self.registered_classes = dict()
+
+    async def subscribers_on_event(self, event):
+        self.called = self.called + 1
+        self.event = event
+
+    async def subscribers_did_set(self, did_set_new, did_set_old):
+        self.called = self.called + 1
+        self.did_set_new = did_set_new
+        self.did_set_old = did_set_old
+
+
+class MockEventCallback:
+
+    def __init__(self):
+        self.called = False
+        self.event = None
+
+    async def execute(self, event):
+        self.called = True
+        self.event = event
+
+
+class MockDidSetCallback:
+    def __init__(self):
+        self.called = False
+        self.new_value = None
+        self.old_value = None
+
+    async def execute(self, new_value, old_value):
+        self.called = True
+        self.new_value = new_value
+        self.old_value = old_value

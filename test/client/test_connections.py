@@ -1099,7 +1099,7 @@ class TestConnections(unittest.TestCase):
         # When
         await actual.receive_message(envelope)
         # Then
-        self.assertEqual(value, actual.downlink_model.value)
+        self.assertEqual(value.value, actual.downlink_model.value)
         self.assertEqual(1, mock_schedule_task.call_count)
         self.assertEqual(1, mock_send_message.call_count)
 
@@ -1125,7 +1125,7 @@ class TestConnections(unittest.TestCase):
         await actual.receive_message(event_envelope)
         await actual.receive_message(synced_envelope)
         # Then
-        self.assertEqual(value, actual.downlink_model.value)
+        self.assertEqual(value.value, actual.downlink_model.value)
         self.assertTrue(actual.downlink_model.synced.is_set())
         self.assertTrue(actual.downlink_model.linked.is_set())
         self.assertEqual(1, mock_schedule_task.call_count)

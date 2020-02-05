@@ -21,7 +21,7 @@ from abc import abstractmethod, ABC
 from typing import TYPE_CHECKING, Any
 
 from swimai.recon import Recon
-from swimai.structures import Absent, Value, Bool, Num, Text, RecordConverter
+from swimai.structures import Value, RecordConverter
 from swimai.warp import SyncRequest, CommandMessage, Envelope, LinkRequest
 from ..utils import URI
 from .downlink_utils import before_open, UpdateRequest, RemoveRequest, convert_to_async
@@ -248,15 +248,9 @@ class EventDownlinkModel(DownlinkModel):
         raise TypeError('Event downlink does not support synced responses!')
 
     async def receive_event(self, message: Envelope):
-
-        if message.body == Absent.get_absent():
-            event = Value.absent()
-        elif isinstance(message.body, (Text, Num, Bool)):
-            event = message.body
-        else:
-            converter = RecordConverter.get_converter()
-            event = converter.record_to_object(message.body, self.downlink_manager.registered_classes,
-                                               self.downlink_manager.strict)
+        converter = RecordConverter.get_converter()
+        event = converter.record_to_object(message.body, self.downlink_manager.registered_classes,
+                                           self.downlink_manager.strict)
 
         await self.downlink_manager.subscribers_on_event(event)
 
@@ -331,15 +325,9 @@ class ValueDownlinkModel(DownlinkModel):
         :return:
         """
         old_value = self.value
-
-        if message.body == Absent.get_absent():
-            self.value = Value.absent()
-        elif isinstance(message.body, (Text, Num, Bool)):
-            self.value = message.body
-        else:
-            converter = RecordConverter.get_converter()
-            self.value = converter.record_to_object(message.body, self.downlink_manager.registered_classes,
-                                                    self.downlink_manager.strict)
+        converter = RecordConverter.get_converter()
+        self.value = converter.record_to_object(message.body, self.downlink_manager.registered_classes,
+                                                self.downlink_manager.strict)
 
         await self.downlink_manager.subscribers_did_set(self.value, old_value)
 
