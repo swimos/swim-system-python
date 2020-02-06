@@ -45,7 +45,7 @@ class TestDownlinkUtils(unittest.TestCase):
         # When
         downlink_view.set_node_uri('foo')
         # Then
-        self.assertEqual('Cannot execute "set_node_uri" after the downlink has been open!',
+        self.assertEqual('Cannot execute "set_node_uri" after the downlink has been opened!',
                          mock_warn.mock_calls[0][1][0])
 
     def test_map_request_get_key_item_primitive(self):

@@ -379,6 +379,11 @@ class MockDownlinkManager:
         self.event = None
         self.did_set_new = None
         self.did_set_old = None
+        self.update_key = None
+        self.update_value_new = None
+        self.update_value_old = None
+        self.remove_key = None
+        self.remove_old_value = None
         self.strict = False
         self.registered_classes = dict()
 
@@ -390,6 +395,17 @@ class MockDownlinkManager:
         self.called = self.called + 1
         self.did_set_new = did_set_new
         self.did_set_old = did_set_old
+
+    async def subscribers_did_update(self, update_key, update_value_new, update_value_old):
+        self.called = self.called + 1
+        self.update_key = update_key
+        self.update_value_new = update_value_new
+        self.update_value_old = update_value_old
+
+    async def subscribers_did_remove(self, remove_key, remove_old_value):
+        self.called = self.called + 1
+        self.remove_key = remove_key
+        self.remove_old_value = remove_old_value
 
 
 class MockEventCallback:

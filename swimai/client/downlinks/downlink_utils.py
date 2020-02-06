@@ -18,11 +18,23 @@ from swimai.structures import RecordMap, Slot, Text, RecordConverter, Attr, Reco
 
 
 def before_open(function: 'Callable') -> 'Callable':
-    def wrapper(*args):
+    # TODO add unit test for kwargs
+    def wrapper(*args, **kwargs):
         if args[0].is_open:
-            warnings.warn(f'Cannot execute "{function.__name__}" after the downlink has been open!')
+            warnings.warn(f'Cannot execute "{function.__name__}" after the downlink has been opened!')
         else:
-            return function(*args)
+            return function(*args, **kwargs)
+
+    return wrapper
+
+
+# TODO add unit test
+def after_open(function: 'Callable') -> 'Callable':
+    def wrapper(*args, **kwargs):
+        if not args[0].is_open:
+            warnings.warn(f'Cannot execute "{function.__name__}" before the downlink has been opened!')
+        else:
+            return function(*args, **kwargs)
 
     return wrapper
 

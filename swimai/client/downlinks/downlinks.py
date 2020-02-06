@@ -24,7 +24,7 @@ from swimai.recon import Recon
 from swimai.structures import Value, RecordConverter
 from swimai.warp import SyncRequest, CommandMessage, Envelope, LinkRequest
 from ..utils import URI
-from .downlink_utils import before_open, UpdateRequest, RemoveRequest, convert_to_async
+from .downlink_utils import before_open, UpdateRequest, RemoveRequest, convert_to_async, after_open
 
 # Imports for type annotations
 if TYPE_CHECKING:
@@ -367,6 +367,7 @@ class ValueDownlinkView(DownlinkView):
         await self.initialised.wait()
         return await self.model.get_value()
 
+    @after_open
     def get(self, wait_sync: bool = False) -> Any:
         """
         Return the value of the downlink.
@@ -375,15 +376,13 @@ class ValueDownlinkView(DownlinkView):
                                   If False, return immediately.
         :return:                - The value of the Downlink.
         """
-        if self.is_open:
-            if wait_sync:
-                task = self.client.schedule_task(self.__get_value)
-                return task.result()
-            else:
-                return self.value
+        if wait_sync:
+            task = self.client.schedule_task(self.__get_value)
+            return task.result()
         else:
-            raise RuntimeError('Link is not open!')
+            return self.value
 
+    @after_open
     def set(self, value: Any, blocking: bool = False) -> None:
         """
         Send a command message to set the value of the lane on the remote agent to the given value.
@@ -391,14 +390,10 @@ class ValueDownlinkView(DownlinkView):
         :param blocking:        - If True, block until the value has been sent to the server.
         :param value:           - New value for the lane of the remote agent.
         """
-        if self.is_open:
-            task = self.client.schedule_task(self.send_message, value)
+        task = self.client.schedule_task(self.send_message, value)
 
-            if blocking:
-                task.result()
-
-        else:
-            raise RuntimeError('Link is not open!')
+        if blocking:
+            task.result()
 
     # noinspection PyAsyncCall
     async def execute_did_set(self, current_value: Any, old_value: Any) -> None:
@@ -458,7 +453,7 @@ class MapDownlinkModel(DownlinkModel):
                                                                  self.downlink_manager.strict)
 
         recon_key = await Recon.to_string(message.body.get_head().value.get_head().value)
-        old_value = self.map.get(recon_key, [Value.absent()])[0]
+        old_value = await self.get_value(recon_key)
 
         self.map[recon_key] = (key, value)
         await self.downlink_manager.subscribers_did_update(key, value, old_value)
@@ -469,7 +464,7 @@ class MapDownlinkModel(DownlinkModel):
                                                                self.downlink_manager.strict)
 
         recon_key = await Recon.to_string(message.body.get_head().value.get_head().value)
-        old_value = self.map.pop(recon_key, [Value.absent()])[0]
+        old_value = self.map.pop(recon_key, (Value.absent(), Value.absent()))[1]
 
         await self.downlink_manager.subscribers_did_remove(key, old_value)
 
@@ -482,18 +477,18 @@ class MapDownlinkModel(DownlinkModel):
         await self.linked.wait()
         await self.connection.send_message(await message.to_recon())
 
-    async def get_value(self, key=None) -> Any:
+    async def get_value(self, key) -> Any:
         """
         Get the value of the downlink after it has been synced.
 
         :return:                - The current value of the downlink.
         """
         await self.synced.wait()
+        return self.map.get(key, (Value.absent(), Value.absent()))[1]
 
-        if key is None:
-            return self.map.values()
-        else:
-            return self.map.get(key, [Value.absent()])[0]
+    async def get_values(self) -> list:
+        await self.synced.wait()
+        return list(self.map.values())
 
 
 class MapDownlinkView(DownlinkView):
@@ -533,16 +528,27 @@ class MapDownlinkView(DownlinkView):
         await self.initialised.wait()
         return await self.model.get_value(key)
 
-    def get(self, key: Any = None, wait_sync: bool = False) -> Any:
-        if self.is_open:
-            if wait_sync:
-                task = self.client.schedule_task(self.__get_value, key)
-                return task.result()
-            else:
-                return self.map(key)
-        else:
-            raise RuntimeError('Link is not open!')
+    async def __get_all_values(self) -> list:
+        await self.initialised.wait()
+        return await self.model.get_values()
 
+    @after_open
+    def get(self, key: Any, wait_sync: bool = False) -> Any:
+        if wait_sync:
+            task = self.client.schedule_task(self.__get_value, key)
+            return task.result()
+        else:
+            return self.map(key)
+
+    @after_open
+    def get_all(self, wait_sync: bool = False) -> list:
+        if wait_sync:
+            task = self.client.schedule_task(self.__get_all_values)
+            return task.result()
+        else:
+            return self.map(None)
+
+    @after_open
     def put(self, key: Any, value: Any, blocking: bool = False) -> None:
         """
         Send a command message to put the given key and value in the remote map lane.
@@ -551,15 +557,12 @@ class MapDownlinkView(DownlinkView):
         :param value:           - Entry value.
         :param blocking:        - If True, block until the value has been sent to the server.
         """
-        if self.is_open:
-            task = self.client.schedule_task(self.put_message, key, value)
+        task = self.client.schedule_task(self.put_message, key, value)
 
-            if blocking:
-                task.result()
+        if blocking:
+            task.result()
 
-        else:
-            raise RuntimeError('Link is not open!')
-
+    @after_open
     def remove(self, key: Any, blocking: bool = False) -> None:
         """
         Send a command message to remove the given key from the remote map lane.
@@ -567,14 +570,10 @@ class MapDownlinkView(DownlinkView):
         :param key:             - Entry key.
         :param blocking:        - If True, block until the value has been sent to the server.
         """
-        if self.is_open:
-            task = self.client.schedule_task(self.remove_message, key)
+        task = self.client.schedule_task(self.remove_message, key)
 
-            if blocking:
-                task.result()
-
-        else:
-            raise RuntimeError('Link is not open!')
+        if blocking:
+            task.result()
 
     async def put_message(self, key: Any, value: Any) -> None:
         """
