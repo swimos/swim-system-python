@@ -22,14 +22,15 @@ from aiounittest import async_test
 from swimai import SwimClient
 from swimai.client.connections import DownlinkManager, DownlinkManagerStatus
 from swimai.client.downlinks import EventDownlinkModel, DownlinkModel, ValueDownlinkModel, EventDownlinkView, \
-    DownlinkView, ValueDownlinkView, MapDownlinkModel
+    DownlinkView, ValueDownlinkView, MapDownlinkModel, MapDownlinkView
 from swimai.client.downlinks.downlink_utils import UpdateRequest, RemoveRequest
 from swimai.structures import Record, Text, Attr, RecordMap, Absent, Num, Bool, Slot, Value
 from swimai.warp import LinkedResponse, SyncedResponse, EventMessage, UnlinkedResponse
 from test.utils import MockConnection, MockExecuteOnException, MockWebsocketConnect, MockWebsocket, \
     mock_did_set_confirmation, ReceiveLoop, MockPerson, MockPet, NewScope, MockNoDefaultConstructor, MockCar, \
-    mock_func, mock_coro, MockModel, MockDownlinkManager, mock_on_event_callback, MockEventCallback, MockDidSetCallback, \
-    mock_did_set_callback
+    mock_func, mock_coro, MockModel, MockDownlinkManager, mock_on_event_callback, MockEventCallback, \
+    MockDidSetCallback, mock_did_set_callback, MockDidUpdateCallback, mock_did_update_callback, \
+    mock_did_remove_callback, MockDidRemoveCallback
 
 
 class TestDownlinks(unittest.TestCase):
@@ -67,8 +68,32 @@ class TestDownlinks(unittest.TestCase):
         self.assertEqual(downlink, actual)
         self.assertIsInstance(actual.task, Future)
 
+    @patch('swimai.client.connections.DownlinkManager.close_views')
     @async_test
-    async def test_close_downlink_model(self):
+    async def test_close_downlink_model_with_manager(self, mock_close_views):
+        # Given
+        with SwimClient() as client:
+            downlink = EventDownlinkModel(client)
+            downlink.connection = MockConnection.get_mock_connection()
+            downlink = downlink.open()
+            manager = DownlinkManager(MockConnection.get_mock_connection())
+            downlink.downlink_manager = manager
+
+            # When
+            actual = downlink.close()
+            while not actual.task.done():
+                pass
+
+        # Then
+        self.assertEqual(downlink, actual)
+        self.assertIsInstance(actual.task, Future)
+        self.assertTrue(actual.task.done())
+        self.assertTrue(actual.task.cancelled())
+        self.assertTrue(mock_close_views.called)
+
+    @patch('swimai.client.connections.DownlinkManager.close_views')
+    @async_test
+    async def test_close_downlink_model_without_manager(self, mock_close_views):
         # Given
         with SwimClient() as client:
             downlink = EventDownlinkModel(client)
@@ -85,6 +110,7 @@ class TestDownlinks(unittest.TestCase):
         self.assertIsInstance(actual.task, Future)
         self.assertTrue(actual.task.done())
         self.assertTrue(actual.task.cancelled())
+        self.assertFalse(mock_close_views.called)
 
     @async_test
     async def test_downlink_model_receive_message_linked(self):
@@ -170,7 +196,6 @@ class TestDownlinks(unittest.TestCase):
         self.assertEqual(downlink, actual)
         self.assertEqual('Lane "None" was not found on the remote agent!', mock_warn.call_args_list[0][0][0])
 
-    # TODO create one for map downlinks
     @async_test
     async def test_create_event_downlink_view(self):
         # Given
@@ -1367,7 +1392,7 @@ class TestDownlinks(unittest.TestCase):
             actual = await downlink_view.create_downlink_model(manager)
 
         # Then
-        self.assertIsInstance(actual, DownlinkModel)
+        self.assertIsInstance(actual, ValueDownlinkModel)
         self.assertEqual(client, actual.client)
         self.assertEqual(host_uri, actual.host_uri)
         self.assertEqual(node_uri, actual.node_uri)
@@ -1853,7 +1878,6 @@ class TestDownlinks(unittest.TestCase):
             downlink_model.synced.set()
             first_person = MockPerson(name='Foo', age=1)
             second_person = MockPerson(name='Bar', age=2)
-
             downlink_model.map = {'@MockPerson{name:Foo,age:1}': (first_person, 'a'),
                                   '@MockPerson{name:Bar,age:2}': (second_person, 'b')}
             # When
@@ -1879,3 +1903,567 @@ class TestDownlinks(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, list)
         self.assertEqual(0, len(actual))
+
+    @async_test
+    async def test_map_downlink_view(self):
+        # Given
+        with SwimClient() as client:
+            # When
+            actual = MapDownlinkView(client)
+
+        # Then
+        self.assertIsInstance(actual, MapDownlinkView)
+        self.assertIsInstance(actual, DownlinkView)
+        self.assertEqual(client, actual.client)
+        self.assertFalse(actual.is_open)
+        self.assertFalse(actual.strict)
+        self.assertIsNone(actual.did_update_callback)
+        self.assertIsNone(actual.did_remove_callback)
+        self.assertFalse(actual.initialised.is_set())
+
+    @async_test
+    async def test_map_downlink_view_register_manager_first_time(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            connection = MockConnection()
+            downlink_model = ValueDownlinkModel(client)
+            # noinspection PyTypeChecker
+            manager = DownlinkManager(connection)
+            manager.downlink_model = downlink_model
+            # When
+            await downlink_view.register_manager(manager)
+        # Then
+        self.assertTrue(downlink_view.initialised.is_set())
+        self.assertEqual(downlink_model, downlink_view.model)
+        self.assertEqual(manager, downlink_view.downlink_manager)
+
+    @async_test
+    async def test_map_downlink_view_register_manager_already_existing(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            mock_did_update = MockDidUpdateCallback()
+            downlink_view.did_update(mock_did_update.execute)
+            downlink_model = MapDownlinkModel(client)
+            downlink_model.map = {'a': ('a', 1)}
+            connection = MockConnection()
+            # noinspection PyTypeChecker
+            manager = DownlinkManager(connection)
+            manager.downlink_model = downlink_model
+            manager.status = DownlinkManagerStatus.OPEN
+            # When
+            await downlink_view.register_manager(manager)
+
+            while not mock_did_update.called:
+                pass
+
+        # Then
+        self.assertTrue(downlink_view.initialised.is_set())
+        self.assertEqual(downlink_model, downlink_view.model)
+        self.assertEqual(manager, downlink_view.downlink_manager)
+        self.assertTrue(mock_did_update.called)
+        self.assertEqual('a', mock_did_update.key)
+        self.assertEqual(1, mock_did_update.new_value)
+        self.assertEqual(Value.absent(), mock_did_update.old_value)
+
+    @async_test
+    async def test_map_downlink_view_create_downlink_model(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            host_uri = 'ws://127.0.0.1'
+            node_uri = 'map_node'
+            lane_uri = 'map_lane'
+            downlink_view.host_uri = host_uri
+            downlink_view.node_uri = node_uri
+            downlink_view.lane_uri = lane_uri
+            connection = MockConnection()
+            # noinspection PyTypeChecker
+            manager = DownlinkManager(connection)
+            # When
+            actual = await downlink_view.create_downlink_model(manager)
+
+        # Then
+        self.assertIsInstance(actual, MapDownlinkModel)
+        self.assertEqual(client, actual.client)
+        self.assertEqual(host_uri, actual.host_uri)
+        self.assertEqual(node_uri, actual.node_uri)
+        self.assertEqual(lane_uri, actual.lane_uri)
+        self.assertEqual(manager, actual.downlink_manager)
+
+    @async_test
+    async def test_map_downlink_view_map_no_model(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            key = 'foo'
+            # When
+            actual = downlink_view.map(key)
+
+        # Then
+        self.assertEqual(Value.absent(), actual)
+
+    @async_test
+    async def test_map_downlink_view_map_key_existing(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            model = MapDownlinkModel(client)
+            model.map = {'a': ('a', 1), 'b': ('b', 2), 'c': ('c', 3), 'd': ('d', 4), 'e': ('e', 5)}
+            key = 'c'
+            downlink_view.model = model
+            # When
+            actual = downlink_view.map(key)
+
+        # Then
+        self.assertEqual(3, actual)
+
+    @async_test
+    async def test_map_downlink_view_map_key_missing(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            model = MapDownlinkModel(client)
+            model.map = {'a': ('a', 1), 'b': ('b', 2), 'c': ('c', 3), 'd': ('d', 4), 'e': ('e', 5)}
+            key = 'n'
+            downlink_view.model = model
+            # When
+            actual = downlink_view.map(key)
+
+        # Then
+        self.assertEqual(Value.absent(), actual)
+
+    @async_test
+    async def test_map_downlink_view_map_all(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            model = MapDownlinkModel(client)
+            model.map = {'a': ('a', 1), 'b': ('b', 2), 'c': ('c', 3), 'd': ('d', 4), 'e': ('e', 5)}
+            downlink_view.model = model
+            # When
+            actual = downlink_view.map(None)
+
+        # Then
+        self.assertEqual(5, len(actual))
+        self.assertEqual('a', actual[0][0])
+        self.assertEqual(1, actual[0][1])
+        self.assertEqual('b', actual[1][0])
+        self.assertEqual(2, actual[1][1])
+        self.assertEqual('c', actual[2][0])
+        self.assertEqual(3, actual[2][1])
+        self.assertEqual('d', actual[3][0])
+        self.assertEqual(4, actual[3][1])
+        self.assertEqual('e', actual[4][0])
+        self.assertEqual(5, actual[4][1])
+
+    @async_test
+    async def test_map_downlink_view_get_immediate(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            downlink_view.is_open = True
+            model = MapDownlinkModel(client)
+            model.map = {'a': ('a', 1), 'b': ('b', 2), 'c': ('c', 3), 'd': ('d', 4), 'e': ('e', 5)}
+            downlink_view.model = model
+            # When
+            actual = downlink_view.get('a')
+
+        # Then
+        self.assertEqual(1, actual)
+
+    @async_test
+    async def test_map_downlink_view_get_with_wait(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            downlink_view.is_open = True
+            downlink_view.initialised.set()
+            model = MapDownlinkModel(client)
+            model.synced.set()
+            model.map = {'a': ('a', 1), 'b': ('b', 2), 'c': ('c', 3), 'd': ('d', 4), 'e': ('e', 5)}
+            downlink_view.model = model
+            # When
+            actual = downlink_view.get('d', wait_sync=True)
+
+        # Then
+        self.assertEqual(4, actual)
+
+    @async_test
+    async def test_map_downlink_view_get_immediate_absent(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            downlink_view.is_open = True
+            model = MapDownlinkModel(client)
+            downlink_view.model = model
+            # When
+            actual = downlink_view.get('a')
+
+        # Then
+        self.assertEqual(Value.absent(), actual)
+
+    @async_test
+    async def test_map_downlink_view_get_with_wait_absent(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            downlink_view.is_open = True
+            downlink_view.initialised.set()
+            model = MapDownlinkModel(client)
+            model.synced.set()
+            downlink_view.model = model
+            # When
+            actual = downlink_view.get('d', wait_sync=True)
+
+        # Then
+        self.assertEqual(Value.absent(), actual)
+
+    @patch('warnings.warn')
+    @async_test
+    async def test_map_downlink_view_get_before_open(self, mock_warn):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            # When
+            downlink_view.get('a')
+
+        # Then
+        self.assertEqual('Cannot execute "get" before the downlink has been opened!', mock_warn.call_args_list[0][0][0])
+
+    @async_test
+    async def test_map_downlink_view_get_all_immediate(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            downlink_view.is_open = True
+            model = MapDownlinkModel(client)
+            model.map = {'a': ('a', 1), 'b': ('b', 2), 'c': ('c', 3), 'd': ('d', 4), 'e': ('e', 5)}
+            downlink_view.model = model
+            # When
+            actual = downlink_view.get_all()
+
+        # Then
+        self.assertEqual('a', actual[0][0])
+        self.assertEqual(1, actual[0][1])
+        self.assertEqual('b', actual[1][0])
+        self.assertEqual(2, actual[1][1])
+        self.assertEqual('c', actual[2][0])
+        self.assertEqual(3, actual[2][1])
+        self.assertEqual('d', actual[3][0])
+        self.assertEqual(4, actual[3][1])
+        self.assertEqual('e', actual[4][0])
+        self.assertEqual(5, actual[4][1])
+
+    @async_test
+    async def test_map_downlink_view_get_all_with_wait(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            downlink_view.is_open = True
+            downlink_view.initialised.set()
+            model = MapDownlinkModel(client)
+            model.synced.set()
+            model.map = {'a': ('a', 1), 'b': ('b', 2), 'c': ('c', 3), 'd': ('d', 4), 'e': ('e', 5)}
+            downlink_view.model = model
+            # When
+            actual = downlink_view.get_all(wait_sync=True)
+
+        # Then
+        self.assertEqual('a', actual[0][0])
+        self.assertEqual(1, actual[0][1])
+        self.assertEqual('b', actual[1][0])
+        self.assertEqual(2, actual[1][1])
+        self.assertEqual('c', actual[2][0])
+        self.assertEqual(3, actual[2][1])
+        self.assertEqual('d', actual[3][0])
+        self.assertEqual(4, actual[3][1])
+        self.assertEqual('e', actual[4][0])
+        self.assertEqual(5, actual[4][1])
+
+    @async_test
+    async def test_map_downlink_view_get_all_immediate_absent(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            downlink_view.is_open = True
+            model = MapDownlinkModel(client)
+            downlink_view.model = model
+            # When
+            actual = downlink_view.get_all()
+
+        # Then
+        self.assertEqual([], actual)
+
+    @async_test
+    async def test_map_downlink_view_get_all_with_wait_absent(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            downlink_view.is_open = True
+            downlink_view.initialised.set()
+            model = MapDownlinkModel(client)
+            model.synced.set()
+            downlink_view.model = model
+            # When
+            actual = downlink_view.get_all(wait_sync=True)
+
+        # Then
+        self.assertEqual([], actual)
+
+    @patch('warnings.warn')
+    @async_test
+    async def test_map_downlink_view_get_all_before_open(self, mock_warn):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            # When
+            downlink_view.get_all()
+
+        # Then
+        self.assertEqual('Cannot execute "get_all" before the downlink has been opened!',
+                         mock_warn.call_args_list[0][0][0])
+
+    @patch('concurrent.futures._base.Future.result')
+    @async_test
+    async def test_map_downlink_view_put_blocking(self, mock_result):
+        # Given
+        with SwimClient() as client:
+            node_uri = 'map_node_uri'
+            lane_uri = 'map_lane_uri'
+            model = MapDownlinkModel(client)
+            mock_connection = MockConnection()
+            model.connection = mock_connection
+            model.linked.set()
+            downlink_view = MapDownlinkView(client)
+            downlink_view.node_uri = node_uri
+            downlink_view.lane_uri = lane_uri
+            downlink_view.is_open = True
+            downlink_view.initialised.set()
+            downlink_view.model = model
+            # When
+            downlink_view.put('map_key', 'map_value', blocking=True)
+
+        # Then
+        self.assertEqual('@command(node:map_node_uri,lane:map_lane_uri)@update(key:map_key)map_value',
+                         mock_connection.messages_sent[0])
+        self.assertTrue(mock_result.called)
+
+    @patch('concurrent.futures._base.Future.result')
+    @async_test
+    async def test_map_downlink_view_put_non_blocking(self, mock_result):
+        # Given
+        with SwimClient() as client:
+            node_uri = 'node_map'
+            lane_uri = 'lane_map'
+            model = MapDownlinkModel(client)
+            mock_connection = MockConnection()
+            model.connection = mock_connection
+            model.linked.set()
+            downlink_view = MapDownlinkView(client)
+            downlink_view.node_uri = node_uri
+            downlink_view.lane_uri = lane_uri
+            downlink_view.is_open = True
+            downlink_view.initialised.set()
+            downlink_view.model = model
+            # When
+            downlink_view.put('key_map', 'value_map')
+
+        # Then
+        self.assertEqual('@command(node:node_map,lane:lane_map)@update(key:key_map)value_map',
+                         mock_connection.messages_sent[0])
+        self.assertFalse(mock_result.called)
+
+    @patch('warnings.warn')
+    @async_test
+    async def test_map_downlink_view_put_before_open(self, mock_warn):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            # When
+            downlink_view.put('key_map', 'value_map')
+
+        # Then
+        self.assertEqual('Cannot execute "put" before the downlink has been opened!',
+                         mock_warn.call_args_list[0][0][0])
+
+    @patch('concurrent.futures._base.Future.result')
+    @async_test
+    async def test_map_downlink_view_remove_blocking(self, mock_result):
+        # Given
+        with SwimClient() as client:
+            node_uri = 'map_remove_node_uri'
+            lane_uri = 'map_remove_lane_uri'
+            model = MapDownlinkModel(client)
+            mock_connection = MockConnection()
+            model.connection = mock_connection
+            model.linked.set()
+            downlink_view = MapDownlinkView(client)
+            downlink_view.node_uri = node_uri
+            downlink_view.lane_uri = lane_uri
+            downlink_view.is_open = True
+            downlink_view.initialised.set()
+            downlink_view.model = model
+            # When
+            downlink_view.remove('map_remove_key', blocking=True)
+
+        # Then
+        self.assertEqual('@command(node:map_remove_node_uri,lane:map_remove_lane_uri)@remove(key:map_remove_key)',
+                         mock_connection.messages_sent[0])
+        self.assertTrue(mock_result.called)
+
+    @patch('concurrent.futures._base.Future.result')
+    @async_test
+    async def test_map_downlink_view_remove_non_blocking(self, mock_result):
+        # Given
+        with SwimClient() as client:
+            node_uri = 'node_uri_remove_map'
+            lane_uri = 'lane_uri_remove_map'
+            model = MapDownlinkModel(client)
+            mock_connection = MockConnection()
+            model.connection = mock_connection
+            model.linked.set()
+            downlink_view = MapDownlinkView(client)
+            downlink_view.node_uri = node_uri
+            downlink_view.lane_uri = lane_uri
+            downlink_view.is_open = True
+            downlink_view.initialised.set()
+            downlink_view.model = model
+            # When
+            downlink_view.remove('remove_key_map')
+
+        # Then
+        self.assertEqual('@command(node:node_uri_remove_map,lane:lane_uri_remove_map)@remove(key:remove_key_map)',
+                         mock_connection.messages_sent[0])
+        self.assertFalse(mock_result.called)
+
+    @patch('warnings.warn')
+    @async_test
+    async def test_map_downlink_view_remove_before_open(self, mock_warn):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            # When
+            downlink_view.remove('key_map_remove')
+
+        # Then
+        self.assertEqual('Cannot execute "remove" before the downlink has been opened!',
+                         mock_warn.call_args_list[0][0][0])
+
+    @async_test
+    async def test_map_downlink_view_execute_did_update(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            mock_did_update = MockDidUpdateCallback()
+            downlink_view.did_update_callback = mock_did_update.execute
+            key = 'Test_update_key'
+            new_value = 'Test_update_new_value'
+            old_value = 'Test_update_old_value'
+            # When
+            await downlink_view.execute_did_update(key, new_value, old_value)
+            while not mock_did_update.called:
+                pass
+        # Then
+        self.assertEqual(key, mock_did_update.key)
+        self.assertEqual(new_value, mock_did_update.new_value)
+        self.assertEqual(old_value, mock_did_update.old_value)
+
+    @async_test
+    async def test_map_downlink_view_execute_did_update_no_callback(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            key = 'Test_update_key'
+            new_value = 'Test_update_new_value'
+            old_value = 'Test_update_old_value'
+            # When
+            with patch('swimai.client.swim_client.SwimClient.schedule_task') as mock_schedule_task:
+                await downlink_view.execute_did_update(key, new_value, old_value)
+
+        # Then
+        self.assertFalse(mock_schedule_task.called)
+
+    @async_test
+    async def test_map_downlink_view_execute_did_remove(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            mock_did_remove = MockDidRemoveCallback()
+            downlink_view.did_remove_callback = mock_did_remove.execute
+            key = 'Test_remove_key'
+            value = 'Test_remove_value'
+            # When
+            await downlink_view.execute_did_remove(key, value)
+            while not mock_did_remove.called:
+                pass
+        # Then
+        self.assertEqual(key, mock_did_remove.key)
+        self.assertEqual(value, mock_did_remove.value)
+
+    @async_test
+    async def test_map_downlink_view_execute_did_remove_no_callback(self):
+        # Given
+        with SwimClient() as client:
+            downlink_view = MapDownlinkView(client)
+            key = 'Test_remove_key'
+            value = 'Test_remove_value'
+            # When
+            with patch('swimai.client.swim_client.SwimClient.schedule_task') as mock_schedule_task:
+                await downlink_view.execute_did_remove(key, value)
+
+        # Then
+        self.assertFalse(mock_schedule_task.called)
+
+    @async_test
+    async def test_map_downlink_view_did_update_valid(self):
+        # Given
+        client = SwimClient()
+        downlink_view = MapDownlinkView(client)
+        function = mock_did_update_callback
+        # When
+        downlink_view.did_update(function)
+        # Then
+        self.assertTrue(function, downlink_view.did_update_callback)
+
+    @async_test
+    async def test_map_downlink_view_did_update_invalid(self):
+        # Given
+        client = SwimClient()
+        downlink_view = MapDownlinkView(client)
+        function = 111
+        # When
+        with self.assertRaises(TypeError) as error:
+            # noinspection PyTypeChecker
+            downlink_view.did_update(function)
+
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual(message, 'Callback must be a coroutine or a function!')
+
+    @async_test
+    async def test_map_downlink_view_did_remove_valid(self):
+        # Given
+        client = SwimClient()
+        downlink_view = MapDownlinkView(client)
+        function = mock_did_remove_callback
+        # When
+        downlink_view.did_remove(function)
+        # Then
+        self.assertTrue(function, downlink_view.did_remove_callback)
+
+    @async_test
+    async def test_map_downlink_view_did_remove_invalid(self):
+        # Given
+        client = SwimClient()
+        downlink_view = MapDownlinkView(client)
+        function = 111
+        # When
+        with self.assertRaises(TypeError) as error:
+            # noinspection PyTypeChecker
+            downlink_view.did_remove(function)
+
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual(message, 'Callback must be a coroutine or a function!')

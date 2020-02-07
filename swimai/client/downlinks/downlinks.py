@@ -49,7 +49,6 @@ class DownlinkModel(ABC):
         self.task.add_done_callback(self.__close_views)
         return self
 
-    # TODO Add unit test
     # noinspection PyUnusedLocal
     def __close_views(self, future: Future) -> None:
         if self.downlink_manager is not None:
@@ -499,13 +498,11 @@ class MapDownlinkView(DownlinkView):
         self.did_remove_callback = None
         self.initialised = asyncio.Event()
 
-        self.did_update_callback = None
-
     async def register_manager(self, manager: 'DownlinkManager') -> None:
         await self.assign_manager(manager)
 
         if manager.is_open:
-            for key, value in self.model.map:
+            for key, value in self.model.map.values():
                 await self.execute_did_update(key, value, Value.absent())
 
         self.initialised.set()
@@ -520,9 +517,9 @@ class MapDownlinkView(DownlinkView):
             return Value.absent()
         else:
             if key is None:
-                return self.model.map.values()
+                return list(self.model.map.values())
             else:
-                return self.model.map.get(key, Value.absent())
+                return self.model.map.get(key, (Value.absent(), Value.absent()))[1]
 
     async def __get_value(self, key: Any) -> Any:
         await self.initialised.wait()
@@ -557,7 +554,7 @@ class MapDownlinkView(DownlinkView):
         :param value:           - Entry value.
         :param blocking:        - If True, block until the value has been sent to the server.
         """
-        task = self.client.schedule_task(self.put_message, key, value)
+        task = self.client.schedule_task(self.__put_message, key, value)
 
         if blocking:
             task.result()
@@ -570,12 +567,12 @@ class MapDownlinkView(DownlinkView):
         :param key:             - Entry key.
         :param blocking:        - If True, block until the value has been sent to the server.
         """
-        task = self.client.schedule_task(self.remove_message, key)
+        task = self.client.schedule_task(self.__remove_message, key)
 
         if blocking:
             task.result()
 
-    async def put_message(self, key: Any, value: Any) -> None:
+    async def __put_message(self, key: Any, value: Any) -> None:
         """
         Send a message to the remote agent of the downlink.
 
@@ -587,7 +584,7 @@ class MapDownlinkView(DownlinkView):
         message = CommandMessage(self.node_uri, self.lane_uri, UpdateRequest(key, value).to_record())
         await self.model.send_message(message)
 
-    async def remove_message(self, key: Any) -> None:
+    async def __remove_message(self, key: Any) -> None:
         await self.initialised.wait()
 
         message = CommandMessage(self.node_uri, self.lane_uri, RemoveRequest(key).to_record())

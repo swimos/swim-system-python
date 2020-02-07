@@ -11,28 +11,24 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-import warnings
 from typing import Any, Callable
-
 from swimai.structures import RecordMap, Slot, Text, RecordConverter, Attr, Record, Item
 
 
 def before_open(function: 'Callable') -> 'Callable':
-    # TODO add unit test for kwargs
     def wrapper(*args, **kwargs):
         if args[0].is_open:
-            warnings.warn(f'Cannot execute "{function.__name__}" after the downlink has been opened!')
+            raise Exception(f'Cannot execute "{function.__name__}" after the downlink has been opened!')
         else:
             return function(*args, **kwargs)
 
     return wrapper
 
 
-# TODO add unit test
 def after_open(function: 'Callable') -> 'Callable':
     def wrapper(*args, **kwargs):
         if not args[0].is_open:
-            warnings.warn(f'Cannot execute "{function.__name__}" before the downlink has been opened!')
+            raise Exception(f'Cannot execute "{function.__name__}" before the downlink has been opened!')
         else:
             return function(*args, **kwargs)
 

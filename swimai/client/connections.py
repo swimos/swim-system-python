@@ -104,7 +104,6 @@ class WSConnection:
         self.status = ConnectionStatus.CLOSED
         self.__subscribers = DownlinkManagerPool()
 
-    # TODO Add unit test
     async def open(self) -> None:
         if self.status == ConnectionStatus.CLOSED:
             self.status = ConnectionStatus.CONNECTING
@@ -374,7 +373,6 @@ class DownlinkManager:
         for view in self.__downlink_views.values():
             await view.execute_did_remove(key, old_value)
 
-    # TODO add unit test
     def close_views(self) -> None:
         for view in self.__downlink_views.values():
             view.is_open = False

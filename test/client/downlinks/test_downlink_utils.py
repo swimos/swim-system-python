@@ -14,19 +14,17 @@
 import inspect
 import unittest
 from collections.abc import Callable
-from unittest.mock import patch
 from aiounittest import async_test
 
-from swimai.client.downlinks import EventDownlinkView
+from swimai.client.downlinks import EventDownlinkView, ValueDownlinkView
 from swimai.client.downlinks.downlink_utils import MapRequest, UpdateRequest, RemoveRequest, convert_to_async
-from swimai.structures import RecordMap, Slot, Num, Attr
+from swimai.structures import RecordMap, Slot, Num, Attr, Value
 from test.utils import MockPerson, mock_func
 
 
 class TestDownlinkUtils(unittest.TestCase):
 
-    @patch('warnings.warn')
-    def test_before_open_false(self, mock_warn):
+    def test_before_open_valid_with_args(self):
         # Given
         # noinspection PyTypeChecker
         downlink_view = EventDownlinkView(None)
@@ -34,19 +32,85 @@ class TestDownlinkUtils(unittest.TestCase):
         # When
         downlink_view.set_node_uri('foo')
         # Then
-        self.assertEqual(0, mock_warn.call_count)
+        self.assertEqual('foo', downlink_view.node_uri)
 
-    @patch('warnings.warn')
-    def test_before_open_true(self, mock_warn):
+    def test_before_open_invalid_with_args(self):
         # Given
         # noinspection PyTypeChecker
         downlink_view = EventDownlinkView(None)
         downlink_view.is_open = True
         # When
-        downlink_view.set_node_uri('foo')
+        with self.assertRaises(Exception) as error:
+            downlink_view.set_node_uri('foo')
         # Then
-        self.assertEqual('Cannot execute "set_node_uri" after the downlink has been opened!',
-                         mock_warn.mock_calls[0][1][0])
+        message = error.exception.args[0]
+        self.assertEqual('Cannot execute "set_node_uri" after the downlink has been opened!', message)
+
+    def test_before_open_valid_with_kwargs(self):
+        # Given
+        # noinspection PyTypeChecker
+        downlink_view = EventDownlinkView(None)
+        downlink_view.is_open = False
+        # When
+        downlink_view.set_node_uri(node_uri='foo')
+        # Then
+        self.assertEqual('foo', downlink_view.node_uri)
+
+    def test_before_open_invalid_with_kwargs(self):
+        # Given
+        # noinspection PyTypeChecker
+        downlink_view = EventDownlinkView(None)
+        downlink_view.is_open = True
+        # When
+        with self.assertRaises(Exception) as error:
+            downlink_view.set_node_uri(node_uri='foo')
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('Cannot execute "set_node_uri" after the downlink has been opened!', message)
+
+    def test_after_open_valid_with_args(self):
+        # Given
+        # noinspection PyTypeChecker
+        downlink_view = ValueDownlinkView(None)
+        downlink_view.is_open = True
+        # When
+        actual = downlink_view.get(False)
+        # Then
+        self.assertEqual(Value.absent(), actual)
+
+    def test_after_open_invalid_with_args(self):
+        # Given
+        # noinspection PyTypeChecker
+        downlink_view = ValueDownlinkView(None)
+        downlink_view.is_open = False
+        # When
+        with self.assertRaises(Exception) as error:
+            downlink_view.get(False)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('Cannot execute "get" before the downlink has been opened!', message)
+
+    def test_after_open_valid_with_kwargs(self):
+        # Given
+        # noinspection PyTypeChecker
+        downlink_view = ValueDownlinkView(None)
+        downlink_view.is_open = True
+        # When
+        actual = downlink_view.get(wait_sync=False)
+        # Then
+        self.assertEqual(Value.absent(), actual)
+
+    def test_after_open_invalid_with_kwargs(self):
+        # Given
+        # noinspection PyTypeChecker
+        downlink_view = ValueDownlinkView(None)
+        downlink_view.is_open = False
+        # When
+        with self.assertRaises(Exception) as error:
+            downlink_view.get(wait_sync=False)
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual('Cannot execute "get" before the downlink has been opened!', message)
 
     def test_map_request_get_key_item_primitive(self):
         # Given

@@ -23,7 +23,7 @@ from swimai.structures import Text, Value
 from swimai.warp import SyncedResponse, LinkedResponse, EventMessage
 from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, MockReceiveMessage, MockConnection, \
     MockDownlink, mock_did_set_callback, MockClass, mock_on_event_callback, mock_did_update_callback, \
-    mock_did_remove_callback
+    mock_did_remove_callback, MockWebsocketConnectException
 
 
 class TestConnections(unittest.TestCase):
@@ -329,6 +329,23 @@ class TestConnections(unittest.TestCase):
         # Then
         self.assertEqual(ConnectionStatus.IDLE, connection.status)
         mock_websocket.assert_called_once_with(host_uri)
+
+    @patch('websockets.connect', new_callable=MockWebsocketConnectException)
+    @async_test
+    async def test_ws_connection_open_error(self, mock_websocket):
+        # Given
+        MockWebsocket.get_mock_websocket().raise_exception = True
+        host_uri = 'ws://1.2.3.4:9001'
+        connection = WSConnection(host_uri)
+        # When
+        with self.assertRaises(Exception) as error:
+            # noinspection PyTypeChecker
+            await connection.open()
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual(message, 'Mock_websocket_connect_exception')
+        mock_websocket.assert_called_once_with(host_uri)
+        self.assertEqual(ConnectionStatus.CLOSED, connection.status)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
     @async_test
@@ -1406,3 +1423,49 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(did_remove_callback, mock_schedule_task.call_args_list[3][0][0])
         self.assertEqual('Bar', mock_schedule_task.call_args_list[3][0][1])
         self.assertEqual('Baz', mock_schedule_task.call_args_list[3][0][2])
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_close_views_single(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://4.3.2.1:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        downlink_view = client.downlink_map()
+        downlink_view.is_open = True
+        actual = DownlinkManager(connection)
+        await actual.add_view(downlink_view)
+        # When
+        actual.close_views()
+        # Then
+        self.assertFalse(downlink_view.is_open)
+        self.assertTrue(mock_schedule_task.called)
+        self.assertTrue(mock_send_message.called)
+
+    @patch('swimai.client.connections.WSConnection.send_message', new_callable=MockAsyncFunction)
+    @patch('swimai.client.swim_client.SwimClient.schedule_task')
+    @async_test
+    async def test_downlink_manager_close_views_multiple(self, mock_schedule_task, mock_send_message):
+        # Given
+        host_uri = 'ws://4.3.2.1:9001'
+        connection = WSConnection(host_uri)
+        client = SwimClient()
+        actual = DownlinkManager(connection)
+        first_downlink_view = client.downlink_map()
+        first_downlink_view.is_open = True
+        second_downlink_view = client.downlink_map()
+        second_downlink_view.is_open = True
+        third_downlink_view = client.downlink_map()
+        third_downlink_view.is_open = True
+        await actual.add_view(first_downlink_view)
+        await actual.add_view(second_downlink_view)
+        await actual.add_view(third_downlink_view)
+        # When
+        actual.close_views()
+        # Then
+        self.assertFalse(first_downlink_view.is_open)
+        self.assertFalse(second_downlink_view.is_open)
+        self.assertFalse(third_downlink_view.is_open)
+        self.assertTrue(mock_schedule_task.called)
+        self.assertTrue(mock_send_message.called)

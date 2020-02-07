@@ -58,6 +58,16 @@ class MockWebsocketConnect(MagicMock):
         MockWebsocket.get_mock_websocket().raise_exception = state
 
 
+class MockWebsocketConnectException(MagicMock):
+
+    async def __call__(self, *args, **kwargs):
+        return super(MockWebsocketConnectException, self).__call__(*args, **kwargs)
+
+    @property
+    def return_value(self):
+        raise Exception('Mock_websocket_connect_exception')
+
+
 class MockDownlink:
     instance = None
 
@@ -429,3 +439,29 @@ class MockDidSetCallback:
         self.called = True
         self.new_value = new_value
         self.old_value = old_value
+
+
+class MockDidUpdateCallback:
+    def __init__(self):
+        self.called = False
+        self.key = None
+        self.new_value = None
+        self.old_value = None
+
+    async def execute(self, key, new_value, old_value):
+        self.called = True
+        self.key = key
+        self.new_value = new_value
+        self.old_value = old_value
+
+
+class MockDidRemoveCallback:
+    def __init__(self):
+        self.called = False
+        self.key = None
+        self.value = None
+
+    async def execute(self, key, value):
+        self.called = True
+        self.key = key
+        self.value = value
