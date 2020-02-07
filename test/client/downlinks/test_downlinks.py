@@ -13,7 +13,7 @@
 #  limitations under the License.
 import inspect
 import unittest
-from collections import Callable
+from collections.abc import Callable
 from concurrent.futures import Future
 from unittest.mock import patch
 
