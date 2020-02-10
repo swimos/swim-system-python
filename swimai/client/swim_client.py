@@ -23,7 +23,6 @@ from concurrent.futures import CancelledError
 from threading import Thread
 from traceback import TracebackException
 from typing import Callable, Any, Optional
-
 from .connections import ConnectionPool, WSConnection
 from .downlinks import ValueDownlinkView, EventDownlinkView, DownlinkView, MapDownlinkView
 from .utils import URI
@@ -37,11 +36,11 @@ class SwimClient:
                  debug: bool = False) -> None:
         self.loop = None
         self.loop_thread = None
-        self.__connection_pool = ConnectionPool()
         self.debug = debug
-
         self.execute_on_exception = execute_on_exception
         self.terminate_on_exception = terminate_on_exception
+
+        self.__connection_pool = ConnectionPool()
 
     def __enter__(self) -> 'SwimClient':
         self.start()
@@ -207,7 +206,6 @@ class SwimClient:
         asyncio.get_event_loop().run_forever()
 
     async def __stop_event_loop(self) -> None:
-
         tasks = [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
         [task.cancel() for task in tasks]
         await asyncio.gather(*tasks, return_exceptions=True)

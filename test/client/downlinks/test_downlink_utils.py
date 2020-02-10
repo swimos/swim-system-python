@@ -17,9 +17,9 @@ from collections.abc import Callable
 from aiounittest import async_test
 
 from swimai.client.downlinks import EventDownlinkView, ValueDownlinkView
-from swimai.client.downlinks.downlink_utils import MapRequest, UpdateRequest, RemoveRequest, convert_to_async
+from swimai.client.downlinks.downlink_utils import UpdateRequest, RemoveRequest, convert_to_async, validate_callback
 from swimai.structures import RecordMap, Slot, Num, Attr, Value
-from test.utils import MockPerson, mock_func
+from test.utils import MockPerson, mock_func, mock_coro
 
 
 class TestDownlinkUtils(unittest.TestCase):
@@ -114,7 +114,7 @@ class TestDownlinkUtils(unittest.TestCase):
 
     def test_map_request_get_key_item_primitive(self):
         # Given
-        map_request = MapRequest('Foo', 23)
+        map_request = UpdateRequest('Foo', 23)
         # When
         actual = map_request.get_key_item()
         # Then
@@ -127,7 +127,7 @@ class TestDownlinkUtils(unittest.TestCase):
     def test_map_request_get_key_item_complex(self):
         # Given
         mock_person = MockPerson('Bar', 29)
-        map_request = MapRequest(mock_person, 1)
+        map_request = UpdateRequest(mock_person, 1)
         # When
         actual = map_request.get_key_item()
         # Then
@@ -148,7 +148,7 @@ class TestDownlinkUtils(unittest.TestCase):
 
     def test_map_request_get_value_item_primitive(self):
         # Given
-        map_request = MapRequest('Foo', 23)
+        map_request = UpdateRequest('Foo', 23)
         # When
         actual = map_request.get_value_item()
         # Then
@@ -159,7 +159,7 @@ class TestDownlinkUtils(unittest.TestCase):
     def test_map_request_get_value_item_complex(self):
         # Given
         mock_person = MockPerson('Foo', 20)
-        map_request = MapRequest('Foo', mock_person)
+        map_request = UpdateRequest('Foo', mock_person)
         # When
         actual = map_request.get_value_item()
         # Then
@@ -217,3 +217,40 @@ class TestDownlinkUtils(unittest.TestCase):
         self.assertIsInstance(actual, Callable)
         self.assertTrue(inspect.iscoroutinefunction(actual))
         self.assertEqual('mock_func_response', response)
+
+    @async_test
+    async def test_downlink_view_validate_callback_function(self):
+        # Given
+        func = mock_func
+        # When
+        actual = validate_callback(func)
+        result = await actual()
+        # Then
+        self.assertEqual('mock_func_response', result)
+        self.assertTrue(isinstance(actual, Callable))
+        self.assertTrue(inspect.iscoroutinefunction(actual))
+
+    @async_test
+    async def test_downlink_view_validate_coro(self):
+        # Given
+        coro = mock_coro
+        # When
+        actual = validate_callback(coro)
+        result = await actual()
+        # Then
+        self.assertEqual('mock_coro_response', result)
+        self.assertTrue(isinstance(actual, Callable))
+        self.assertTrue(inspect.iscoroutinefunction(actual))
+
+    @async_test
+    async def test_downlink_view_validate_invalid(self):
+        # Given
+        integer = 31
+        # When
+        with self.assertRaises(TypeError) as error:
+            # noinspection PyTypeChecker
+            validate_callback(integer)
+
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual(message, 'Callback must be a coroutine or a function!')

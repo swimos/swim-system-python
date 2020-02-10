@@ -15,7 +15,6 @@
 import math
 from abc import ABC, abstractmethod
 from typing import Optional
-
 from swimai.recon import Recon
 from swimai.structures import Item, Record, Attr, Value, Num, RecordMap
 
@@ -30,7 +29,7 @@ class Envelope(ABC):
         self.body = body
 
     @property
-    def route(self):
+    def route(self) -> str:
         return f'{self.node_uri}/{self.lane_uri}'
 
     @staticmethod
@@ -321,7 +320,7 @@ class SyncedResponseForm(LaneAddressedForm):
 class LinkRequestForm(LinkAddressedForm):
 
     @property
-    def tag(self):
+    def tag(self) -> str:
         return 'link'
 
     def create_envelope_from(self, node_uri: str, lane_uri: str, prio: float, rate: float, body: Item) -> 'Envelope':

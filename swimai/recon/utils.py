@@ -186,6 +186,30 @@ class InputMessage(Message):
         super().__init__()
         self.index = 0
 
+    @property
+    def head(self) -> str:
+        """
+        Get the character at the front of the InputMessage pointed by the message index.
+
+        :return:                - The current head character of the InputMessage.
+        """
+        if self.is_cont:
+            return self.message[self.index]
+        else:
+            return ''
+
+    @property
+    def is_cont(self) -> bool:
+        """
+        Check if there are any characters left in front of the InputMessage index.
+
+        :return:                - False if the index is pointing at the last character or beyond, True otherwise.
+        """
+        if self.index >= len(self.message):
+            return False
+        else:
+            return True
+
     @staticmethod
     async def create(chars: str = None) -> 'InputMessage':
         """
@@ -211,30 +235,6 @@ class InputMessage(Message):
         char = message.head
         while await ReconUtils.is_space(char):
             char = message.step()
-
-    @property
-    def head(self) -> str:
-        """
-        Get the character at the front of the InputMessage pointed by the message index.
-
-        :return:                - The current head character of the InputMessage.
-        """
-        if self.is_cont:
-            return self.message[self.index]
-        else:
-            return ''
-
-    @property
-    def is_cont(self) -> bool:
-        """
-        Check if there are any characters left in front of the InputMessage index.
-
-        :return:                - False if the index is pointing at the last character or beyond, True otherwise.
-        """
-        if self.index >= len(self.message):
-            return False
-        else:
-            return True
 
     def step(self) -> str:
         """

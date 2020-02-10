@@ -14,7 +14,6 @@
 
 from abc import ABC, abstractmethod
 from typing import Union, Any
-
 from .utils import ReconUtils, InputMessage, OutputMessage
 from swimai.structures import ValueBuilder, Text, Bool, Attr, Value, Record, Slot, Num, RecordMap, Item
 

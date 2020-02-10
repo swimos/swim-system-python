@@ -90,7 +90,7 @@ class Field(Item):
 
     @property
     @abstractmethod
-    def value(self) -> Any:
+    def value(self) -> 'Any':
         raise NotImplementedError
 
 
@@ -100,7 +100,7 @@ class Attr(Field):
         self.__key = key
         self.__value = value
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.value == Value.extant():
             return f'Attr({self.key})'
         else:
@@ -194,7 +194,7 @@ class Text(Value):
     def __init__(self, value: str) -> None:
         self.__value = value
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'"{self.value}"'
 
     @property
@@ -282,7 +282,7 @@ class Bool(Value):
     def __str__(self) -> str:
         return str(self.value)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.value
 
     @property
@@ -324,7 +324,7 @@ class Absent(Value):
     def __str__(self) -> str:
         return 'Absent()'
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return False
 
     @staticmethod
@@ -346,7 +346,7 @@ class Extant(Value):
     def __str__(self) -> str:
         return 'Extant()'
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return False
 
     @staticmethod
@@ -364,12 +364,12 @@ class Extant(Value):
 
 class Slot(Field):
 
-    def __str__(self):
-        return f'Slot({self.key}, {self.value})'
-
     def __init__(self, key: Any, value: Any = Value.extant()) -> None:
         self.__key = key
         self.__value = value
+
+    def __str__(self) -> str:
+        return f'Slot({self.key}, {self.value})'
 
     @property
     def key(self) -> Any:

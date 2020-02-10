@@ -11,11 +11,11 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
 import asyncio
-
 import websockets
-from enum import Enum
 
+from enum import Enum
 from swimai.warp import Envelope
 from typing import TYPE_CHECKING, Any
 
@@ -30,7 +30,7 @@ class ConnectionPool:
         self.__connections = dict()
 
     @property
-    def size(self):
+    def size(self) -> int:
         return len(self.__connections)
 
     async def get_connection(self, host_uri: str) -> 'WSConnection':
@@ -41,7 +41,6 @@ class ConnectionPool:
         :param host_uri:        - URI of the connection host.
         :return:                - WebSocket connection.
         """
-
         connection = self.__connections.get(host_uri)
 
         if connection is None or connection.status == ConnectionStatus.CLOSED:
@@ -56,7 +55,6 @@ class ConnectionPool:
 
         :param host_uri:        - URI of the connection host.
         """
-
         connection = self.__connections.get(host_uri)
 
         if connection:
@@ -69,7 +67,6 @@ class ConnectionPool:
 
         :param downlink_view:   - Downlink view to subscribe to a connection.
         """
-
         host_uri = downlink_view.host_uri
         connection = await self.get_connection(host_uri)
         downlink_view.connection = connection
@@ -98,10 +95,10 @@ class WSConnection:
 
     def __init__(self, host_uri: str) -> None:
         self.host_uri = host_uri
-
         self.connected = asyncio.Event()
         self.websocket = None
         self.status = ConnectionStatus.CLOSED
+
         self.__subscribers = DownlinkManagerPool()
 
     async def open(self) -> None:
@@ -258,6 +255,7 @@ class DownlinkManager:
         self.downlink_model = None
         self.registered_classes = dict()
         self.strict = False
+
         self.__downlink_views = dict()
 
     @property
@@ -374,6 +372,9 @@ class DownlinkManager:
             await view.execute_did_remove(key, old_value)
 
     def close_views(self) -> None:
+        """
+        Set the status of all downlink views of the current manager to closed.
+        """
         for view in self.__downlink_views.values():
             view.is_open = False
 

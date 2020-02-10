@@ -11,12 +11,10 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-import inspect
 import unittest
-from collections.abc import Callable
+
 from concurrent.futures import Future
 from unittest.mock import patch
-
 from aiounittest import async_test
 
 from swimai import SwimClient
@@ -28,7 +26,7 @@ from swimai.structures import Record, Text, Attr, RecordMap, Absent, Num, Bool, 
 from swimai.warp import LinkedResponse, SyncedResponse, EventMessage, UnlinkedResponse
 from test.utils import MockConnection, MockExecuteOnException, MockWebsocketConnect, MockWebsocket, \
     mock_did_set_confirmation, ReceiveLoop, MockPerson, MockPet, NewScope, MockNoDefaultConstructor, MockCar, \
-    mock_func, mock_coro, MockModel, MockDownlinkManager, mock_on_event_callback, MockEventCallback, \
+    MockModel, MockDownlinkManager, mock_on_event_callback, MockEventCallback, \
     MockDidSetCallback, mock_did_set_callback, MockDidUpdateCallback, mock_did_update_callback, \
     mock_did_remove_callback, MockDidRemoveCallback
 
@@ -795,43 +793,6 @@ class TestDownlinks(unittest.TestCase):
         self.assertTrue(mock_websocket_connect.called)
         self.assertEqual(mock_person_class, downlink.registered_classes.get('MockPerson'))
         self.assertEqual(mock_pet_class, downlink.registered_classes.get('MockPet'))
-
-    @async_test
-    async def test_downlink_view_validate_callback_function(self):
-        # Given
-        func = mock_func
-        # When
-        actual = DownlinkView.validate_callback(func)
-        result = await actual()
-        # Then
-        self.assertEqual('mock_func_response', result)
-        self.assertTrue(isinstance(actual, Callable))
-        self.assertTrue(inspect.iscoroutinefunction(actual))
-
-    @async_test
-    async def test_downlink_view_validate_coro(self):
-        # Given
-        coro = mock_coro
-        # When
-        actual = DownlinkView.validate_callback(coro)
-        result = await actual()
-        # Then
-        self.assertEqual('mock_coro_response', result)
-        self.assertTrue(isinstance(actual, Callable))
-        self.assertTrue(inspect.iscoroutinefunction(actual))
-
-    @async_test
-    async def test_downlink_view_validate_invalid(self):
-        # Given
-        integer = 31
-        # When
-        with self.assertRaises(TypeError) as error:
-            # noinspection PyTypeChecker
-            DownlinkView.validate_callback(integer)
-
-        # Then
-        message = error.exception.args[0]
-        self.assertEqual(message, 'Callback must be a coroutine or a function!')
 
     @async_test
     async def test_downlink_view_assign_manager(self):
