@@ -183,8 +183,9 @@ class DownlinkView(ABC):
 
     def open(self) -> 'DownlinkView':
         if not self.is_open:
-            self.client.schedule_task(self.client.add_downlink_view, self)
-            self.is_open = True
+            task = self.client.schedule_task(self.client.add_downlink_view, self)
+            if task is not None:
+                self.is_open = True
 
         return self
 

@@ -25,7 +25,7 @@ from traceback import TracebackException
 from typing import Callable, Any, Optional
 from .connections import ConnectionPool, WSConnection
 from .downlinks import ValueDownlinkView, EventDownlinkView, DownlinkView, MapDownlinkView
-from .utils import URI
+from .utils import URI, after_started
 from swimai.structures import RecordConverter
 from swimai.warp import CommandMessage
 
@@ -39,6 +39,7 @@ class SwimClient:
         self.debug = debug
         self.execute_on_exception = execute_on_exception
         self.terminate_on_exception = terminate_on_exception
+        self.has_started = False
 
         self.__connection_pool = ConnectionPool()
 
@@ -50,7 +51,7 @@ class SwimClient:
                  exc_traceback: Optional[TracebackException]) -> 'SwimClient':
 
         if exc_value or exc_traceback:
-            self.__handle_exception(exc_value, exc_traceback)
+            self._handle_exception(exc_value, exc_traceback)
 
         self.stop()
         return self
@@ -65,6 +66,7 @@ class SwimClient:
         self.loop = loop
         self.loop_thread = Thread(target=self.__start_event_loop)
         self.loop_thread.start()
+        self.has_started = True
 
         return self
 
@@ -76,6 +78,7 @@ class SwimClient:
         self.schedule_task(self.__stop_event_loop)
         self.loop_thread.join()
         self.loop.close()
+        self.has_started = False
 
         return self
 
@@ -136,6 +139,7 @@ class SwimClient:
         connection = await self.__connection_pool.get_connection(host_uri)
         return connection
 
+    @after_started
     def schedule_task(self, task: Callable, *args: Any) -> 'Future':
         """
         Schedule a task for execution in the asyncio loop.
@@ -150,7 +154,7 @@ class SwimClient:
             return future
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            self.__handle_exception(exc_value, exc_traceback)
+            self._handle_exception(exc_value, exc_traceback)
 
     def __exception_handler(self, future: Future) -> None:
         """
@@ -164,9 +168,9 @@ class SwimClient:
             pass
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            self.__handle_exception(exc_value, exc_traceback)
+            self._handle_exception(exc_value, exc_traceback)
 
-    def __handle_exception(self, exc_value: Optional[Exception], exc_traceback: Optional[TracebackException]) -> None:
+    def _handle_exception(self, exc_value: Optional[Exception], exc_traceback: Optional[TracebackException]) -> None:
         """
         Report exceptions and schedule custom callbacks or client termination, based on the
         Swim Client policies.

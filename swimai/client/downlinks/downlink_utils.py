@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import inspect
+import sys
 from abc import ABC, abstractmethod
 from typing import Any, Callable
 from swimai.structures import RecordMap, Slot, Text, RecordConverter, Attr, Record, Item
@@ -19,36 +20,44 @@ from swimai.structures import RecordMap, Slot, Text, RecordConverter, Attr, Reco
 
 def before_open(function: 'Callable') -> 'Callable':
     """
-    Decorator that allows for a given class method to be executed only before the class object has been opened.
-    The class should have an `is_open` flag set to False.
+    Decorator that allows for a given downlink method to be executed only before the downlink has been opened.
+    The downlink should have an `is_open` flag set to False.
 
-    :param function:        - Decorated class method.
-    :return:                - The return value of the decorated class method.
+    :param function:        - Decorated downlink method.
+    :return:                - The return value of the decorated downlink method.
     """
 
     def wrapper(*args, **kwargs):
         if not args[0].is_open:
             return function(*args, **kwargs)
         else:
-            raise Exception(f'Cannot execute "{function.__name__}" after the downlink has been opened!')
+            try:
+                raise Exception(f'Cannot execute "{function.__name__}" after the downlink has been opened!')
+            except Exception:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                args[0].client._handle_exception(exc_value, exc_traceback)
 
     return wrapper
 
 
 def after_open(function: 'Callable') -> 'Callable':
     """
-    Decorator that allows for a given class method to be executed only after the class object has been opened.
-    The class should have an `is_open` flag set to True.
+    Decorator that allows for a given downlink method to be executed only after the downlink has been opened.
+    The downlink should have an `is_open` flag set to True.
 
-    :param function:        - Decorated class method.
-    :return:                - The return value of the decorated class method.
+    :param function:        - Decorated downlink method.
+    :return:                - The return value of the decorated downlink method.
     """
 
     def wrapper(*args, **kwargs):
         if args[0].is_open:
             return function(*args, **kwargs)
         else:
-            raise Exception(f'Cannot execute "{function.__name__}" before the downlink has been opened!')
+            try:
+                raise Exception(f'Cannot execute "{function.__name__}" before the downlink has been opened!')
+            except Exception:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                args[0].client._handle_exception(exc_value, exc_traceback)
 
     return wrapper
 

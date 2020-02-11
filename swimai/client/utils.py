@@ -11,8 +11,31 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+import sys
+from typing import Callable
 from urllib.parse import urlparse, ParseResult
+
+
+def after_started(function: 'Callable') -> 'Callable':
+    """
+    Decorator that allows for a given client method to be executed only after the client has been started.
+    The client should have an `has_started` flag set to True.
+
+    :param function:        - Decorated client method.
+    :return:                - The return value of the decorated client method.
+    """
+
+    def wrapper(*args, **kwargs):
+        if args[0].has_started:
+            return function(*args, **kwargs)
+        else:
+            try:
+                raise Exception(f'Cannot execute "{args[1].__name__}" before the client has been started!')
+            except Exception:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                args[0]._handle_exception(exc_value, exc_traceback)
+
+    return wrapper
 
 
 class URI:

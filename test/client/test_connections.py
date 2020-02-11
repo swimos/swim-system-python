@@ -111,7 +111,9 @@ class TestConnections(unittest.TestCase):
         uri = 'ws://foo_bar:9000'
         connection = await pool.get_connection(uri)
         connection.status = ConnectionStatus.IDLE
-        downlink_view = SwimClient().downlink_value()
+        client = SwimClient()
+        client.has_started = True
+        downlink_view = client.downlink_value()
         downlink_view.set_host_uri(uri)
         # When
         await pool.add_downlink_view(downlink_view)
@@ -129,7 +131,9 @@ class TestConnections(unittest.TestCase):
         # Given
         pool = ConnectionPool()
         uri = 'ws://foo_bar:9000'
-        downlink_view = SwimClient().downlink_value()
+        client = SwimClient()
+        client.has_started = True
+        downlink_view = client.downlink_value()
         downlink_view.set_host_uri(uri)
         # When
         await pool.add_downlink_view(downlink_view)
@@ -145,7 +149,9 @@ class TestConnections(unittest.TestCase):
         # Given
         pool = ConnectionPool()
         uri = 'ws://foo_bar:9000'
-        downlink_view = SwimClient().downlink_value()
+        client = SwimClient()
+        client.has_started = True
+        downlink_view = client.downlink_value()
         downlink_view.set_host_uri(uri)
         await pool.add_downlink_view(downlink_view)
         downlink_view.connection.status = ConnectionStatus.IDLE
@@ -165,7 +171,9 @@ class TestConnections(unittest.TestCase):
         # Given
         pool = ConnectionPool()
         uri = 'ws://foo_bar:9000'
-        downlink_view = SwimClient().downlink_value()
+        client = SwimClient()
+        client.has_started = True
+        downlink_view = client.downlink_value()
         downlink_view.set_host_uri(uri)
         await pool.add_downlink_view(downlink_view)
         connection = pool.get_connection(uri)
@@ -185,7 +193,9 @@ class TestConnections(unittest.TestCase):
         # Given
         pool = ConnectionPool()
         uri = 'ws://foo_bar:9000'
-        downlink_view = SwimClient().downlink_value()
+        client = SwimClient()
+        client.has_started = True
+        downlink_view = client.downlink_value()
         downlink_view.set_host_uri(uri)
         await pool.remove_connection(uri)
         # When
@@ -213,7 +223,9 @@ class TestConnections(unittest.TestCase):
         # Given
         host_uri = 'ws://localhost:9001'
         actual = WSConnection(host_uri)
-        downlink_view = SwimClient().downlink_value()
+        client = SwimClient()
+        client.has_started = True
+        downlink_view = client.downlink_value()
         downlink_view.set_host_uri(host_uri)
         downlink_view.set_node_uri('bar')
         downlink_view.set_lane_uri('baz')
@@ -236,6 +248,7 @@ class TestConnections(unittest.TestCase):
         actual = WSConnection(host_uri)
 
         client = SwimClient()
+        client.has_started = True
         first_downlink_view = client.downlink_value()
         first_downlink_view.set_host_uri(host_uri)
         first_downlink_view.set_node_uri('bar')
@@ -265,7 +278,9 @@ class TestConnections(unittest.TestCase):
         # Given
         host_uri = 'ws://0.0.0.0:9001'
         actual = WSConnection(host_uri)
-        downlink_view = SwimClient().downlink_value()
+        client = SwimClient()
+        client.has_started = True
+        downlink_view = client.downlink_value()
         downlink_view.set_host_uri(host_uri)
         downlink_view.set_node_uri('foo')
         downlink_view.set_lane_uri('bar')
@@ -293,6 +308,7 @@ class TestConnections(unittest.TestCase):
         actual = WSConnection(host_uri)
 
         client = SwimClient()
+        client.has_started = True
         first_downlink_view = client.downlink_value()
         first_downlink_view.set_host_uri(host_uri)
         first_downlink_view.set_node_uri('foo')
@@ -484,6 +500,7 @@ class TestConnections(unittest.TestCase):
         MockWebsocket.get_mock_websocket().connection = connection
 
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_host_uri(host_uri)
         downlink_view.set_node_uri('foo')
@@ -515,6 +532,7 @@ class TestConnections(unittest.TestCase):
         mock_receive_message.set_call_count(3)
 
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_host_uri(host_uri)
         downlink_view.set_node_uri('baz')
@@ -557,6 +575,7 @@ class TestConnections(unittest.TestCase):
         mock_websocket.set_raise_exception(True)
 
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_host_uri(host_uri)
         downlink_view.set_node_uri('boo')
@@ -585,6 +604,7 @@ class TestConnections(unittest.TestCase):
     async def test_downlink_manager_pool_register_downlink_view_single(self, mock_open):
         # Given
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('boo')
         downlink_view.set_lane_uri('far')
@@ -600,6 +620,7 @@ class TestConnections(unittest.TestCase):
     async def test_downlink_manager_pool_register_downlink_view_multiple_different_routes(self, mock_open):
         # Given
         client = SwimClient()
+        client.has_started = True
         first_downlink_view = client.downlink_value()
         first_downlink_view.set_node_uri('boo')
         first_downlink_view.set_lane_uri('far')
@@ -619,6 +640,7 @@ class TestConnections(unittest.TestCase):
     async def test_downlink_manager_pool_register_downlink_view_multiple_same_route(self, mock_open):
         # Given
         client = SwimClient()
+        client.has_started = True
         first_downlink_view = client.downlink_value()
         first_downlink_view.set_node_uri('boo')
         first_downlink_view.set_lane_uri('far')
@@ -639,6 +661,7 @@ class TestConnections(unittest.TestCase):
     async def test_downlink_manager_pool_deregister_downlink_view_single_existing(self, mock_open, mock_close):
         # Given
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('moo')
         downlink_view.set_lane_uri('cow')
@@ -656,6 +679,7 @@ class TestConnections(unittest.TestCase):
     async def test_downlink_manager_pool_deregister_downlink_view_single_non_existing(self, mock_close):
         # Given
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('foo')
         downlink_view.set_lane_uri('bar')
@@ -672,6 +696,7 @@ class TestConnections(unittest.TestCase):
     async def test_downlink_manager_pool_deregister_downlink_view_multiple_same_route(self, mock_open, mock_close):
         # Given
         client = SwimClient()
+        client.has_started = True
         first_downlink_view = client.downlink_value()
         first_downlink_view.set_node_uri('qux')
         first_downlink_view.set_lane_uri('baz')
@@ -696,6 +721,7 @@ class TestConnections(unittest.TestCase):
                                                                                             mock_close):
         # Given
         client = SwimClient()
+        client.has_started = True
         first_downlink_view = client.downlink_value()
         first_downlink_view.set_node_uri('parrot')
         first_downlink_view.set_lane_uri('dead')
@@ -719,6 +745,7 @@ class TestConnections(unittest.TestCase):
     async def test_downlink_manager_pool_receive_message_existing_route(self, mock_receive_message, mock_open):
         # Given
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('moo')
         downlink_view.set_lane_uri('cow')
@@ -737,6 +764,7 @@ class TestConnections(unittest.TestCase):
     async def test_downlink_manager_pool_receive_message_non_existing_route(self, mock_receive_message, mock_open):
         # Given
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('moo')
         downlink_view.set_lane_uri('cow')
@@ -770,6 +798,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://5.5.5.5:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('foo')
         downlink_view.set_lane_uri('bar')
@@ -792,6 +821,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://5.5.5.5:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('moo')
         downlink_view.set_lane_uri('car')
@@ -815,6 +845,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://1.2.3.4:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('moo')
         downlink_view.set_lane_uri('car')
@@ -837,6 +868,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://4.3.2.1:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('boo')
         downlink_view.set_lane_uri('far')
@@ -857,6 +889,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://100.100.100.100:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('bar')
         downlink_view.set_lane_uri('baz')
@@ -912,6 +945,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://99.99.99.99:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('Hello')
         downlink_view.set_lane_uri('World')
@@ -940,6 +974,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://11.22.33.44:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         first_downlink_view = client.downlink_value()
         first_downlink_view.set_node_uri('Goodbye')
         first_downlink_view.set_lane_uri('World')
@@ -978,6 +1013,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://11.11.11.11:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('Goodbye')
         downlink_view.set_lane_uri('World')
@@ -1007,6 +1043,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://44.33.22.11:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         first_downlink_view = client.downlink_value()
         first_downlink_view.set_node_uri('Dead')
         first_downlink_view.set_lane_uri('Parrot')
@@ -1043,6 +1080,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://66.66.66.66:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('Foo')
         downlink_view.set_lane_uri('Qux')
@@ -1064,6 +1102,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://66.66.66.66:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('test')
         downlink_view.set_lane_uri('foo')
@@ -1085,6 +1124,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://11.11.11.11:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('test')
         downlink_view.set_lane_uri('foo')
@@ -1106,6 +1146,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://33.33.33.33:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('test')
         downlink_view.set_lane_uri('foo')
@@ -1128,6 +1169,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://44.44.44.44:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('bar')
         downlink_view.set_lane_uri('baz')
@@ -1156,6 +1198,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://4.3.2.1:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_node_uri('bar')
         downlink_view.set_lane_uri('baz')
@@ -1180,6 +1223,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://10.9.8.7:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         did_set_callback = mock_did_set_callback
         first_downlink_view = client.downlink_value()
         first_downlink_view.set_node_uri('cow')
@@ -1231,6 +1275,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://4.3.2.1:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_event()
         downlink_view.set_node_uri('bar')
         downlink_view.set_lane_uri('baz')
@@ -1254,6 +1299,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://10.9.8.7:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         on_event_callback = mock_on_event_callback
         first_downlink_view = client.downlink_event()
         first_downlink_view.set_node_uri('pow')
@@ -1294,6 +1340,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://4.3.2.1:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_map()
         downlink_view.set_node_uri('bar')
         downlink_view.set_lane_uri('baz')
@@ -1319,6 +1366,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://10.9.8.7:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         did_update_callback = mock_did_update_callback
         first_downlink_view = client.downlink_map()
         first_downlink_view.set_node_uri('pow')
@@ -1365,6 +1413,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://4.3.2.1:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_map()
         downlink_view.set_node_uri('bar')
         downlink_view.set_lane_uri('baz')
@@ -1389,6 +1438,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://10.9.8.7:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         did_remove_callback = mock_on_event_callback
         first_downlink_view = client.downlink_map()
         first_downlink_view.set_node_uri('fall')
@@ -1432,6 +1482,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://4.3.2.1:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         downlink_view = client.downlink_map()
         downlink_view.is_open = True
         actual = DownlinkManager(connection)
@@ -1451,6 +1502,7 @@ class TestConnections(unittest.TestCase):
         host_uri = 'ws://4.3.2.1:9001'
         connection = WSConnection(host_uri)
         client = SwimClient()
+        client.has_started = True
         actual = DownlinkManager(connection)
         first_downlink_view = client.downlink_map()
         first_downlink_view.is_open = True

@@ -45,6 +45,7 @@ class TestSwimClient(unittest.TestCase):
         self.assertIsInstance(actual.loop_thread, Thread)
         self.assertFalse(actual.loop.is_closed())
         self.assertTrue(actual.loop_thread.is_alive())
+        self.assertTrue(actual.has_started)
         client.stop()
 
     def test_swim_client_stop(self):
@@ -59,6 +60,7 @@ class TestSwimClient(unittest.TestCase):
         self.assertIsInstance(actual.loop_thread, Thread)
         self.assertTrue(actual.loop.is_closed())
         self.assertFalse(actual.loop_thread.is_alive())
+        self.assertFalse(actual.has_started)
 
     def test_swim_client_with_statement(self):
         # When
@@ -68,11 +70,13 @@ class TestSwimClient(unittest.TestCase):
             self.assertIsInstance(swim_client.loop, asyncio.events.AbstractEventLoop)
             self.assertIsInstance(swim_client.loop_thread, Thread)
             self.assertFalse(swim_client.loop.is_closed())
+            self.assertTrue(swim_client.has_started)
 
         self.assertIsInstance(swim_client.loop, asyncio.events.AbstractEventLoop)
         self.assertIsInstance(swim_client.loop_thread, Thread)
         self.assertTrue(swim_client.loop.is_closed())
         self.assertFalse(swim_client.loop_thread.is_alive())
+        self.assertFalse(swim_client.has_started)
 
     @patch('warnings.warn')
     @patch('traceback.print_tb')
@@ -193,6 +197,15 @@ class TestSwimClient(unittest.TestCase):
         mock_websocket_connect.assert_called_once_with(host_uri)
         self.assertEqual(expected, MockWebsocket.get_mock_websocket().sent_messages[0])
 
+    def test_swim_client_command_before_open(self):
+        # Given
+        swim_client = SwimClient()
+        # When
+        downlink_event = swim_client.downlink_event()
+        # Then
+        self.assertIsInstance(downlink_event, EventDownlinkView)
+        self.assertEqual(downlink_event.client, swim_client)
+
     def test_swim_client_downlink_event(self):
         # Given
         with SwimClient() as swim_client:
@@ -202,6 +215,17 @@ class TestSwimClient(unittest.TestCase):
         # Then
         self.assertIsInstance(downlink_event, EventDownlinkView)
         self.assertEqual(downlink_event.client, swim_client)
+
+    @patch('warnings.warn')
+    def test_swim_client_downlink_event_open_before_client_started(self, mock_warn):
+        # Given
+        swim_client = SwimClient()
+        # When
+        downlink_event = swim_client.downlink_event()
+        downlink_event.open()
+        # Then
+        self.assertEqual('Cannot execute "add_downlink_view" before the client has been started!',
+                         mock_warn.call_args_list[0][0][0])
 
     def test_swim_client_downlink_map(self):
         # Given
@@ -213,6 +237,17 @@ class TestSwimClient(unittest.TestCase):
         self.assertIsInstance(downlink_map, MapDownlinkView)
         self.assertEqual(downlink_map.client, swim_client)
 
+    @patch('warnings.warn')
+    def test_swim_client_downlink_map_open_before_client_started(self, mock_warn):
+        # Given
+        swim_client = SwimClient()
+        # When
+        downlink_map = swim_client.downlink_map()
+        downlink_map.open()
+        # Then
+        self.assertEqual('Cannot execute "add_downlink_view" before the client has been started!',
+                         mock_warn.call_args_list[0][0][0])
+
     def test_swim_client_downlink_value(self):
         # Given
         with SwimClient() as swim_client:
@@ -222,6 +257,17 @@ class TestSwimClient(unittest.TestCase):
         # Then
         self.assertIsInstance(downlink_view, ValueDownlinkView)
         self.assertEqual(downlink_view.client, swim_client)
+
+    @patch('warnings.warn')
+    def test_swim_client_downlink_value_open_before_client_started(self, mock_warn):
+        # Given
+        swim_client = SwimClient()
+        # When
+        downlink_value = swim_client.downlink_value()
+        downlink_value.open()
+        # Then
+        self.assertEqual('Cannot execute "add_downlink_view" before the client has been started!',
+                         mock_warn.call_args_list[0][0][0])
 
     @patch('swimai.client.connections.ConnectionPool.add_downlink_view', new_callable=MockAsyncFunction)
     @async_test
