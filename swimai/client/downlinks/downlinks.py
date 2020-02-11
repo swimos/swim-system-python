@@ -46,7 +46,6 @@ class DownlinkModel(ABC):
     async def establish_downlink(self) -> None:
         """
         Send a request to the remote agent to establish connection.
-        :return:
         """
         raise NotImplementedError
 
@@ -54,6 +53,7 @@ class DownlinkModel(ABC):
     async def receive_event(self, message: 'Envelope') -> None:
         """
         Handle an `event` response message from the remote agent.
+
         :param message:          - Event response message.
         """
         raise NotImplementedError
@@ -98,6 +98,8 @@ class DownlinkModel(ABC):
     async def receive_unlinked(self, message: 'Envelope') -> None:
         """
         Handle an `unlinked` response message from the remote agent.
+
+        :param message          - Response message.
         """
         if message.body.tag == 'laneNotFound':
             raise Exception(f'Lane "{self.lane_uri}" was not found on the remote agent!')
@@ -125,6 +127,7 @@ class DownlinkView(ABC):
 
         self.__registered_classes = dict()
         self.__deregistered_classes = set()
+        self.__clear_classes = False
         self.__strict = False
 
     @property
@@ -133,6 +136,13 @@ class DownlinkView(ABC):
 
     @property
     def strict(self) -> bool:
+        """
+        The strict status is used when custom objects are received by the downlink. If the downlink is strict,
+        a class of the same name, as the object received, must have been registered with the downlink. If the downlink
+        is not strict, a custom object will be created dynamically.
+
+        :return:                    - Whether or not the downlink is strict.
+        """
         if self.downlink_manager is None:
             return self.__strict
         else:
@@ -155,18 +165,19 @@ class DownlinkView(ABC):
     @abstractmethod
     async def register_manager(self, manager: 'DownlinkManager') -> None:
         """
-        TODO
-        :param manager:
-        :return:
+        Register the current downlink view with a downlink manager.
+
+        :param manager:             - Downlink manager for the current downlink view.
         """
         raise NotImplementedError
 
     @abstractmethod
     async def create_downlink_model(self, downlink_manager: 'DownlinkManager') -> 'DownlinkModel':
         """
-        TODO
-        :param downlink_manager:
-        :return:
+        Create a downlink model for the current downlink view.
+
+        :param downlink_manager:    - Downlink manager of the current downlink view.
+        :return:                    - Downlink model for the current downlink view.
         """
         raise NotImplementedError
 
@@ -186,10 +197,10 @@ class DownlinkView(ABC):
 
     async def initalise_model(self, manager: 'DownlinkManager', model: 'DownlinkModel') -> None:
         """
-        TODO
-        :param manager:
-        :param model:
-        :return:
+        Initialise the given downlink model and manager with the values of the current downlink view.
+
+        :param manager:             - Downlink manager for the current downlink view.
+        :param model:               - Downlink model for the current downlink view.
         """
         manager.registered_classes = self.registered_classes
         manager.strict = self.strict
@@ -200,15 +211,19 @@ class DownlinkView(ABC):
 
     async def assign_manager(self, manager: 'DownlinkManager') -> None:
         """
-        TODO
-        :param manager:
-        :return:
+        Assign a downlink manager to the current downlink view and update the manager with the values
+        of the downlink view.
+
+        :param manager:             - Downlink manager to assign to the current downlink view.
         """
         self.model = manager.downlink_model
         manager.registered_classes.update(self.registered_classes)
 
         for klass in self.__deregistered_classes:
             manager.registered_classes.pop(klass)
+
+        if self.__clear_classes:
+            manager.registered_classes.clear()
 
         manager.strict = self.strict
         self.downlink_manager = manager
@@ -230,9 +245,10 @@ class DownlinkView(ABC):
 
     def register_class(self, custom_class: Any) -> None:
         """
+        Register a class with the downlink view. The registered classes are used for constructing objects when
+        events with custom objects are received by the downlink.
 
-        :param custom_class:
-        :return:
+        :param custom_class:        - Class to register.
         """
         self.__register_class(custom_class)
 
@@ -242,9 +258,9 @@ class DownlinkView(ABC):
 
     def deregister_class(self, custom_class: Any) -> None:
         """
+        Deregister a class from the downlink view and the downlink manager associated with it.
 
-        :param custom_class:
-        :return:
+        :param custom_class:        - Class to deregister.
         """
         if self.downlink_manager is None:
             self.__registered_classes.pop(custom_class.__name__, None)
@@ -258,13 +274,13 @@ class DownlinkView(ABC):
 
     def deregister_all_classes(self) -> None:
         """
-
-        :return:
+        Deregister all classes from the downlink view and the downlink manager associated with it.
         """
         if self.downlink_manager is not None:
             self.__deregistered_classes.update(set(self.downlink_manager.registered_classes.keys()))
             self.downlink_manager.registered_classes.clear()
         else:
+            self.__clear_classes = True
             self.__registered_classes.clear()
 
     def __register_class(self, custom_class: Any) -> None:
@@ -314,9 +330,10 @@ class EventDownlinkView(DownlinkView):
 
     def on_event(self, function: Callable) -> 'EventDownlinkView':
         """
-        TODO
-        :param function:
-        :return:
+        Set the `on_event` callback of the current downlink view to a given function.
+
+        :param function:   - Function to be called when an event is received by the downlink.
+        :return:           - The current downlink view.
         """
         self.on_event_callback = validate_callback(function)
         return self
@@ -324,9 +341,9 @@ class EventDownlinkView(DownlinkView):
     # noinspection PyAsyncCall
     async def execute_on_event(self, event: Any) -> None:
         """
-        TODO
-        :param event:
-        :return:
+        Execute the custom `on_event` callback of the current downlink view.
+
+        :param event:       - The event received by the downlink.
         """
         if self.on_event_callback:
             self.client.schedule_task(self.on_event_callback, event)
@@ -451,9 +468,10 @@ class ValueDownlinkView(DownlinkView):
 
     def did_set(self, function: Callable) -> 'ValueDownlinkView':
         """
-        TODO
-        :param function:
-        :return:
+        Set the `did_set` callback of the current downlink view to a given function.
+
+        :param function:   - Function to be called when a value is received by the downlink.
+        :return:           - The current downlink view.
         """
         self.did_set_callback = validate_callback(function)
         return self
@@ -505,14 +523,20 @@ class MapDownlinkModel(DownlinkModel):
 
     async def get_value(self, key) -> Any:
         """
-        Get the value of the downlink after it has been synced.
+        Get a value from the map of the downlink using a given key, after it has been synced.
 
+        :param key              - The key of the entry.
         :return:                - The current value of the downlink.
         """
         await self.synced.wait()
         return self.map.get(key, (Value.absent(), Value.absent()))[1]
 
     async def get_values(self) -> list:
+        """
+        Get all of the values from the map of the downlink as a list.
+
+        :return:                - A list with all the values from the downlink map.
+        """
         await self.synced.wait()
         return list(self.map.values())
 
@@ -617,20 +641,45 @@ class MapDownlinkView(DownlinkView):
             task.result()
 
     def did_update(self, function: Callable) -> 'MapDownlinkView':
+        """
+        Set the `did_update` callback of the current downlink view to a given function.
+
+        :param function:   - Function to be called when an update event is received by the downlink.
+        :return:           - The current downlink view.
+        """
         self.did_update_callback = validate_callback(function)
         return self
 
     # noinspection PyAsyncCall
     async def execute_did_update(self, key: Any, new_value: Any, old_value: Any) -> None:
+        """
+        Execute the custom `did_update` callback of the current downlink view.
+
+        :param key:             - The entry key of the item.
+        :param new_value:       - The new value of the item.
+        :param old_value:       - The current value of the item.
+        """
         if self.did_update_callback:
             self.client.schedule_task(self.did_update_callback, key, new_value, old_value)
 
     def did_remove(self, function: Callable) -> 'MapDownlinkView':
+        """
+        Set the `did_remove` callback of the current downlink view to a given function.
+
+        :param function:   - Function to be called when a remove event is received by the downlink.
+        :return:           - The current downlink view.
+        """
         self.did_remove_callback = validate_callback(function)
         return self
 
     # noinspection PyAsyncCall
     async def execute_did_remove(self, key: Any, old_value: Any) -> None:
+        """
+        Execute the custom `did_remove` callback of the current downlink view.
+
+        :param key:             - The entry key of the item.
+        :param old_value:       - The current value of the item.
+        """
         if self.did_remove_callback:
             self.client.schedule_task(self.did_remove_callback, key, old_value)
 

@@ -898,6 +898,46 @@ class TestDownlinks(unittest.TestCase):
         self.assertEqual(mock_person_class, downlink.registered_classes.get('MockPerson'))
         self.assertEqual(mock_person_class, second_downlink.registered_classes.get('MockPerson'))
 
+    @patch('websockets.connect', new_callable=MockWebsocketConnect)
+    @async_test
+    async def test_downlink_view_register_and_deregister_all(self, mock_websocket_connect):
+        # Given
+        message = '@event(node:"boo/bar",lane:shop)'
+        MockWebsocket.get_mock_websocket().messages_to_send.append(message)
+        loop_class = ReceiveLoop()
+        MockWebsocket.get_mock_websocket().custom_recv_func = loop_class.recv_loop
+
+        mock_person_class = MockPerson
+        mock_pet_class = MockPet
+        mock_car_class = MockCar
+
+        with SwimClient() as client:
+            downlink = ValueDownlinkView(client)
+            downlink.set_host_uri('ws://127.0.0.1')
+            downlink.set_node_uri('boo/bar')
+            downlink.set_lane_uri('shop')
+            downlink.did_set(mock_did_set_confirmation)
+            downlink.register_class(mock_person_class)
+            downlink.register_class(mock_pet_class)
+            downlink.register_class(mock_car_class)
+            downlink.open()
+
+            while loop_class.call_count == 0:
+                pass
+            self.assertTrue(3, len(downlink.registered_classes))
+            # When
+            second_downlink = ValueDownlinkView(client)
+            second_downlink.set_host_uri('ws://127.0.0.1')
+            second_downlink.set_node_uri('boo/bar')
+            second_downlink.set_lane_uri('shop')
+            second_downlink.deregister_all_classes()
+            second_downlink.open()
+
+        # Then
+        self.assertEqual(0, len(downlink.registered_classes))
+        self.assertEqual(0, len(second_downlink.registered_classes))
+        self.assertTrue(mock_websocket_connect.called)
+
     @async_test
     async def test_event_downlink_model_establish_downlink(self):
         # Given
