@@ -26,7 +26,7 @@ def after_started(function: 'Callable') -> 'Callable':
     """
 
     def wrapper(*args, **kwargs):
-        if args[0].has_started:
+        if args[0]._has_started:
             return function(*args, **kwargs)
         else:
             try:
@@ -38,10 +38,10 @@ def after_started(function: 'Callable') -> 'Callable':
     return wrapper
 
 
-class URI:
+class _URI:
 
     @staticmethod
-    def normalise_warp_scheme(uri: str) -> str:
+    def _normalise_warp_scheme(uri: str) -> str:
         """
         Normalise all different representations of the WARP scheme to a websocket connection.
 
@@ -49,14 +49,14 @@ class URI:
         :return:                - URI with `ws` scheme.
         """
         uri = urlparse(uri)
-        if URI.has_valid_scheme(uri):
+        if _URI._has_valid_scheme(uri):
             uri = uri._replace(scheme='ws')
             return uri.geturl()
         else:
             raise TypeError(f'Invalid scheme "{uri.scheme}" for Warp URI!')
 
     @staticmethod
-    def has_valid_scheme(uri: ParseResult) -> bool:
+    def _has_valid_scheme(uri: ParseResult) -> bool:
         """
         Check if a URI has a WARP compatible scheme.
 

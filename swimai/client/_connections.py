@@ -20,20 +20,20 @@ from swimai.warp import Envelope
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from .downlinks import DownlinkModel
-    from .downlinks import DownlinkView
+    from ._downlinks import DownlinkModel
+    from ._downlinks import DownlinkView
 
 
-class ConnectionPool:
+class _ConnectionPool:
 
     def __init__(self) -> None:
         self.__connections = dict()
 
     @property
-    def size(self) -> int:
+    def _size(self) -> int:
         return len(self.__connections)
 
-    async def get_connection(self, host_uri: str) -> 'WSConnection':
+    async def _get_connection(self, host_uri: str) -> '_WSConnection':
         """
         Return a WebSocket connection to the given Host URI. If it is a new
         host or the existing connection is closing, create a new connection.
@@ -43,13 +43,13 @@ class ConnectionPool:
         """
         connection = self.__connections.get(host_uri)
 
-        if connection is None or connection.status == ConnectionStatus.CLOSED:
-            connection = WSConnection(host_uri)
+        if connection is None or connection.status == _ConnectionStatus.CLOSED:
+            connection = _WSConnection(host_uri)
             self.__connections[host_uri] = connection
 
         return connection
 
-    async def remove_connection(self, host_uri: str) -> None:
+    async def _remove_connection(self, host_uri: str) -> None:
         """
         Remove a connection from the pool.
 
@@ -59,91 +59,91 @@ class ConnectionPool:
 
         if connection:
             self.__connections.pop(host_uri)
-            await connection.close()
+            await connection._close()
 
-    async def add_downlink_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _add_downlink_view(self, downlink_view: 'DownlinkView') -> None:
         """
         Subscribe a downlink view to a connection from the pool.
 
         :param downlink_view:   - Downlink view to subscribe to a connection.
         """
-        host_uri = downlink_view.host_uri
-        connection = await self.get_connection(host_uri)
-        downlink_view.connection = connection
+        host_uri = downlink_view._host_uri
+        connection = await self._get_connection(host_uri)
+        downlink_view._connection = connection
 
-        await connection.subscribe(downlink_view)
+        await connection._subscribe(downlink_view)
 
-    async def remove_downlink_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _remove_downlink_view(self, downlink_view: 'DownlinkView') -> None:
         """
         Unsubscribe a downlink view from a connection from the pool.
 
         :param downlink_view:   - Downlink view to unsubscribe from a connection.
         """
-        connection: 'WSConnection'
+        connection: '_WSConnection'
 
-        host_uri = downlink_view.host_uri
+        host_uri = downlink_view._host_uri
         connection = self.__connections.get(host_uri)
 
         if connection:
-            await connection.unsubscribe(downlink_view)
+            await connection._unsubscribe(downlink_view)
 
-            if connection.status == ConnectionStatus.CLOSED:
-                await self.remove_connection(host_uri)
+            if connection.status == _ConnectionStatus.CLOSED:
+                await self._remove_connection(host_uri)
 
 
-class WSConnection:
+class _WSConnection:
 
     def __init__(self, host_uri: str) -> None:
         self.host_uri = host_uri
         self.connected = asyncio.Event()
         self.websocket = None
-        self.status = ConnectionStatus.CLOSED
+        self.status = _ConnectionStatus.CLOSED
 
-        self.__subscribers = DownlinkManagerPool()
+        self.__subscribers = _DownlinkManagerPool()
 
-    async def open(self) -> None:
-        if self.status == ConnectionStatus.CLOSED:
-            self.status = ConnectionStatus.CONNECTING
+    async def _open(self) -> None:
+        if self.status == _ConnectionStatus.CLOSED:
+            self.status = _ConnectionStatus.CONNECTING
 
             try:
                 self.websocket = await websockets.connect(self.host_uri)
             except Exception as error:
-                self.status = ConnectionStatus.CLOSED
+                self.status = _ConnectionStatus.CLOSED
                 raise error
 
-            self.status = ConnectionStatus.IDLE
+            self.status = _ConnectionStatus.IDLE
             self.connected.set()
 
-    async def close(self) -> None:
-        if self.status != ConnectionStatus.CLOSED:
-            self.status = ConnectionStatus.CLOSED
+    async def _close(self) -> None:
+        if self.status != _ConnectionStatus.CLOSED:
+            self.status = _ConnectionStatus.CLOSED
 
             if self.websocket:
                 self.websocket.close_timeout = 0.1
                 await self.websocket.close()
                 self.connected.clear()
 
-    def has_subscribers(self) -> bool:
+    def _has_subscribers(self) -> bool:
         """
         Check if the connection has any subscribers.
 
         :return:        - True if there are subscribers. False otherwise.
         """
-        return self.__subscribers.size > 0
+        return self.__subscribers._size > 0
 
-    async def subscribe(self, downlink_view: 'DownlinkView') -> None:
+    async def _subscribe(self, downlink_view: 'DownlinkView') -> None:
         """
         Add a downlink view to the subscriber list of the current connection.
         If this is the first subscriber, open the connection.
 
         :param downlink_view:   - Downlink view to add to the subscribers.
         """
-        if self.__subscribers.size == 0:
-            await self.open()
+        if self.__subscribers._size == 0:
+            await self._open()
 
-        await self.__subscribers.register_downlink_view(downlink_view)
+        await self.__subscribers._register_downlink_view(downlink_view)
 
-    async def unsubscribe(self, downlink_view: 'DownlinkView') -> None:
+    async def _unsubscribe(self, downlink_view: 'DownlinkView') -> None:
         """
         Remove a downlink view from the subscriber list of the current connection.
         If there are no other subscribers, close the connection.
@@ -151,57 +151,57 @@ class WSConnection:
         :param downlink_view:   - Downlink view to remove from the subscribers.
         """
 
-        await self.__subscribers.deregister_downlink_view(downlink_view)
-        if not self.has_subscribers():
-            await self.close()
+        await self.__subscribers._deregister_downlink_view(downlink_view)
+        if not self._has_subscribers():
+            await self._close()
 
-    async def send_message(self, message: str) -> None:
+    async def _send_message(self, message: str) -> None:
         """
         Send a string message to the host using a WebSocket connection.
         If the WebSocket connection to the host is not open, open it.
 
         :param message:         - String message to send to the remote agent.
         """
-        if self.websocket is None or self.status == ConnectionStatus.CLOSED:
-            await self.open()
+        if self.websocket is None or self.status == _ConnectionStatus.CLOSED:
+            await self._open()
 
         await self.connected.wait()
         await self.websocket.send(message)
 
-    async def wait_for_messages(self) -> None:
+    async def _wait_for_messages(self) -> None:
         """
         Wait for messages from the remote agent and propagate them
         to all subscribers.
         """
 
-        if self.status == ConnectionStatus.IDLE:
-            self.status = ConnectionStatus.RUNNING
+        if self.status == _ConnectionStatus.IDLE:
+            self.status = _ConnectionStatus.RUNNING
             try:
-                while self.status == ConnectionStatus.RUNNING:
+                while self.status == _ConnectionStatus.RUNNING:
                     message = await self.websocket.recv()
                     response = await Envelope.parse_recon(message)
-                    await self.__subscribers.receive_message(response)
+                    await self.__subscribers._receive_message(response)
             finally:
-                await self.close()
+                await self._close()
 
 
-class ConnectionStatus(Enum):
+class _ConnectionStatus(Enum):
     CLOSED = 0
     CONNECTING = 1
     IDLE = 2
     RUNNING = 3
 
 
-class DownlinkManagerPool:
+class _DownlinkManagerPool:
 
     def __init__(self) -> None:
         self.__downlink_managers = dict()
 
     @property
-    def size(self) -> int:
+    def _size(self) -> int:
         return len(self.__downlink_managers)
 
-    async def register_downlink_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _register_downlink_view(self, downlink_view: 'DownlinkView') -> None:
         """
         Add a downlink view to a downlink manager from the pool with the given node and lane URIs.
         If a downlink manager is not yet created for the given node and lane, create it and add the downlink view.
@@ -212,46 +212,46 @@ class DownlinkManagerPool:
         downlink_manager = self.__downlink_managers.get(downlink_view.route)
 
         if downlink_manager is None:
-            downlink_manager = DownlinkManager(downlink_view.connection)
+            downlink_manager = _DownlinkManager(downlink_view._connection)
             self.__downlink_managers[downlink_view.route] = downlink_manager
 
-        await downlink_manager.add_view(downlink_view)
+        await downlink_manager._add_view(downlink_view)
 
-    async def deregister_downlink_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _deregister_downlink_view(self, downlink_view: 'DownlinkView') -> None:
         """
         Remove a downlink view from the corresponding downlink manager if it exists.
         If it is the last downlink view in the given manager, remove the manager from the pool.
 
         :param downlink_view:   - Downlink view to remove from the corresponding downlink manager.
         """
-        downlink_manager: DownlinkManager
+        downlink_manager: _DownlinkManager
 
         if downlink_view.route in self.__downlink_managers:
             downlink_manager = self.__downlink_managers.get(downlink_view.route)
-            await downlink_manager.remove_view(downlink_view)
+            await downlink_manager._remove_view(downlink_view)
 
-            if downlink_manager.view_count == 0:
+            if downlink_manager._view_count == 0:
                 self.__downlink_managers.pop(downlink_view.route)
 
-    async def receive_message(self, message: 'Envelope') -> None:
+    async def _receive_message(self, message: 'Envelope') -> None:
         """
         Route a received message for the given host URI to the downlink manager for the corresponding
         node and lane URIs.
 
         :param message:         - Message received from the remote agent.
         """
-        downlink_manager: DownlinkManager
+        downlink_manager: _DownlinkManager
 
         downlink_manager = self.__downlink_managers.get(message.route)
         if downlink_manager:
-            await downlink_manager.receive_message(message)
+            await downlink_manager._receive_message(message)
 
 
-class DownlinkManager:
+class _DownlinkManager:
 
-    def __init__(self, connection: 'WSConnection') -> None:
+    def __init__(self, connection: '_WSConnection') -> None:
         self.connection = connection
-        self.status = DownlinkManagerStatus.CLOSED
+        self.status = _DownlinkManagerStatus.CLOSED
         self.downlink_model = None
         self.registered_classes = dict()
         self.strict = False
@@ -259,55 +259,55 @@ class DownlinkManager:
         self.__downlink_views = dict()
 
     @property
-    def view_count(self) -> int:
+    def _view_count(self) -> int:
         return len(self.__downlink_views)
 
     @property
-    def is_open(self) -> bool:
-        return self.status == DownlinkManagerStatus.OPEN
+    def _is_open(self) -> bool:
+        return self.status == _DownlinkManagerStatus.OPEN
 
-    async def open(self) -> None:
+    async def _open(self) -> None:
         self.downlink_model: DownlinkModel
 
-        if self.status == DownlinkManagerStatus.CLOSED:
-            self.status = DownlinkManagerStatus.OPENING
-            self.downlink_model.open()
-            await self.downlink_model.establish_downlink()
-            self.status = DownlinkManagerStatus.OPEN
+        if self.status == _DownlinkManagerStatus.CLOSED:
+            self.status = _DownlinkManagerStatus.OPENING
+            self.downlink_model._open()
+            await self.downlink_model._establish_downlink()
+            self.status = _DownlinkManagerStatus.OPEN
 
-    async def close(self) -> None:
+    async def _close(self) -> None:
         self.downlink_model: DownlinkModel
 
-        if self.status != DownlinkManagerStatus.CLOSED:
-            self.status = DownlinkManagerStatus.CLOSED
-            self.downlink_model.close()
+        if self.status != _DownlinkManagerStatus.CLOSED:
+            self.status = _DownlinkManagerStatus.CLOSED
+            self.downlink_model._close()
 
-    async def init_downlink_model(self, downlink_view: 'DownlinkView') -> None:
+    async def _init_downlink_model(self, downlink_view: 'DownlinkView') -> None:
         """
         Initialise a downlink model to the specified node and lane of the remote agent.
 
         :param downlink_view:       - Downlink view with the information about the remote agent.
         """
-        self.downlink_model = await downlink_view.create_downlink_model(self)
+        self.downlink_model = await downlink_view._create_downlink_model(self)
         self.downlink_model.connection = self.connection
 
-    async def add_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _add_view(self, downlink_view: 'DownlinkView') -> None:
         """
         Add a downlink view to the manager. If a downlink model is not yet created, create it and open it.
 
         :param downlink_view:       - Downlink view to add to the manager.
         """
         if self.downlink_model is None:
-            await self.init_downlink_model(downlink_view)
+            await self._init_downlink_model(downlink_view)
 
-        await downlink_view.register_manager(self)
+        await downlink_view._register_manager(self)
 
-        if self.view_count == 0:
-            await self.open()
+        if self._view_count == 0:
+            await self._open()
 
         self.__downlink_views[hash(downlink_view)] = downlink_view
 
-    async def remove_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _remove_view(self, downlink_view: 'DownlinkView') -> None:
         """
         Remove a downlink view from the manager. If it is the last view associated with the manager,
         close the manager.
@@ -317,10 +317,10 @@ class DownlinkManager:
         if hash(downlink_view) in self.__downlink_views:
             self.__downlink_views.pop(hash(downlink_view))
 
-            if self.view_count == 0:
-                await self.close()
+            if self._view_count == 0:
+                await self._close()
 
-    async def receive_message(self, message: 'Envelope') -> None:
+    async def _receive_message(self, message: 'Envelope') -> None:
         """
         Send a received message to the downlink model.
 
@@ -328,9 +328,9 @@ class DownlinkManager:
         """
         self.downlink_model: DownlinkModel
 
-        await self.downlink_model.receive_message(message)
+        await self.downlink_model._receive_message(message)
 
-    async def subscribers_did_set(self, current_value: Any, old_value: Any) -> None:
+    async def _subscribers_did_set(self, current_value: Any, old_value: Any) -> None:
         """
         Execute the `did_set` method of all value downlink views of the downlink manager.
 
@@ -338,9 +338,9 @@ class DownlinkManager:
         :param old_value:           - The previous value of the downlink.
         """
         for view in self.__downlink_views.values():
-            await view.execute_did_set(current_value, old_value)
+            await view._execute_did_set(current_value, old_value)
 
-    async def subscribers_on_event(self, event: Any) -> None:
+    async def _subscribers_on_event(self, event: Any) -> None:
         """
         Execute the `on_event` method of all event downlink views of the downlink manager.
 
@@ -348,9 +348,9 @@ class DownlinkManager:
         """
 
         for view in self.__downlink_views.values():
-            await view.execute_on_event(event)
+            await view._execute_on_event(event)
 
-    async def subscribers_did_update(self, key: Any, new_value: Any, old_value: Any) -> None:
+    async def _subscribers_did_update(self, key: Any, new_value: Any, old_value: Any) -> None:
         """
         Execute the `did_update` method of all map downlink views of the downlink manager.
 
@@ -359,9 +359,9 @@ class DownlinkManager:
         :param old_value:           - The previous value of the entry.
         """
         for view in self.__downlink_views.values():
-            await view.execute_did_update(key, new_value, old_value)
+            await view._execute_did_update(key, new_value, old_value)
 
-    async def subscribers_did_remove(self, key: Any, old_value: Any) -> None:
+    async def _subscribers_did_remove(self, key: Any, old_value: Any) -> None:
         """
          Execute the `did_remove` method of all map downlink views of the downlink manager.
 
@@ -369,17 +369,17 @@ class DownlinkManager:
          :param old_value:           - The previous value of the entry.
          """
         for view in self.__downlink_views.values():
-            await view.execute_did_remove(key, old_value)
+            await view._execute_did_remove(key, old_value)
 
-    def close_views(self) -> None:
+    def _close_views(self) -> None:
         """
         Set the status of all downlink views of the current manager to closed.
         """
         for view in self.__downlink_views.values():
-            view.is_open = False
+            view._is_open = False
 
 
-class DownlinkManagerStatus(Enum):
+class _DownlinkManagerStatus(Enum):
     CLOSED = 0
     OPENING = 1
     OPEN = 2

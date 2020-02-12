@@ -15,7 +15,7 @@
 import unittest
 from urllib.parse import urlparse
 
-from swimai.client import URI
+from swimai.client._utils import _URI
 
 
 class TestUtils(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestUtils(unittest.TestCase):
         uri = 'ws://foo_bar:9000'
         uri = urlparse(uri)
         # When
-        actual = URI.has_valid_scheme(uri)
+        actual = _URI._has_valid_scheme(uri)
         # Then
         self.assertTrue(actual)
 
@@ -34,7 +34,7 @@ class TestUtils(unittest.TestCase):
         uri = 'warp://foo_bar:9000'
         uri = urlparse(uri)
         # When
-        actual = URI.has_valid_scheme(uri)
+        actual = _URI._has_valid_scheme(uri)
         # Then
         self.assertTrue(actual)
 
@@ -43,7 +43,7 @@ class TestUtils(unittest.TestCase):
         uri = 'foo_bar:9000'
         uri = urlparse(uri)
         # When
-        actual = URI.has_valid_scheme(uri)
+        actual = _URI._has_valid_scheme(uri)
         # Then
         self.assertFalse(actual)
 
@@ -52,7 +52,7 @@ class TestUtils(unittest.TestCase):
         uri = 'carp://foo_bar:9000'
         uri = urlparse(uri)
         # When
-        actual = URI.has_valid_scheme(uri)
+        actual = _URI._has_valid_scheme(uri)
         # Then
         self.assertFalse(actual)
 
@@ -61,7 +61,7 @@ class TestUtils(unittest.TestCase):
         uri = 'ws://foo_bar:9000'
         expected = 'ws://foo_bar:9000'
         # When
-        actual = URI.normalise_warp_scheme(uri)
+        actual = _URI._normalise_warp_scheme(uri)
         # Then
         self.assertEqual(expected, actual)
 
@@ -70,7 +70,7 @@ class TestUtils(unittest.TestCase):
         uri = 'warp://foo_bar:9000'
         expected = 'ws://foo_bar:9000'
         # When
-        actual = URI.normalise_warp_scheme(uri)
+        actual = _URI._normalise_warp_scheme(uri)
         # Then
         self.assertEqual(expected, actual)
 
@@ -79,7 +79,7 @@ class TestUtils(unittest.TestCase):
         uri = 'carp://foo_bar:9000'
         # When
         with self.assertRaises(TypeError) as error:
-            URI.normalise_warp_scheme(uri)
+            _URI._normalise_warp_scheme(uri)
         # Then
         message = error.exception.args[0]
         self.assertEqual('Invalid scheme "carp" for Warp URI!', message)

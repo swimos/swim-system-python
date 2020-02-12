@@ -18,7 +18,7 @@ from threading import Thread
 from unittest.mock import patch
 
 from aiounittest import async_test
-from swimai.client.downlinks import ValueDownlinkView, MapDownlinkView, EventDownlinkView
+from swimai.client._downlinks._downlinks import _ValueDownlinkView, _MapDownlinkView, _EventDownlinkView
 from swimai.structures import Text
 from test.utils import MockWebsocketConnect, MockWebsocket, MockAsyncFunction, MockScheduleTask, \
     mock_exception_callback, MockRunWithExceptionOnce, MockExceptionOnce
@@ -41,11 +41,11 @@ class TestSwimClient(unittest.TestCase):
         actual = client.start()
         # Then
         self.assertEqual(actual, client)
-        self.assertIsInstance(actual.loop, asyncio.events.AbstractEventLoop)
-        self.assertIsInstance(actual.loop_thread, Thread)
-        self.assertFalse(actual.loop.is_closed())
-        self.assertTrue(actual.loop_thread.is_alive())
-        self.assertTrue(actual.has_started)
+        self.assertIsInstance(actual._loop, asyncio.events.AbstractEventLoop)
+        self.assertIsInstance(actual._loop_thread, Thread)
+        self.assertFalse(actual._loop.is_closed())
+        self.assertTrue(actual._loop_thread.is_alive())
+        self.assertTrue(actual._has_started)
         client.stop()
 
     def test_swim_client_stop(self):
@@ -56,27 +56,27 @@ class TestSwimClient(unittest.TestCase):
         actual = client.stop()
         # Then
         self.assertEqual(client, actual)
-        self.assertIsInstance(actual.loop, asyncio.events.AbstractEventLoop)
-        self.assertIsInstance(actual.loop_thread, Thread)
-        self.assertTrue(actual.loop.is_closed())
-        self.assertFalse(actual.loop_thread.is_alive())
-        self.assertFalse(actual.has_started)
+        self.assertIsInstance(actual._loop, asyncio.events.AbstractEventLoop)
+        self.assertIsInstance(actual._loop_thread, Thread)
+        self.assertTrue(actual._loop.is_closed())
+        self.assertFalse(actual._loop_thread.is_alive())
+        self.assertFalse(actual._has_started)
 
     def test_swim_client_with_statement(self):
         # When
         with SwimClient() as swim_client:
             # Then
             self.assertIsInstance(swim_client, SwimClient)
-            self.assertIsInstance(swim_client.loop, asyncio.events.AbstractEventLoop)
-            self.assertIsInstance(swim_client.loop_thread, Thread)
-            self.assertFalse(swim_client.loop.is_closed())
-            self.assertTrue(swim_client.has_started)
+            self.assertIsInstance(swim_client._loop, asyncio.events.AbstractEventLoop)
+            self.assertIsInstance(swim_client._loop_thread, Thread)
+            self.assertFalse(swim_client._loop.is_closed())
+            self.assertTrue(swim_client._has_started)
 
-        self.assertIsInstance(swim_client.loop, asyncio.events.AbstractEventLoop)
-        self.assertIsInstance(swim_client.loop_thread, Thread)
-        self.assertTrue(swim_client.loop.is_closed())
-        self.assertFalse(swim_client.loop_thread.is_alive())
-        self.assertFalse(swim_client.has_started)
+        self.assertIsInstance(swim_client._loop, asyncio.events.AbstractEventLoop)
+        self.assertIsInstance(swim_client._loop_thread, Thread)
+        self.assertTrue(swim_client._loop.is_closed())
+        self.assertFalse(swim_client._loop_thread.is_alive())
+        self.assertFalse(swim_client._has_started)
 
     @patch('warnings.warn')
     @patch('traceback.print_tb')
@@ -85,10 +85,10 @@ class TestSwimClient(unittest.TestCase):
         with SwimClient(debug=True) as swim_client:
             # Then
             self.assertIsInstance(swim_client, SwimClient)
-            self.assertIsInstance(swim_client.loop, asyncio.events.AbstractEventLoop)
-            self.assertIsInstance(swim_client.loop_thread, Thread)
-            self.assertFalse(swim_client.loop.is_closed())
-            self.assertTrue(swim_client.loop_thread.is_alive())
+            self.assertIsInstance(swim_client._loop, asyncio.events.AbstractEventLoop)
+            self.assertIsInstance(swim_client._loop_thread, Thread)
+            self.assertFalse(swim_client._loop.is_closed())
+            self.assertTrue(swim_client._loop_thread.is_alive())
 
             swim_client.task_with_exception = lambda: (_ for _ in ()).throw(Exception,
                                                                             Exception('Mock exception in task'))
@@ -98,8 +98,8 @@ class TestSwimClient(unittest.TestCase):
         mock_warn.assert_called_once()
         mock_warn_tb.assert_called_once()
         self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0])
-        self.assertTrue(swim_client.loop.is_closed())
-        self.assertFalse(swim_client.loop_thread.is_alive())
+        self.assertTrue(swim_client._loop.is_closed())
+        self.assertFalse(swim_client._loop_thread.is_alive())
 
     @patch('warnings.warn')
     @patch('traceback.print_tb')
@@ -109,22 +109,22 @@ class TestSwimClient(unittest.TestCase):
         with SwimClient(terminate_on_exception=True, debug=True) as swim_client:
             # Then
             self.assertIsInstance(swim_client, SwimClient)
-            self.assertIsInstance(swim_client.loop, asyncio.events.AbstractEventLoop)
-            self.assertFalse(swim_client.loop.is_closed())
-            self.assertIsInstance(swim_client.loop_thread, Thread)
-            self.assertTrue(swim_client.loop_thread.is_alive())
+            self.assertIsInstance(swim_client._loop, asyncio.events.AbstractEventLoop)
+            self.assertFalse(swim_client._loop.is_closed())
+            self.assertIsInstance(swim_client._loop_thread, Thread)
+            self.assertTrue(swim_client._loop_thread.is_alive())
 
             swim_client.task_with_exception = lambda: (_ for _ in ()).throw(Exception,
                                                                             Exception('Mock exception in task'))
 
             swim_client.task_with_exception()
 
-        self.assertTrue(swim_client.loop.is_closed())
+        self.assertTrue(swim_client._loop.is_closed())
         self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0])
         mock_warn_tb.assert_called_once()
         mock_warn.assert_called_once()
         mock_exit.assert_called_once_with(1)
-        self.assertFalse(swim_client.loop_thread.is_alive())
+        self.assertFalse(swim_client._loop_thread.is_alive())
 
     @patch('warnings.warn')
     @patch('traceback.print_tb')
@@ -135,11 +135,11 @@ class TestSwimClient(unittest.TestCase):
         # When
         with SwimClient(execute_on_exception=mock_callback, debug=True) as swim_client:
             # Then
-            self.assertIsInstance(swim_client.loop, asyncio.events.AbstractEventLoop)
-            self.assertTrue(swim_client.loop_thread.is_alive())
+            self.assertIsInstance(swim_client._loop, asyncio.events.AbstractEventLoop)
+            self.assertTrue(swim_client._loop_thread.is_alive())
             self.assertIsInstance(swim_client, SwimClient)
-            self.assertFalse(swim_client.loop.is_closed())
-            self.assertIsInstance(swim_client.loop_thread, Thread)
+            self.assertFalse(swim_client._loop.is_closed())
+            self.assertIsInstance(swim_client._loop_thread, Thread)
 
             swim_client.task_with_exception = lambda: (_ for _ in ()).throw(Exception,
                                                                             Exception('Mock exception in task'))
@@ -148,9 +148,9 @@ class TestSwimClient(unittest.TestCase):
 
         self.assertEqual('Mock exception callback', mock_print.call_args_list[0][0][0])
         self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0])
-        self.assertTrue(swim_client.loop.is_closed())
+        self.assertTrue(swim_client._loop.is_closed())
         mock_warn_tb.assert_called_once()
-        self.assertFalse(swim_client.loop_thread.is_alive())
+        self.assertFalse(swim_client._loop_thread.is_alive())
 
     @patch('warnings.warn')
     @patch('traceback.print_tb')
@@ -162,10 +162,10 @@ class TestSwimClient(unittest.TestCase):
         with SwimClient(terminate_on_exception=True, execute_on_exception=mock_callback, debug=True) as swim_client:
             # Then
             self.assertIsInstance(swim_client, SwimClient)
-            self.assertIsInstance(swim_client.loop, asyncio.events.AbstractEventLoop)
-            self.assertFalse(swim_client.loop.is_closed())
-            self.assertTrue(swim_client.loop_thread.is_alive())
-            self.assertIsInstance(swim_client.loop_thread, Thread)
+            self.assertIsInstance(swim_client._loop, asyncio.events.AbstractEventLoop)
+            self.assertFalse(swim_client._loop.is_closed())
+            self.assertTrue(swim_client._loop_thread.is_alive())
+            self.assertIsInstance(swim_client._loop_thread, Thread)
 
             swim_client.task_with_exception = lambda: (_ for _ in ()).throw(Exception,
                                                                             Exception('Mock exception in task'))
@@ -173,11 +173,11 @@ class TestSwimClient(unittest.TestCase):
             swim_client.task_with_exception()
 
         mock_exit.assert_called_once_with(1)
-        self.assertTrue(swim_client.loop.is_closed())
+        self.assertTrue(swim_client._loop.is_closed())
         self.assertEqual('Mock exception in task', mock_warn.call_args_list[0][0][0])
         mock_warn_tb.assert_called_once()
         mock_warn.assert_called_once()
-        self.assertFalse(swim_client.loop_thread.is_alive())
+        self.assertFalse(swim_client._loop_thread.is_alive())
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
     def test_swim_client_command(self, mock_websocket_connect):
@@ -203,8 +203,8 @@ class TestSwimClient(unittest.TestCase):
         # When
         downlink_event = swim_client.downlink_event()
         # Then
-        self.assertIsInstance(downlink_event, EventDownlinkView)
-        self.assertEqual(downlink_event.client, swim_client)
+        self.assertIsInstance(downlink_event, _EventDownlinkView)
+        self.assertEqual(downlink_event._client, swim_client)
 
     def test_swim_client_downlink_event(self):
         # Given
@@ -213,8 +213,8 @@ class TestSwimClient(unittest.TestCase):
             downlink_event = swim_client.downlink_event()
 
         # Then
-        self.assertIsInstance(downlink_event, EventDownlinkView)
-        self.assertEqual(downlink_event.client, swim_client)
+        self.assertIsInstance(downlink_event, _EventDownlinkView)
+        self.assertEqual(downlink_event._client, swim_client)
 
     @patch('warnings.warn')
     def test_swim_client_downlink_event_open_before_client_started(self, mock_warn):
@@ -224,7 +224,7 @@ class TestSwimClient(unittest.TestCase):
         downlink_event = swim_client.downlink_event()
         downlink_event.open()
         # Then
-        self.assertEqual('Cannot execute "add_downlink_view" before the client has been started!',
+        self.assertEqual('Cannot execute "_add_downlink_view" before the client has been started!',
                          mock_warn.call_args_list[0][0][0])
 
     def test_swim_client_downlink_map(self):
@@ -234,8 +234,8 @@ class TestSwimClient(unittest.TestCase):
             downlink_map = swim_client.downlink_map()
 
         # Then
-        self.assertIsInstance(downlink_map, MapDownlinkView)
-        self.assertEqual(downlink_map.client, swim_client)
+        self.assertIsInstance(downlink_map, _MapDownlinkView)
+        self.assertEqual(downlink_map._client, swim_client)
 
     @patch('warnings.warn')
     def test_swim_client_downlink_map_open_before_client_started(self, mock_warn):
@@ -245,7 +245,7 @@ class TestSwimClient(unittest.TestCase):
         downlink_map = swim_client.downlink_map()
         downlink_map.open()
         # Then
-        self.assertEqual('Cannot execute "add_downlink_view" before the client has been started!',
+        self.assertEqual('Cannot execute "_add_downlink_view" before the client has been started!',
                          mock_warn.call_args_list[0][0][0])
 
     def test_swim_client_downlink_value(self):
@@ -255,8 +255,8 @@ class TestSwimClient(unittest.TestCase):
             downlink_view = swim_client.downlink_value()
 
         # Then
-        self.assertIsInstance(downlink_view, ValueDownlinkView)
-        self.assertEqual(downlink_view.client, swim_client)
+        self.assertIsInstance(downlink_view, _ValueDownlinkView)
+        self.assertEqual(downlink_view._client, swim_client)
 
     @patch('warnings.warn')
     def test_swim_client_downlink_value_open_before_client_started(self, mock_warn):
@@ -266,10 +266,10 @@ class TestSwimClient(unittest.TestCase):
         downlink_value = swim_client.downlink_value()
         downlink_value.open()
         # Then
-        self.assertEqual('Cannot execute "add_downlink_view" before the client has been started!',
+        self.assertEqual('Cannot execute "_add_downlink_view" before the client has been started!',
                          mock_warn.call_args_list[0][0][0])
 
-    @patch('swimai.client.connections.ConnectionPool.add_downlink_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client._connections._ConnectionPool._add_downlink_view', new_callable=MockAsyncFunction)
     @async_test
     async def test_swim_client_add_downlink_view(self, mock_add_downlink):
         # Given
@@ -281,17 +281,17 @@ class TestSwimClient(unittest.TestCase):
 
         with SwimClient() as swim_client:
             downlink_view = swim_client.downlink_value()
-            downlink_view.host_uri = host_uri
-            downlink_view.node_uri = node_uri
-            downlink_view.lane_uri = lane_uri
+            downlink_view._host_uri = host_uri
+            downlink_view._node_uri = node_uri
+            downlink_view._lane_uri = lane_uri
             # When
-            await swim_client.add_downlink_view(downlink_view)
+            await swim_client._add_downlink_view(downlink_view)
 
         # Then
         mock_add_downlink.assert_called_once_with(downlink_view)
 
-    @patch('swimai.client.connections.ConnectionPool.add_downlink_view', new_callable=MockAsyncFunction)
-    @patch('swimai.client.connections.ConnectionPool.remove_downlink_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client._connections._ConnectionPool._add_downlink_view', new_callable=MockAsyncFunction)
+    @patch('swimai.client._connections._ConnectionPool._remove_downlink_view', new_callable=MockAsyncFunction)
     @async_test
     async def test_swim_client_remove_downlink_view(self, mock_remove_downlink, mock_add_downlink):
         # Given
@@ -303,18 +303,18 @@ class TestSwimClient(unittest.TestCase):
 
         with SwimClient() as swim_client:
             downlink_view = swim_client.downlink_value()
-            downlink_view.host_uri = host_uri
-            downlink_view.node_uri = node_uri
-            downlink_view.lane_uri = lane_uri
-            await swim_client.add_downlink_view(downlink_view)
+            downlink_view._host_uri = host_uri
+            downlink_view._node_uri = node_uri
+            downlink_view._lane_uri = lane_uri
+            await swim_client._add_downlink_view(downlink_view)
             # When
-            await swim_client.remove_downlink_view(downlink_view)
+            await swim_client._remove_downlink_view(downlink_view)
 
         # Then
         mock_add_downlink.assert_called_once_with(downlink_view)
         mock_remove_downlink.assert_called_once_with(downlink_view)
 
-    @patch('swimai.client.connections.ConnectionPool.get_connection', new_callable=MockAsyncFunction)
+    @patch('swimai.client._connections._ConnectionPool._get_connection', new_callable=MockAsyncFunction)
     @async_test
     async def test_swim_client_get_connection(self, mock_get_connection):
         # Given
@@ -326,11 +326,11 @@ class TestSwimClient(unittest.TestCase):
 
         with SwimClient() as swim_client:
             downlink_view = swim_client.downlink_value()
-            downlink_view.host_uri = host_uri
-            downlink_view.node_uri = node_uri
-            downlink_view.lane_uri = lane_uri
+            downlink_view._host_uri = host_uri
+            downlink_view._node_uri = node_uri
+            downlink_view._lane_uri = lane_uri
             # When
-            await swim_client.get_connection(host_uri)
+            await swim_client._get_connection(host_uri)
 
         # Then
         mock_get_connection.assert_called_once_with(host_uri)
@@ -341,7 +341,7 @@ class TestSwimClient(unittest.TestCase):
         mock_task = MockScheduleTask.get_mock_schedule_task()
         with SwimClient() as swim_client:
             # When
-            actual = swim_client.schedule_task(mock_task.async_execute, 'foo')
+            actual = swim_client._schedule_task(mock_task.async_execute, 'foo')
             while not actual.done():
                 pass
 
@@ -364,7 +364,7 @@ class TestSwimClient(unittest.TestCase):
 
             # When
             with SwimClient() as swim_client:
-                actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
+                actual = swim_client._schedule_task(mock_task.sync_execute, 'foo')
 
             self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0])
             mock_print_tb.assert_not_called()
@@ -385,7 +385,7 @@ class TestSwimClient(unittest.TestCase):
 
             # When
             with SwimClient(debug=True) as swim_client:
-                actual = swim_client.schedule_task(mock_task.sync_execute, 'foo')
+                actual = swim_client._schedule_task(mock_task.sync_execute, 'foo')
 
             self.assertEqual('Mock exception', mock_warn.call_args_list[0][0][0])
             mock_print_tb.assert_called_once()
@@ -398,7 +398,7 @@ class TestSwimClient(unittest.TestCase):
         mock_task = MockScheduleTask.get_mock_schedule_task()
         with SwimClient(debug=True) as swim_client:
             # When
-            actual = swim_client.schedule_task(mock_task.async_exception_execute, 'foo')
+            actual = swim_client._schedule_task(mock_task.async_exception_execute, 'foo')
             while not actual.done():
                 pass
 
@@ -415,7 +415,7 @@ class TestSwimClient(unittest.TestCase):
         mock_task = MockScheduleTask.get_mock_schedule_task()
         with SwimClient() as swim_client:
             # When
-            actual = swim_client.schedule_task(mock_task.async_infinite_cancel_execute)
+            actual = swim_client._schedule_task(mock_task.async_infinite_cancel_execute)
         # Then
         self.assertIsInstance(actual, futures.Future)
         self.assertTrue(actual.cancelled())

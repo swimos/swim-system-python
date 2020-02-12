@@ -19,8 +19,8 @@ from unittest.mock import patch
 from aiounittest import async_test
 
 from swimai import SwimClient
-from swimai.client.downlinks import EventDownlinkView, ValueDownlinkView
-from swimai.client.downlinks.downlink_utils import UpdateRequest, RemoveRequest, convert_to_async, validate_callback
+from swimai.client._downlinks._downlinks import _EventDownlinkView, _ValueDownlinkView
+from swimai.client._downlinks._utils import UpdateRequest, RemoveRequest, convert_to_async, validate_callback
 from swimai.structures import RecordMap, Slot, Num, Attr, Value
 from test.utils import MockPerson, mock_func, mock_coro
 
@@ -30,20 +30,20 @@ class TestDownlinkUtils(unittest.TestCase):
     def test_before_open_valid_with_args(self):
         # Given
         # noinspection PyTypeChecker
-        downlink_view = EventDownlinkView(None)
-        downlink_view.is_open = False
+        downlink_view = _EventDownlinkView(None)
+        downlink_view._is_open = False
         # When
         downlink_view.set_node_uri('foo')
         # Then
-        self.assertEqual('foo', downlink_view.node_uri)
+        self.assertEqual('foo', downlink_view._node_uri)
 
     @patch('warnings.warn')
     def test_before_open_invalid_with_args(self, mock_warn):
         # Given
         # noinspection PyTypeChecker
-        downlink_view = EventDownlinkView(None)
-        downlink_view.is_open = True
-        downlink_view.client = SwimClient()
+        downlink_view = _EventDownlinkView(None)
+        downlink_view._is_open = True
+        downlink_view._client = SwimClient()
         # When
         downlink_view.set_node_uri('foo')
         # Then
@@ -53,20 +53,20 @@ class TestDownlinkUtils(unittest.TestCase):
     def test_before_open_valid_with_kwargs(self):
         # Given
         # noinspection PyTypeChecker
-        downlink_view = EventDownlinkView(None)
-        downlink_view.is_open = False
+        downlink_view = _EventDownlinkView(None)
+        downlink_view._is_open = False
         # When
         downlink_view.set_node_uri(node_uri='foo')
         # Then
-        self.assertEqual('foo', downlink_view.node_uri)
+        self.assertEqual('foo', downlink_view._node_uri)
 
     @patch('warnings.warn')
     def test_before_open_invalid_with_kwargs(self, mock_warn):
         # Given
         # noinspection PyTypeChecker
-        downlink_view = EventDownlinkView(None)
-        downlink_view.is_open = True
-        downlink_view.client = SwimClient()
+        downlink_view = _EventDownlinkView(None)
+        downlink_view._is_open = True
+        downlink_view._client = SwimClient()
         # When
         downlink_view.set_node_uri(node_uri='foo')
         # Then
@@ -76,8 +76,8 @@ class TestDownlinkUtils(unittest.TestCase):
     def test_after_open_valid_with_args(self):
         # Given
         # noinspection PyTypeChecker
-        downlink_view = ValueDownlinkView(None)
-        downlink_view.is_open = True
+        downlink_view = _ValueDownlinkView(None)
+        downlink_view._is_open = True
         # When
         actual = downlink_view.get(False)
         # Then
@@ -87,9 +87,9 @@ class TestDownlinkUtils(unittest.TestCase):
     def test_after_open_invalid_with_args(self, mock_warn):
         # Given
         # noinspection PyTypeChecker
-        downlink_view = ValueDownlinkView(None)
-        downlink_view.client = SwimClient()
-        downlink_view.is_open = False
+        downlink_view = _ValueDownlinkView(None)
+        downlink_view._client = SwimClient()
+        downlink_view._is_open = False
         # When
         downlink_view.get(False)
         # Then
@@ -98,8 +98,8 @@ class TestDownlinkUtils(unittest.TestCase):
     def test_after_open_valid_with_kwargs(self):
         # Given
         # noinspection PyTypeChecker
-        downlink_view = ValueDownlinkView(None)
-        downlink_view.is_open = True
+        downlink_view = _ValueDownlinkView(None)
+        downlink_view._is_open = True
         # When
         actual = downlink_view.get(wait_sync=False)
         # Then
@@ -109,9 +109,9 @@ class TestDownlinkUtils(unittest.TestCase):
     def test_after_open_invalid_with_kwargs(self, mock_warn):
         # Given
         # noinspection PyTypeChecker
-        downlink_view = ValueDownlinkView(None)
-        downlink_view.is_open = False
-        downlink_view.client = SwimClient()
+        downlink_view = _ValueDownlinkView(None)
+        downlink_view._is_open = False
+        downlink_view._client = SwimClient()
         # When
         downlink_view.get(wait_sync=False)
         # Then

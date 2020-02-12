@@ -12,8 +12,4 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .downlinks import ValueDownlinkModel, ValueDownlinkView, EventDownlinkView, EventDownlinkModel, DownlinkView, \
-    DownlinkModel, MapDownlinkModel, MapDownlinkView
-
-__all__ = [ValueDownlinkModel, ValueDownlinkView, EventDownlinkView, EventDownlinkModel, DownlinkView, DownlinkModel,
-           MapDownlinkModel, MapDownlinkView]
+__all__ = []

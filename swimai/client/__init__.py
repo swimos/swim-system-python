@@ -13,6 +13,5 @@
 #  limitations under the License.
 
 from .swim_client import SwimClient
-from .utils import URI
 
-__all__ = [SwimClient, URI]
+__all__ = [SwimClient]

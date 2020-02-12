@@ -14,7 +14,7 @@
 import asyncio
 from typing import Any
 from unittest.mock import MagicMock
-from swimai.client.connections import ConnectionStatus
+from swimai.client._connections import _ConnectionStatus
 from swimai.structures import Item
 
 
@@ -147,7 +147,7 @@ class MockWebsocket:
             message = self.messages_to_send.pop()
 
             if len(self.messages_to_send) == 0:
-                self.connection.status = ConnectionStatus.CLOSED
+                self.connection.status = _ConnectionStatus.CLOSED
 
             return message
 
@@ -185,15 +185,15 @@ class MockConnection:
     def clear():
         MockConnection.instance = None
 
-    async def wait_for_messages(self):
+    async def _wait_for_messages(self):
         while True:
             if len(self.messages_to_receive) > 0 and self.owner is not None:
                 message = self.messages_to_receive.pop()
-                await self.owner.receive_message(message)
+                await self.owner._receive_message(message)
 
             await asyncio.sleep(1)
 
-    async def send_message(self, message):
+    async def _send_message(self, message):
         self.messages_sent.append(message)
 
 
@@ -397,22 +397,22 @@ class MockDownlinkManager:
         self.strict = False
         self.registered_classes = dict()
 
-    async def subscribers_on_event(self, event):
+    async def _subscribers_on_event(self, event):
         self.called = self.called + 1
         self.event = event
 
-    async def subscribers_did_set(self, did_set_new, did_set_old):
+    async def _subscribers_did_set(self, did_set_new, did_set_old):
         self.called = self.called + 1
         self.did_set_new = did_set_new
         self.did_set_old = did_set_old
 
-    async def subscribers_did_update(self, update_key, update_value_new, update_value_old):
+    async def _subscribers_did_update(self, update_key, update_value_new, update_value_old):
         self.called = self.called + 1
         self.update_key = update_key
         self.update_value_new = update_value_new
         self.update_value_old = update_value_old
 
-    async def subscribers_did_remove(self, remove_key, remove_old_value):
+    async def _subscribers_did_remove(self, remove_key, remove_old_value):
         self.called = self.called + 1
         self.remove_key = remove_key
         self.remove_old_value = remove_old_value

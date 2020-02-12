@@ -28,14 +28,14 @@ def before_open(function: 'Callable') -> 'Callable':
     """
 
     def wrapper(*args, **kwargs):
-        if not args[0].is_open:
+        if not args[0]._is_open:
             return function(*args, **kwargs)
         else:
             try:
                 raise Exception(f'Cannot execute "{function.__name__}" after the downlink has been opened!')
             except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                args[0].client._handle_exception(exc_value, exc_traceback)
+                args[0]._client._handle_exception(exc_value, exc_traceback)
 
     return wrapper
 
@@ -50,14 +50,14 @@ def after_open(function: 'Callable') -> 'Callable':
     """
 
     def wrapper(*args, **kwargs):
-        if args[0].is_open:
+        if args[0]._is_open:
             return function(*args, **kwargs)
         else:
             try:
                 raise Exception(f'Cannot execute "{function.__name__}" before the downlink has been opened!')
             except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                args[0].client._handle_exception(exc_value, exc_traceback)
+                args[0]._client._handle_exception(exc_value, exc_traceback)
 
     return wrapper
 
