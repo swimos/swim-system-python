@@ -17,34 +17,34 @@ from enum import Enum
 from typing import Any, List, Optional, Dict, Union
 
 
-class Item(ABC):
+class _Item(ABC):
 
-    def concat(self, new_item: 'Item') -> 'Record':
+    def _concat(self, new_item: '_Item') -> '_Record':
         """
         Creates a Record object by appending an Item object to the current Item.
 
         :param new_item:        - New Item to add to the Record.
         :return:                - Record containing the current Item and the new Item.
         """
-        record = Record.create()
+        record = _Record.create()
         record.add(self)
 
-        if isinstance(new_item, Record):
-            record.add_all(new_item.get_items())
+        if isinstance(new_item, _Record):
+            record._add_all(new_item.get_items())
         else:
             record.add(new_item)
 
         return record
 
     @staticmethod
-    def create_from(obj: Any) -> 'Item':
+    def create_from(obj: Any) -> '_Item':
         """
         Create Item object from a compatible object.
 
         :param obj:             - Object extending Item or a dictionary.
         :return:                - Converted object as Item.
         """
-        if isinstance(obj, Item):
+        if isinstance(obj, _Item):
             return obj
         elif isinstance(obj, dict) and len(obj) == 1:
             entry = next(iter(obj.items()))
@@ -53,22 +53,22 @@ class Item(ABC):
             return Value.create_from(obj)
 
     @staticmethod
-    def extant() -> 'Extant':
+    def extant() -> '_Extant':
         """
         Return Extant item singleton.
 
         :return:                - Item of type Extant.
         """
-        return Extant.get_extant()
+        return _Extant._get_extant()
 
     @staticmethod
-    def absent() -> 'Absent':
+    def absent() -> '_Absent':
         """
         Return Absent item singleton.
 
         :return:                - Item of type Absent.
         """
-        return Absent.get_absent()
+        return _Absent._get_absent()
 
     @property
     @abstractmethod
@@ -81,7 +81,7 @@ class Item(ABC):
         raise NotImplementedError
 
 
-class Field(Item):
+class _Field(_Item):
 
     @property
     @abstractmethod
@@ -94,7 +94,7 @@ class Field(Item):
         raise NotImplementedError
 
 
-class Attr(Field):
+class Attr(_Field):
 
     def __init__(self, key: 'Value', value: Any) -> None:
         self.__key = key
@@ -145,13 +145,13 @@ class Attr(Field):
         """
         if isinstance(item, str):
             return self.key.value == item
-        elif isinstance(item, Field):
+        elif isinstance(item, _Field):
             return self.key.value == item.key.value
         else:
             return self.key.value == item
 
 
-class Value(Item):
+class Value(_Item):
 
     @property
     def key(self) -> 'Value':
@@ -175,7 +175,7 @@ class Value(Item):
         """
 
         if obj is None:
-            return Extant.get_extant()
+            return _Extant._get_extant()
         elif isinstance(obj, Value):
             return obj
         elif isinstance(obj, str):
@@ -273,8 +273,8 @@ class Num(Value):
 
 
 class Bool(Value):
-    TRUE = None
-    FALSE = None
+    _TRUE = None
+    _FALSE = None
 
     def __init__(self, value: bool) -> None:
         self.__value = value
@@ -299,15 +299,15 @@ class Bool(Value):
         """
 
         if obj:
-            if Bool.TRUE is None:
-                Bool.TRUE = Bool(True)
+            if Bool._TRUE is None:
+                Bool._TRUE = Bool(True)
 
-            return Bool.TRUE
+            return Bool._TRUE
         else:
-            if Bool.FALSE is None:
-                Bool.FALSE = Bool(False)
+            if Bool._FALSE is None:
+                Bool._FALSE = Bool(False)
 
-            return Bool.FALSE
+            return Bool._FALSE
 
     def get_bool_value(self) -> bool:
         """
@@ -318,8 +318,8 @@ class Bool(Value):
         return self.value
 
 
-class Absent(Value):
-    absent = None
+class _Absent(Value):
+    _absent = None
 
     def __str__(self) -> str:
         return 'Absent()'
@@ -328,19 +328,19 @@ class Absent(Value):
         return False
 
     @staticmethod
-    def get_absent() -> 'Absent':
+    def _get_absent() -> '_Absent':
         """
         Create an Absent singleton if it does not exist and return it
 
         :return:                - Absent singleton.
         """
-        if Absent.absent is None:
-            Absent.absent = Absent()
+        if _Absent._absent is None:
+            _Absent._absent = _Absent()
 
-        return Absent.absent
+        return _Absent._absent
 
 
-class Extant(Value):
+class _Extant(Value):
     extant = None
 
     def __str__(self) -> str:
@@ -350,19 +350,19 @@ class Extant(Value):
         return False
 
     @staticmethod
-    def get_extant() -> 'Extant':
+    def _get_extant() -> '_Extant':
         """
         Create an Extant singleton if it does not exist and return it
 
         :return:                - Extant singleton.
         """
-        if Extant.extant is None:
-            Extant.extant = Extant()
+        if _Extant.extant is None:
+            _Extant.extant = _Extant()
 
-        return Extant.extant
+        return _Extant.extant
 
 
-class Slot(Field):
+class Slot(_Field):
 
     def __init__(self, key: Any, value: Any = Value.extant()) -> None:
         self.__key = key
@@ -398,7 +398,7 @@ class Slot(Field):
         return Slot(key, value)
 
 
-class RecordFlags(Enum):
+class _RecordFlags(Enum):
     """
     IMMUTABLE(1), ALIASED(2)
     """
@@ -406,7 +406,7 @@ class RecordFlags(Enum):
     ALIASED = 1 << 1
 
 
-class Record(Value):
+class _Record(Value):
 
     def __str__(self) -> str:
 
@@ -444,7 +444,7 @@ class Record(Value):
         """
         raise NotImplementedError
 
-    def add_all(self, items: List['Value']) -> bool:
+    def _add_all(self, items: List['Value']) -> bool:
         """
         Add a list of items to the Record.
 
@@ -459,7 +459,7 @@ class Record(Value):
 
         return changed
 
-    def add_slot(self, key: Any, value: Any) -> 'Record':
+    def _add_slot(self, key: Any, value: Any) -> '_Record':
         """
         Add a Slot to the Record.
 
@@ -477,25 +477,25 @@ class Record(Value):
 
         return self
 
-    def get_headers(self, tag: str) -> Optional['Record']:
+    def _get_headers(self, tag: str) -> Optional['_Record']:
         """
         Return a Record of all headers for a given tag.
 
         :param tag:             - Tag of the header Record.
         :return:                - Record of all headers or None.
         """
-        head = self.get_head()
+        head = self._get_head()
 
         if isinstance(head, Attr) and head.key_equals(tag):
             header = head.value
-            if isinstance(header, Record):
+            if isinstance(header, _Record):
                 return header
             else:
                 return RecordMap.create_record_map(header)
         else:
             return None
 
-    def get_head(self) -> 'Item':
+    def _get_head(self) -> '_Item':
         """
         Return the first item from the Record if it exists.
 
@@ -503,7 +503,7 @@ class Record(Value):
         """
         return self.get_item(0)
 
-    def bind(self) -> 'Record':
+    def _bind(self) -> '_Record':
         """
         Return a Record object.
 
@@ -512,33 +512,19 @@ class Record(Value):
         return self
 
 
-class RecordMap(Record):
+class RecordMap(_Record):
 
-    def __init__(self, items: List[Item] = None, fields: Dict[str, Item] = None, item_count: int = 0,
+    def __init__(self, items: List[_Item] = None, fields: Dict[str, _Item] = None, item_count: int = 0,
                  field_count: int = 0, flags: int = 0) -> None:
-        self.items = items
-        self.fields = fields
-        self.item_count = item_count
-        self.field_count = field_count
-        self.flags = flags
+        self._items = items
+        self._fields = fields
+        self._item_count = item_count
+        self._field_count = field_count
+        self._flags = flags
 
     @property
     def size(self) -> int:
-        return self.item_count
-
-    @property
-    def tag(self) -> Optional[str]:
-        """
-        Return the tag of the RecordMap.
-
-        :return:                - The tag of the RecordMap or None.
-        """
-        if self.field_count > 0:
-            item = self.items[0]
-            if isinstance(item, Attr):
-                return str(item.key.value)
-
-        return None
+        return self._item_count
 
     @staticmethod
     def create() -> 'RecordMap':
@@ -548,7 +534,7 @@ class RecordMap(Record):
         :return:                - Empty RecordMap.
         """
         items = list()
-        return RecordMap(items, flags=RecordFlags.ALIASED.value)
+        return RecordMap(items, flags=_RecordFlags.ALIASED.value)
 
     @staticmethod
     def create_record_map(obj: Any) -> 'RecordMap':
@@ -559,45 +545,45 @@ class RecordMap(Record):
         :return:                - RecordMap with an object.
         """
         array = list()
-        item = Item.create_from(obj)
+        item = _Item.create_from(obj)
         array.append(item)
 
-        field_count = 1 if isinstance(item, Field) else 0
+        field_count = 1 if isinstance(item, _Field) else 0
 
         return RecordMap(array, None, 1, field_count, 0)
 
-    def get_item(self, index: int) -> Item:
+    def get_item(self, index: int) -> _Item:
         """
         Return an item with a given index from the RecordMap.
 
         :param index:           - The index of the item.
         :return:                - The item with the given index or Absent if the index is out of bounds.
         """
-        if 0 <= index < self.item_count:
-            return self.items[index]
+        if 0 <= index < self._item_count:
+            return self._items[index]
         else:
-            return Item.absent()
+            return _Item.absent()
 
-    def get_items(self) -> List[Item]:
+    def get_items(self) -> List[_Item]:
         """
         Return all items from the RecordMap.
 
         :return:                - List of all items from the RecordMap.
         """
-        return self.items
+        return self._items
 
-    def get_body(self) -> Item:
+    def get_body(self) -> _Item:
         """
         Return the body of the RecordMap.
 
         :return:                - Value or RecordMap representing the body of the RecordMap.
         """
-        n = self.item_count
+        n = self._item_count
 
         if n > 2:
-            return RecordMapView(self, 1, n).branch()
+            return _RecordMapView(self, 1, n)._branch()
         elif n == 2:
-            item = self.items[1]
+            item = self._items[1]
 
             if isinstance(item, Value):
                 return item
@@ -607,16 +593,16 @@ class RecordMap(Record):
         else:
             return Value.absent()
 
-    def add(self, item: Item) -> bool:
+    def add(self, item: _Item) -> bool:
         """
         Add an item to the RecordMap.
 
         :param item:            - Item to add to the RecordMap.
         :return:                - True if the item was successfully added.
         """
-        if self.flags & RecordFlags.IMMUTABLE.value:
+        if self._flags & _RecordFlags.IMMUTABLE.value:
             raise TypeError('Cannot add item to immutable record!')
-        if self.flags & RecordFlags.ALIASED.value:
+        if self._flags & _RecordFlags.ALIASED.value:
             return self.__add_aliased(item)
         else:
             return self.__add_mutable(item)
@@ -627,7 +613,7 @@ class RecordMap(Record):
 
         :return:                - Read-only RecordMap.
         """
-        self.flags |= RecordFlags.IMMUTABLE.value
+        self._flags |= _RecordFlags.IMMUTABLE.value
         return self
 
     def contains_key(self, key: Any) -> bool:
@@ -639,83 +625,97 @@ class RecordMap(Record):
         """
         key = Value.create_from(key).value
 
-        if self.field_count != 0:
+        if self._field_count != 0:
             self.__init_hash_table()
 
-            return key in self.fields
+            return key in self._fields
 
         return False
 
-    def branch(self) -> 'RecordMap':
+    @property
+    def _tag(self) -> Optional[str]:
+        """
+        Return the tag of the RecordMap.
+
+        :return:                - The tag of the RecordMap or None.
+        """
+        if self._field_count > 0:
+            item = self._items[0]
+            if isinstance(item, Attr):
+                return str(item.key.value)
+
+        return None
+
+    def _branch(self) -> 'RecordMap':
         """
         Create a copy of the current RecordMap. The copies reference a shared object
         until one of them is mutated.
 
         :return:                - Copy of a RecordMap.
         """
-        self.flags |= RecordFlags.ALIASED.value
-        return RecordMap(self.items, self.fields, self.item_count, self.field_count, RecordFlags.ALIASED.value)
+        self._flags |= _RecordFlags.ALIASED.value
+        return RecordMap(self._items, self._fields, self._item_count, self._field_count, _RecordFlags.ALIASED.value)
 
-    def __add_mutable(self, item: Item) -> bool:
+    def __add_mutable(self, item: _Item) -> bool:
         """
         Add an item to a mutable RecordMap.
 
         :param item:            - Item to add to the RecordMap.
         :return:                - True if the item was successfully added.
         """
-        self.items = self.items[:]
-        self.items.append(item)
-        self.item_count = self.item_count + 1
+        self._items = self._items[:]
+        self._items.append(item)
+        self._item_count = self._item_count + 1
 
-        if isinstance(item, Field):
-            self.field_count += 1
+        if isinstance(item, _Field):
+            self._field_count += 1
 
-            if self.fields is not None:
-                self.fields[item.key.value] = item
+            if self._fields is not None:
+                self._fields[item.key.value] = item
             else:
-                self.fields = None
+                self._fields = None
 
         return True
 
-    def __add_aliased(self, item: Item) -> bool:
+    def __add_aliased(self, item: _Item) -> bool:
         """
         Add an item to an aliased RecordMap.
 
         :param item:            - Item to add to the RecordMap.
         :return:                - True if the item was successfully added.
         """
-        self.items = self.items[:]
-        self.items.append(item)
-        self.item_count = self.item_count + 1
+        self._items = self._items[:]
+        self._items.append(item)
+        self._item_count = self._item_count + 1
 
-        if isinstance(item, Field):
-            self.field_count += 1
+        if isinstance(item, _Field):
+            self._field_count += 1
 
-        self.fields = None
-        self.flags &= ~RecordFlags.ALIASED.value
+        self._fields = None
+        self._flags &= ~_RecordFlags.ALIASED.value
         return True
 
     def __init_hash_table(self) -> None:
         """
         Create a hashtable and all items from the RecordMap.
         """
-        self.fields = dict()
-        for item in self.items:
-            self.fields[item.key.value] = item
+        self._fields = dict()
+        for item in self._items:
+            self._fields[item.key.value] = item
 
 
-class RecordMapView(Record):
+class _RecordMapView(_Record):
 
     def __init__(self, record: RecordMap, lower: int, upper: int) -> None:
-        self.record = record
-        self.lower = lower
-        self.upper = upper
+        self._record = record
+        self._lower = lower
+        self._upper = upper
 
     @property
     def size(self) -> int:
-        return self.upper - self.lower
+        return self._upper - self._lower
 
-    def get_item(self, index: int) -> Item:
+    def get_item(self, index: int) -> _Item:
         """
         Return an item with a given index from the RecordMapView.
 
@@ -723,19 +723,19 @@ class RecordMapView(Record):
         :return:                - The item with the given index or Absent if the index is out of bounds.
         """
         if 0 <= index < self.size:
-            return self.record.items[self.lower + index]
+            return self._record._items[self._lower + index]
         else:
-            return Item.absent()
+            return _Item.absent()
 
-    def get_items(self) -> List[Item]:
+    def get_items(self) -> List[_Item]:
         """
         Return all items from the RecordMapView.
 
         :return:                - List of all items from the RecordMapView.
         """
-        return self.record.items[self.lower: self.upper]
+        return self._record._items[self._lower: self._upper]
 
-    def add(self, item: Item, index: int = None) -> bool:
+    def add(self, item: _Item, index: int = None) -> bool:
         """
          Add an item to the underlying RecordMap at a given index.
 
@@ -746,7 +746,7 @@ class RecordMapView(Record):
         if index is None:
             index = self.size
 
-        if self.record.flags & RecordFlags.IMMUTABLE.value:
+        if self._record._flags & _RecordFlags.IMMUTABLE.value:
             raise TypeError('Cannot add item to immutable record!')
         elif index < 0 or index > self.size:
             raise IndexError(f'Index {index} is out of range!')
@@ -755,7 +755,7 @@ class RecordMapView(Record):
 
         return True
 
-    def branch(self) -> RecordMap:
+    def _branch(self) -> RecordMap:
         """
         Create a copy of the underlying RecordMap.
 
@@ -763,88 +763,89 @@ class RecordMapView(Record):
         """
         size = self.size
         fields_count = 0
-        copy_index = self.lower
+        copy_index = self._lower
         new_array = list()
 
         for _ in range(0, size):
 
-            item = self.record.items[copy_index]
+            item = self._record._items[copy_index]
             new_array.append(item)
 
-            if isinstance(item, Field):
+            if isinstance(item, _Field):
                 fields_count += 1
 
             copy_index += 1
 
         return RecordMap(new_array, None, size, fields_count, 0)
 
-    def __add_item(self, index: int, item: Item) -> None:
+    def __add_item(self, index: int, item: _Item) -> None:
         """
         Add an item to the underlying RecordMapView.
 
         :param index:           - Index of the position at which the item should be added.
         :param item:            - Item to add to the RecordMapView.
         """
-        lower = self.lower + index
-        self.record.items = self.record.items[0: lower] + [item] + self.record.items[lower: self.record.size - lower]
-        self.record.fields = None
-        self.record.item_count += 1
+        lower = self._lower + index
+        self._record._items = self._record._items[0: lower] + [item] + self._record._items[
+                                                                       lower: self._record.size - lower]
+        self._record._fields = None
+        self._record._item_count += 1
 
-        if isinstance(item, Field):
-            self.record.field_count += 1
+        if isinstance(item, _Field):
+            self._record._field_count += 1
 
-        self.record.flags = self.record.flags & ~RecordFlags.ALIASED.value
-        self.upper += 1
+        self._record._flags = self._record._flags & ~_RecordFlags.ALIASED.value
+        self._upper += 1
 
 
-class ValueBuilder:
+class _ValueBuilder:
 
     def __init__(self) -> None:
-        self.record = None
-        self.value = None
+        self._record = None
+        self._value = None
 
-    def add(self, item: Item) -> bool:
+    def add(self, item: _Item) -> bool:
         """
         Add an item to the ValueBuilder.
 
         :param item:            - Item to add to the ValueBuilder.
         :return:                - True if the item was successfully added.
         """
-        if isinstance(item, Field):
+        if isinstance(item, _Field):
             return self.__add_field(item)
         elif isinstance(item, Value):
             return self.__add_value(item)
         else:
             raise TypeError(f'Item of type {type(item).__name__} is not supported by the Value Builder')
 
-    def bind(self) -> Value:
+    def _bind(self) -> Value:
         """
         Return the contents of the ValueBuilder as a Value object.
 
         :return:                - The built Value from the ValueBuilder.
         """
-        if self.record is not None:
-            return self.record
-        elif self.value is not None:
-            return self.value
+        if self._record is not None:
+            return self._record
+        elif self._value is not None:
+            return self._value
         else:
             return Value.absent()
 
-    def __add_field(self, item: Field) -> bool:
+    def __add_field(self, item: _Field) -> bool:
         """
         Add a field to the ValueBuilder.
 
         :param item:            - Field to add to the ValueBuilder.
         :return:                - True if the Field was successfully added.
         """
-        if self.record is None:
-            self.record = Record.create()
+        if self._record is None:
+            self._record = _Record.create()
 
-            if self.value is not None:
-                self.record.add(self.value)
-                self.value = None
+            if self._value is not None:
+                self._record.add(self._value)
+                self._value = None
 
-        self.record.add(item)
+        self._record.add(item)
         return True
 
     def __add_value(self, item: Value) -> bool:
@@ -854,21 +855,21 @@ class ValueBuilder:
         :param item:            - Value to add to the ValueBuilder.
         :return:                - True if the Value was successfully added.
         """
-        if self.record is not None:
-            self.record.add(item)
-        elif self.value is None:
-            self.value = item
+        if self._record is not None:
+            self._record.add(item)
+        elif self._value is None:
+            self._value = item
         else:
-            self.record = Record.create()
-            self.record.add(self.value)
-            self.value = None
-            self.record.add(item)
+            self._record = _Record.create()
+            self._record.add(self._value)
+            self._value = None
+            self._record.add(item)
 
         return True
 
 
 class RecordConverter:
-    converter = None
+    _converter = None
 
     @staticmethod
     def get_converter() -> 'RecordConverter':
@@ -877,12 +878,12 @@ class RecordConverter:
 
         :return:                - Record Converter singleton.
         """
-        if RecordConverter.converter is None:
-            RecordConverter.converter = RecordConverter()
+        if RecordConverter._converter is None:
+            RecordConverter._converter = RecordConverter()
 
-        return RecordConverter.converter
+        return RecordConverter._converter
 
-    def object_to_record(self, obj: Any) -> 'Item':
+    def object_to_record(self, obj: Any) -> '_Item':
         """
         Convert an object into a Recon record.
 
@@ -893,7 +894,7 @@ class RecordConverter:
         if obj is None:
             return RecordMap.create()
 
-        if isinstance(obj, Item):
+        if isinstance(obj, _Item):
             return obj
 
         if isinstance(obj, (str, float, int, bool)):
@@ -906,12 +907,12 @@ class RecordConverter:
         else:
             record = RecordMap.create()
             attr_value = Text.create_from(obj.__class__.__name__)
-            record.add(Attr.create_attr(attr_value, Extant.get_extant()))
+            record.add(Attr.create_attr(attr_value, _Extant._get_extant()))
             self.__process_entries(obj.__dict__, record)
 
         return record
 
-    def record_to_object(self, record: 'Record', classes: dict, strict: bool) -> 'Any':
+    def record_to_object(self, record: '_Record', classes: dict, strict: bool) -> 'Any':
         """
         Convert a Recon record into an object.
 
@@ -921,18 +922,18 @@ class RecordConverter:
                                   explicitly provided.
         :return:                - The newly created object.
         """
-        if isinstance(record, Absent):
+        if isinstance(record, _Absent):
             return Value.absent()
         if isinstance(record, (Text, Num, Bool)):
             return record.value
-        if isinstance(record, Record) and isinstance(record.get_head(), Attr):
+        if isinstance(record, _Record) and isinstance(record._get_head(), Attr):
             new_object = self.__record_to_class(record, classes, strict)
         else:
             new_object = self.__record_to_dict(record, classes, strict)
 
         return new_object
 
-    def __process_entries(self, entries: dict, record: 'Record') -> None:
+    def __process_entries(self, entries: dict, record: '_Record') -> None:
         """
         Convert entries to Recon and add them to the main record.
 
@@ -947,7 +948,7 @@ class RecordConverter:
                 record.add(Slot.create_slot(key_value, slot_value))
 
     @staticmethod
-    def __attr_to_object(attribute: Item, classes: dict, strict: bool) -> Any:
+    def __attr_to_object(attribute: _Item, classes: dict, strict: bool) -> Any:
         """
         Convert a Recon attribute item to a Python object.
 
@@ -969,7 +970,7 @@ class RecordConverter:
         else:
             raise Exception(f'Missing class for {class_name}.')
 
-    def __record_to_class(self, record: 'Record', classes: dict, strict: bool) -> Any:
+    def __record_to_class(self, record: '_Record', classes: dict, strict: bool) -> Any:
         """
         Convert a Recon record to an instance of a Python class.
 
@@ -980,7 +981,7 @@ class RecordConverter:
         :return:                - The newly created object.
         """
 
-        new_object = self.__attr_to_object(record.get_head(), classes, strict)
+        new_object = self.__attr_to_object(record._get_head(), classes, strict)
 
         items_iter = iter(record.get_items())
         next(items_iter)
@@ -1000,7 +1001,7 @@ class RecordConverter:
 
         return new_object
 
-    def __record_to_dict(self, record: 'Record', classes: dict, strict: bool) -> dict:
+    def __record_to_dict(self, record: '_Record', classes: dict, strict: bool) -> dict:
         """
         Convert a Recon record to a Python dictionary.
 

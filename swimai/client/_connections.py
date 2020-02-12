@@ -16,12 +16,12 @@ import asyncio
 import websockets
 
 from enum import Enum
-from swimai.warp import Envelope
+from swimai.warp._warp import _Envelope
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ._downlinks import DownlinkModel
-    from ._downlinks import DownlinkView
+    from ._downlinks._downlinks import _DownlinkModel
+    from ._downlinks._downlinks import _DownlinkView
 
 
 class _ConnectionPool:
@@ -61,7 +61,7 @@ class _ConnectionPool:
             self.__connections.pop(host_uri)
             await connection._close()
 
-    async def _add_downlink_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _add_downlink_view(self, downlink_view: '_DownlinkView') -> None:
         """
         Subscribe a downlink view to a connection from the pool.
 
@@ -73,7 +73,7 @@ class _ConnectionPool:
 
         await connection._subscribe(downlink_view)
 
-    async def _remove_downlink_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _remove_downlink_view(self, downlink_view: '_DownlinkView') -> None:
         """
         Unsubscribe a downlink view from a connection from the pool.
 
@@ -131,7 +131,7 @@ class _WSConnection:
         """
         return self.__subscribers._size > 0
 
-    async def _subscribe(self, downlink_view: 'DownlinkView') -> None:
+    async def _subscribe(self, downlink_view: '_DownlinkView') -> None:
         """
         Add a downlink view to the subscriber list of the current connection.
         If this is the first subscriber, open the connection.
@@ -143,7 +143,7 @@ class _WSConnection:
 
         await self.__subscribers._register_downlink_view(downlink_view)
 
-    async def _unsubscribe(self, downlink_view: 'DownlinkView') -> None:
+    async def _unsubscribe(self, downlink_view: '_DownlinkView') -> None:
         """
         Remove a downlink view from the subscriber list of the current connection.
         If there are no other subscribers, close the connection.
@@ -179,7 +179,7 @@ class _WSConnection:
             try:
                 while self.status == _ConnectionStatus.RUNNING:
                     message = await self.websocket.recv()
-                    response = await Envelope.parse_recon(message)
+                    response = await _Envelope._parse_recon(message)
                     await self.__subscribers._receive_message(response)
             finally:
                 await self._close()
@@ -201,7 +201,7 @@ class _DownlinkManagerPool:
     def _size(self) -> int:
         return len(self.__downlink_managers)
 
-    async def _register_downlink_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _register_downlink_view(self, downlink_view: '_DownlinkView') -> None:
         """
         Add a downlink view to a downlink manager from the pool with the given node and lane URIs.
         If a downlink manager is not yet created for the given node and lane, create it and add the downlink view.
@@ -217,7 +217,7 @@ class _DownlinkManagerPool:
 
         await downlink_manager._add_view(downlink_view)
 
-    async def _deregister_downlink_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _deregister_downlink_view(self, downlink_view: '_DownlinkView') -> None:
         """
         Remove a downlink view from the corresponding downlink manager if it exists.
         If it is the last downlink view in the given manager, remove the manager from the pool.
@@ -233,7 +233,7 @@ class _DownlinkManagerPool:
             if downlink_manager._view_count == 0:
                 self.__downlink_managers.pop(downlink_view.route)
 
-    async def _receive_message(self, message: 'Envelope') -> None:
+    async def _receive_message(self, message: '_Envelope') -> None:
         """
         Route a received message for the given host URI to the downlink manager for the corresponding
         node and lane URIs.
@@ -242,7 +242,7 @@ class _DownlinkManagerPool:
         """
         downlink_manager: _DownlinkManager
 
-        downlink_manager = self.__downlink_managers.get(message.route)
+        downlink_manager = self.__downlink_managers.get(message._route)
         if downlink_manager:
             await downlink_manager._receive_message(message)
 
@@ -267,7 +267,7 @@ class _DownlinkManager:
         return self.status == _DownlinkManagerStatus.OPEN
 
     async def _open(self) -> None:
-        self.downlink_model: DownlinkModel
+        self.downlink_model: _DownlinkModel
 
         if self.status == _DownlinkManagerStatus.CLOSED:
             self.status = _DownlinkManagerStatus.OPENING
@@ -276,13 +276,13 @@ class _DownlinkManager:
             self.status = _DownlinkManagerStatus.OPEN
 
     async def _close(self) -> None:
-        self.downlink_model: DownlinkModel
+        self.downlink_model: _DownlinkModel
 
         if self.status != _DownlinkManagerStatus.CLOSED:
             self.status = _DownlinkManagerStatus.CLOSED
             self.downlink_model._close()
 
-    async def _init_downlink_model(self, downlink_view: 'DownlinkView') -> None:
+    async def _init_downlink_model(self, downlink_view: '_DownlinkView') -> None:
         """
         Initialise a downlink model to the specified node and lane of the remote agent.
 
@@ -291,7 +291,7 @@ class _DownlinkManager:
         self.downlink_model = await downlink_view._create_downlink_model(self)
         self.downlink_model.connection = self.connection
 
-    async def _add_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _add_view(self, downlink_view: '_DownlinkView') -> None:
         """
         Add a downlink view to the manager. If a downlink model is not yet created, create it and open it.
 
@@ -307,7 +307,7 @@ class _DownlinkManager:
 
         self.__downlink_views[hash(downlink_view)] = downlink_view
 
-    async def _remove_view(self, downlink_view: 'DownlinkView') -> None:
+    async def _remove_view(self, downlink_view: '_DownlinkView') -> None:
         """
         Remove a downlink view from the manager. If it is the last view associated with the manager,
         close the manager.
@@ -320,13 +320,13 @@ class _DownlinkManager:
             if self._view_count == 0:
                 await self._close()
 
-    async def _receive_message(self, message: 'Envelope') -> None:
+    async def _receive_message(self, message: '_Envelope') -> None:
         """
         Send a received message to the downlink model.
 
         :param message:             - Received message from the remote agent.
         """
-        self.downlink_model: DownlinkModel
+        self.downlink_model: _DownlinkModel
 
         await self.downlink_model._receive_message(message)
 

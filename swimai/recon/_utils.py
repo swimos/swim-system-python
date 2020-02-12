@@ -16,10 +16,10 @@ from abc import ABC, abstractmethod
 from typing import Optional, Union, Any
 
 
-class ReconUtils:
+class _ReconUtils:
 
     @staticmethod
-    async def is_ident_start_char(char: Union[str, int]) -> bool:
+    async def _is_ident_start_char(char: Union[str, int]) -> bool:
         """
         Check if a character is a valid first character of an identifier.
         Valid start characters for identifiers: [A-Za-z_]
@@ -28,14 +28,14 @@ class ReconUtils:
         :return:            - True if the character is valid, False otherwise.
         """
         if char:
-            char = await ReconUtils.to_ord(char)
+            char = await _ReconUtils._to_ord(char)
 
             return ord('A') <= char <= ord('Z') or char == ord('_') or ord('a') <= char <= ord('z')
         else:
             return False
 
     @staticmethod
-    async def is_ident_char(char: Union[str, int]) -> bool:
+    async def _is_ident_char(char: Union[str, int]) -> bool:
         """
         Check if a character is a valid character of an identifier.
         Valid characters for identifiers: [A-Za-z_-]
@@ -44,13 +44,13 @@ class ReconUtils:
         :return:            - True if the character is valid, False otherwise.
         """
         if char:
-            char = await ReconUtils.to_ord(char)
-            return char == ord('-') or await ReconUtils.is_digit(char) or await ReconUtils.is_ident_start_char(char)
+            char = await _ReconUtils._to_ord(char)
+            return char == ord('-') or await _ReconUtils._is_digit(char) or await _ReconUtils._is_ident_start_char(char)
         else:
             return False
 
     @staticmethod
-    async def is_ident(value: str) -> bool:
+    async def _is_ident(value: str) -> bool:
         """
         Check if a string value is a valid identifier.
 
@@ -60,17 +60,17 @@ class ReconUtils:
         if len(value) == 0:
             return False
 
-        if not await ReconUtils.is_ident_start_char(value[0]):
+        if not await _ReconUtils._is_ident_start_char(value[0]):
             return False
 
         for char in value:
-            if not await ReconUtils.is_ident_char(char):
+            if not await _ReconUtils._is_ident_char(char):
                 return False
 
         return True
 
     @staticmethod
-    async def is_space(char: Union[str, int]) -> bool:
+    async def _is_space(char: Union[str, int]) -> bool:
         """
         Check if a character is a space character.
 
@@ -78,13 +78,13 @@ class ReconUtils:
         :return:            - True if the character is a space character, False otherwise.
         """
         if char:
-            char = await ReconUtils.to_ord(char)
+            char = await _ReconUtils._to_ord(char)
             return char == ord(' ') or char == ord('\t')
         else:
             return False
 
     @staticmethod
-    async def is_digit(char: Union[str, int]) -> bool:
+    async def _is_digit(char: Union[str, int]) -> bool:
         """
        Check if a character is a digit.
 
@@ -92,13 +92,13 @@ class ReconUtils:
        :return:             - True if the character is a digit, False otherwise.
        """
         if char:
-            char = await ReconUtils.to_ord(char)
+            char = await _ReconUtils._to_ord(char)
             return ord('0') <= char <= ord('9')
         else:
             return False
 
     @staticmethod
-    async def to_ord(char: Any) -> Optional[int]:
+    async def _to_ord(char: Any) -> Optional[int]:
         """
         Convert a character to its integer representation.
 
@@ -113,134 +113,134 @@ class ReconUtils:
             return None
 
 
-class Message(ABC):
+class _Message(ABC):
 
     def __init__(self) -> None:
-        self.message = ''
+        self._message = ''
 
     @property
-    def value(self) -> str:
-        return self.message
+    def _value(self) -> str:
+        return self._message
 
     @property
-    def size(self) -> int:
-        return len(self.message)
+    def _size(self) -> int:
+        return len(self._message)
 
     @staticmethod
     @abstractmethod
-    async def create(chars: str) -> 'Message':
+    async def _create(chars: str) -> '_Message':
         raise NotImplementedError
 
-    async def append(self, obj: Any) -> None:
+    async def _append(self, obj: Any) -> None:
         """
         Append the string representation of an object to the current message.
 
         :param obj:           - Object to append to the message.
         """
         if isinstance(obj, str):
-            self.message = self.message + obj
+            self._message = self._message + obj
         elif isinstance(obj, (float, int)):
-            self.message = self.message + str(obj)
-        elif isinstance(obj, (OutputMessage, InputMessage)):
-            self.message = self.message + obj.value
+            self._message = self._message + str(obj)
+        elif isinstance(obj, (_OutputMessage, _InputMessage)):
+            self._message = self._message + obj._value
         else:
             raise TypeError(f'Item of type {type(obj).__name__} cannot be added to Message!')
 
 
-class OutputMessage(Message):
+class _OutputMessage(_Message):
 
     def __init__(self) -> None:
         super().__init__()
 
     @property
-    def last_char(self) -> str:
+    def _last_char(self) -> str:
         """
         Return the last character of the message.
 
         :return:                - Last character of the message.
         """
-        if self.size > 0:
-            return self.message[-1]
+        if self._size > 0:
+            return self._message[-1]
         else:
             return ''
 
     @staticmethod
-    async def create(chars: str = None) -> 'OutputMessage':
+    async def _create(chars: str = None) -> '_OutputMessage':
         """
         Create an OutputMessage instance and initialise its message.
 
         :param chars:           - Initial value of the message.
         :return:                - OutputMessage instance.
         """
-        instance = OutputMessage()
+        instance = _OutputMessage()
 
         if chars:
-            await instance.append(chars)
+            await instance._append(chars)
 
         return instance
 
 
-class InputMessage(Message):
+class _InputMessage(_Message):
 
     def __init__(self) -> None:
         super().__init__()
         self.index = 0
 
     @property
-    def head(self) -> str:
+    def _head(self) -> str:
         """
         Get the character at the front of the InputMessage pointed by the message index.
 
         :return:                - The current head character of the InputMessage.
         """
-        if self.is_cont:
-            return self.message[self.index]
+        if self._is_cont:
+            return self._message[self.index]
         else:
             return ''
 
     @property
-    def is_cont(self) -> bool:
+    def _is_cont(self) -> bool:
         """
         Check if there are any characters left in front of the InputMessage index.
 
         :return:                - False if the index is pointing at the last character or beyond, True otherwise.
         """
-        if self.index >= len(self.message):
+        if self.index >= len(self._message):
             return False
         else:
             return True
 
     @staticmethod
-    async def create(chars: str = None) -> 'InputMessage':
+    async def _create(chars: str = None) -> '_InputMessage':
         """
         Create an OutputMessage instance and initialise its message.
 
         :param chars:           - Initial value of the message.
         :return:                - OutputMessage instance.
         """
-        instance = InputMessage()
+        instance = _InputMessage()
 
         if chars:
-            await instance.append(chars)
+            await instance._append(chars)
 
         return instance
 
     @staticmethod
-    async def skip_spaces(message: 'InputMessage') -> None:
+    async def _skip_spaces(message: '_InputMessage') -> None:
         """
         Moves the head of the message to the next non-space character.
 
         :param message:     - InputMessage object.
         """
-        char = message.head
-        while await ReconUtils.is_space(char):
-            char = message.step()
+        char = message._head
+        while await _ReconUtils._is_space(char):
+            char = message._step()
 
-    def step(self) -> str:
+    def _step(self) -> str:
         """
         Move the head index forward by one.
 
         :return:                - The new head character of the InputMessage.
         """
         self.index = self.index + 1
-        return self.head
+        return self._head

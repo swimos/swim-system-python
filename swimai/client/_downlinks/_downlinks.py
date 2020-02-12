@@ -20,13 +20,13 @@ from abc import abstractmethod, ABC
 from typing import TYPE_CHECKING, Any
 from swimai.recon import Recon
 from swimai.structures import Value, RecordConverter
-from swimai.warp import SyncRequest, CommandMessage, Envelope, LinkRequest
+from swimai.warp._warp import _SyncRequest, _CommandMessage, _Envelope, _LinkRequest
 from .._utils import _URI
 from ._utils import before_open, UpdateRequest, RemoveRequest, after_open, validate_callback
 
 # Imports for type annotations
 if TYPE_CHECKING:
-    from ..swim_client import SwimClient
+    from .._swim_client import SwimClient
     from .._connections import _DownlinkManager
 
 
@@ -50,7 +50,7 @@ class _DownlinkModel(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def _receive_event(self, message: 'Envelope') -> None:
+    async def _receive_event(self, message: '_Envelope') -> None:
         """
         Handle an `event` response message from the remote agent.
 
@@ -74,19 +74,19 @@ class _DownlinkModel(ABC):
         self.client._schedule_task(self.__close)
         return self
 
-    async def _receive_message(self, message: 'Envelope') -> None:
+    async def _receive_message(self, message: '_Envelope') -> None:
         """
         Handle a response message from the remote agent.
 
         :param message:         - Response message.
         """
-        if message.tag == 'linked':
+        if message._tag == 'linked':
             await self._receive_linked()
-        elif message.tag == 'synced':
+        elif message._tag == 'synced':
             await self._receive_synced()
-        elif message.tag == 'event':
+        elif message._tag == 'event':
             await self._receive_event(message)
-        elif message.tag == 'unlinked':
+        elif message._tag == 'unlinked':
             await self._receive_unlinked(message)
 
     async def _receive_linked(self) -> None:
@@ -95,13 +95,13 @@ class _DownlinkModel(ABC):
         """
         self.linked.set()
 
-    async def _receive_unlinked(self, message: 'Envelope') -> None:
+    async def _receive_unlinked(self, message: '_Envelope') -> None:
         """
         Handle an `unlinked` response message from the remote agent.
 
         :param message          - Response message.
         """
-        if message.body.tag == 'laneNotFound':
+        if message._body._tag == 'laneNotFound':
             raise Exception(f'Lane "{self.lane_uri}" was not found on the remote agent!')
 
     async def __close(self) -> None:
@@ -301,12 +301,12 @@ class _DownlinkView(ABC):
 class _EventDownlinkModel(_DownlinkModel):
 
     async def _establish_downlink(self) -> None:
-        link_request = LinkRequest(self.node_uri, self.lane_uri)
-        await self.connection._send_message(await link_request.to_recon())
+        link_request = _LinkRequest(self.node_uri, self.lane_uri)
+        await self.connection._send_message(await link_request._to_recon())
 
-    async def _receive_event(self, message: Envelope) -> None:
+    async def _receive_event(self, message: _Envelope) -> None:
         converter = RecordConverter.get_converter()
-        event = converter.record_to_object(message.body, self.downlink_manager.registered_classes,
+        event = converter.record_to_object(message._body, self.downlink_manager.registered_classes,
                                            self.downlink_manager.strict)
 
         await self.downlink_manager._subscribers_on_event(event)
@@ -358,23 +358,23 @@ class _ValueDownlinkModel(_DownlinkModel):
         self._synced = asyncio.Event()
 
     async def _establish_downlink(self) -> None:
-        sync_request = SyncRequest(self.node_uri, self.lane_uri)
-        await self.connection._send_message(await sync_request.to_recon())
+        sync_request = _SyncRequest(self.node_uri, self.lane_uri)
+        await self.connection._send_message(await sync_request._to_recon())
 
-    async def _receive_event(self, message: 'Envelope') -> None:
+    async def _receive_event(self, message: '_Envelope') -> None:
         await self.__set_value(message)
 
     async def _receive_synced(self) -> None:
         self._synced.set()
 
-    async def _send_message(self, message: 'Envelope') -> None:
+    async def _send_message(self, message: '_Envelope') -> None:
         """
         Send a message to the remote agent of the downlink.
 
         :param message:         - Message to send to the remote agent.
         """
         await self.linked.wait()
-        await self.connection._send_message(await message.to_recon())
+        await self.connection._send_message(await message._to_recon())
 
     async def _get_value(self) -> Any:
         """
@@ -385,7 +385,7 @@ class _ValueDownlinkModel(_DownlinkModel):
         await self._synced.wait()
         return self._value
 
-    async def __set_value(self, message: 'Envelope') -> None:
+    async def __set_value(self, message: '_Envelope') -> None:
         """
         Set the value of the the downlink and trigger the `did_set` callback of the downlink subscribers.
 
@@ -394,7 +394,7 @@ class _ValueDownlinkModel(_DownlinkModel):
         """
         old_value = self._value
         converter = RecordConverter.get_converter()
-        self._value = converter.record_to_object(message.body, self.downlink_manager.registered_classes,
+        self._value = converter.record_to_object(message._body, self.downlink_manager.registered_classes,
                                                  self.downlink_manager.strict)
 
         await self.downlink_manager._subscribers_did_set(self._value, old_value)
@@ -473,7 +473,7 @@ class _ValueDownlinkView(_DownlinkView):
         """
         await self._initialised.wait()
         recon = RecordConverter.get_converter().object_to_record(value)
-        message = CommandMessage(self._node_uri, self._lane_uri, recon)
+        message = _CommandMessage(self._node_uri, self._lane_uri, recon)
 
         await self._model._send_message(message)
 
@@ -501,26 +501,26 @@ class _MapDownlinkModel(_DownlinkModel):
         self._synced = asyncio.Event()
 
     async def _establish_downlink(self) -> None:
-        sync_request = SyncRequest(self.node_uri, self.lane_uri)
-        await self.connection._send_message(await sync_request.to_recon())
+        sync_request = _SyncRequest(self.node_uri, self.lane_uri)
+        await self.connection._send_message(await sync_request._to_recon())
 
-    async def _receive_event(self, message: 'Envelope') -> None:
-        if message.body.tag == 'update':
+    async def _receive_event(self, message: '_Envelope') -> None:
+        if message._body._tag == 'update':
             await self.__receive_update(message)
-        if message.body.tag == 'remove':
+        if message._body._tag == 'remove':
             await self.__receive_remove(message)
 
     async def _receive_synced(self) -> None:
         self._synced.set()
 
-    async def _send_message(self, message: 'Envelope') -> None:
+    async def _send_message(self, message: '_Envelope') -> None:
         """
         Send a message to the remote agent of the downlink.
 
         :param message:         - Message to send to the remote agent.
         """
         await self.linked.wait()
-        await self.connection._send_message(await message.to_recon())
+        await self.connection._send_message(await message._to_recon())
 
     async def _get_value(self, key) -> Any:
         """
@@ -541,27 +541,27 @@ class _MapDownlinkModel(_DownlinkModel):
         await self._synced.wait()
         return list(self._map.values())
 
-    async def __receive_update(self, message: 'Envelope') -> None:
-        key = RecordConverter.get_converter().record_to_object(message.body.get_head().value.get_head().value,
+    async def __receive_update(self, message: '_Envelope') -> None:
+        key = RecordConverter.get_converter().record_to_object(message._body._get_head().value._get_head().value,
                                                                self.downlink_manager.registered_classes,
                                                                self.downlink_manager.strict)
 
-        value = RecordConverter.get_converter().record_to_object(message.body.get_body(),
+        value = RecordConverter.get_converter().record_to_object(message._body.get_body(),
                                                                  self.downlink_manager.registered_classes,
                                                                  self.downlink_manager.strict)
 
-        recon_key = await Recon.to_string(message.body.get_head().value.get_head().value)
+        recon_key = await Recon.to_string(message._body._get_head().value._get_head().value)
         old_value = await self._get_value(recon_key)
 
         self._map[recon_key] = (key, value)
         await self.downlink_manager._subscribers_did_update(key, value, old_value)
 
-    async def __receive_remove(self, message: 'Envelope') -> None:
-        key = RecordConverter.get_converter().record_to_object(message.body.get_head().value.get_head().value,
+    async def __receive_remove(self, message: '_Envelope') -> None:
+        key = RecordConverter.get_converter().record_to_object(message._body._get_head().value._get_head().value,
                                                                self.downlink_manager.registered_classes,
                                                                self.downlink_manager.strict)
 
-        recon_key = await Recon.to_string(message.body.get_head().value.get_head().value)
+        recon_key = await Recon.to_string(message._body._get_head().value._get_head().value)
         old_value = self._map.pop(recon_key, (Value.absent(), Value.absent()))[1]
 
         await self.downlink_manager._subscribers_did_remove(key, old_value)
@@ -701,7 +701,7 @@ class _MapDownlinkView(_DownlinkView):
         """
         await self._initialised.wait()
 
-        message = CommandMessage(self._node_uri, self._lane_uri, UpdateRequest(key, value).to_record())
+        message = _CommandMessage(self._node_uri, self._lane_uri, UpdateRequest(key, value).to_record())
         await self._model._send_message(message)
 
     async def __remove_message(self, key: Any) -> None:
@@ -712,5 +712,5 @@ class _MapDownlinkView(_DownlinkView):
         """
         await self._initialised.wait()
 
-        message = CommandMessage(self._node_uri, self._lane_uri, RemoveRequest(key).to_record())
+        message = _CommandMessage(self._node_uri, self._lane_uri, RemoveRequest(key).to_record())
         await self._model._send_message(message)

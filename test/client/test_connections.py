@@ -20,7 +20,7 @@ from swimai.client._connections import _WSConnection, _ConnectionStatus, _Connec
     _DownlinkManager, _DownlinkManagerStatus
 from swimai.client._downlinks._downlinks import _ValueDownlinkModel
 from swimai.structures import Text, Value
-from swimai.warp import SyncedResponse, LinkedResponse, EventMessage
+from swimai.warp._warp import _SyncedResponse, _LinkedResponse, _EventMessage
 from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, MockReceiveMessage, MockConnection, \
     MockDownlink, mock_did_set_callback, MockClass, mock_on_event_callback, mock_did_update_callback, \
     mock_did_remove_callback, MockWebsocketConnectException
@@ -512,7 +512,7 @@ class TestConnections(unittest.TestCase):
         # When
         await connection._wait_for_messages()
         # Then
-        actual = await mock_receive_message.call_args[0][0].to_recon()
+        actual = await mock_receive_message.call_args[0][0]._to_recon()
         self.assertEqual(expected, actual)
         self.assertEqual(_ConnectionStatus.CLOSED, connection.status)
         mock_add_view.assert_called_once_with(downlink_view)
@@ -552,9 +552,9 @@ class TestConnections(unittest.TestCase):
         await mock_receive_message.all_messages_has_been_sent().wait()
         # Then
         messages = mock_receive_message.call_args_list
-        first_actual_message = await messages[0][0][0].to_recon()
-        second_actual_message = await messages[1][0][0].to_recon()
-        third_actual_message = await messages[2][0][0].to_recon()
+        first_actual_message = await messages[0][0][0]._to_recon()
+        second_actual_message = await messages[1][0][0]._to_recon()
+        third_actual_message = await messages[2][0][0]._to_recon()
         actual = {first_actual_message, second_actual_message, third_actual_message}
         self.assertEqual(expected, actual)
         self.assertEqual(_ConnectionStatus.CLOSED, connection.status)
@@ -751,7 +751,7 @@ class TestConnections(unittest.TestCase):
         downlink_view.set_lane_uri('cow')
         actual = _DownlinkManagerPool()
         await actual._register_downlink_view(downlink_view)
-        message = SyncedResponse('moo', 'cow')
+        message = _SyncedResponse('moo', 'cow')
         # When
         await actual._receive_message(message)
         # Then
@@ -770,7 +770,7 @@ class TestConnections(unittest.TestCase):
         downlink_view.set_lane_uri('cow')
         actual = _DownlinkManagerPool()
         await actual._register_downlink_view(downlink_view)
-        message = SyncedResponse('poo', 'pow')
+        message = _SyncedResponse('poo', 'pow')
         # When
         await actual._receive_message(message)
         # Then
@@ -791,7 +791,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(0, actual._view_count)
         self.assertEqual(_DownlinkManagerStatus.CLOSED, actual.status)
 
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_open_new(self, mock_schedule_task):
         # Given
@@ -814,7 +814,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(1, len(MockConnection.get_mock_connection().messages_sent))
         self.assertEqual('@sync(node:foo,lane:bar)', MockConnection.get_mock_connection().messages_sent[0])
 
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_open_existing(self, mock_schedule_task):
         # Given
@@ -838,7 +838,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(1, len(MockConnection.get_mock_connection().messages_sent))
         mock_schedule_task.assert_called_once_with(MockConnection.get_mock_connection()._wait_for_messages)
 
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_close_running(self, mock_schedule_task):
         # Given
@@ -861,7 +861,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(1, len(MockConnection.get_mock_connection().messages_sent))
         self.assertEqual(2, mock_schedule_task.call_count)
 
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_close_stopped(self, mock_schedule_task):
         # Given
@@ -938,7 +938,7 @@ class TestConnections(unittest.TestCase):
         client.stop()
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_add_view_single(self, mock_schedule_task, mock_send_message):
         # Given
@@ -967,7 +967,7 @@ class TestConnections(unittest.TestCase):
         self.assertTrue(downlink_view._initialised.is_set())
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_add_view_multiple(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1006,7 +1006,7 @@ class TestConnections(unittest.TestCase):
         self.assertTrue(third_downlink_view._initialised.is_set())
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_remove_view_single(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1036,7 +1036,7 @@ class TestConnections(unittest.TestCase):
         self.assertTrue(downlink_view._initialised.is_set())
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_remove_view_multiple(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1073,7 +1073,7 @@ class TestConnections(unittest.TestCase):
         self.assertTrue(third_downlink_view._initialised.is_set())
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_remove_view_non_existing(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1095,7 +1095,7 @@ class TestConnections(unittest.TestCase):
         self.assertFalse(downlink_view._initialised.is_set())
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_receive_message_linked(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1108,7 +1108,7 @@ class TestConnections(unittest.TestCase):
         downlink_view.set_lane_uri('foo')
         actual = _DownlinkManager(connection)
         await actual._add_view(downlink_view)
-        envelope = LinkedResponse('test', 'foo')
+        envelope = _LinkedResponse('test', 'foo')
         # When
         await actual._receive_message(envelope)
         # Then
@@ -1117,7 +1117,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(1, mock_send_message.call_count)
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_receive_message_synced(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1130,7 +1130,7 @@ class TestConnections(unittest.TestCase):
         downlink_view.set_lane_uri('foo')
         actual = _DownlinkManager(connection)
         await actual._add_view(downlink_view)
-        envelope = SyncedResponse('test', 'foo')
+        envelope = _SyncedResponse('test', 'foo')
         # When
         await actual._receive_message(envelope)
         # Then
@@ -1139,7 +1139,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(1, mock_send_message.call_count)
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_receive_message_event(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1153,7 +1153,7 @@ class TestConnections(unittest.TestCase):
         actual = _DownlinkManager(connection)
         await actual._add_view(downlink_view)
         value = Text.create_from('baz')
-        envelope = EventMessage('test', 'foo', body=value)
+        envelope = _EventMessage('test', 'foo', body=value)
         # When
         await actual._receive_message(envelope)
         # Then
@@ -1162,7 +1162,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(1, mock_send_message.call_count)
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_receive_message_multiple(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1175,10 +1175,10 @@ class TestConnections(unittest.TestCase):
         downlink_view.set_lane_uri('baz')
         actual = _DownlinkManager(connection)
         await actual._add_view(downlink_view)
-        linked_envelope = LinkedResponse('bar', 'baz')
+        linked_envelope = _LinkedResponse('bar', 'baz')
         value = Text.create_from('foo')
-        event_envelope = EventMessage('bar', 'baz', body=value)
-        synced_envelope = SyncedResponse('bar', 'baz')
+        event_envelope = _EventMessage('bar', 'baz', body=value)
+        synced_envelope = _SyncedResponse('bar', 'baz')
         # When
         await actual._receive_message(linked_envelope)
         await actual._receive_message(event_envelope)
@@ -1191,7 +1191,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(1, mock_send_message.call_count)
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_subscribers_did_set_single(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1216,7 +1216,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual('parrot', mock_schedule_task.call_args_list[1][0][2])
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_subscribers_did_set_multiple(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1268,7 +1268,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual('world', mock_schedule_task.call_args_list[5][0][2])
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_subscribers_on_event_single(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1292,7 +1292,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual('Hello, friend!', mock_schedule_task.call_args_list[1][0][1])
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_subscribers_on_event_multiple(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1333,7 +1333,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual('Welcome home!', mock_schedule_task.call_args_list[3][0][1])
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_subscribers_did_update_single(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1359,7 +1359,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual('Old_Value', mock_schedule_task.call_args_list[1][0][3])
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_subscribers_did_update_multiple(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1406,7 +1406,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual('OlD', mock_schedule_task.call_args_list[3][0][3])
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_subscribers_did_remove_single(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1431,7 +1431,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual('Old_Value', mock_schedule_task.call_args_list[1][0][2])
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_subscribers_did_remove_multiple(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1475,7 +1475,7 @@ class TestConnections(unittest.TestCase):
         self.assertEqual('Baz', mock_schedule_task.call_args_list[3][0][2])
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_close_views_single(self, mock_schedule_task, mock_send_message):
         # Given
@@ -1495,7 +1495,7 @@ class TestConnections(unittest.TestCase):
         self.assertTrue(mock_send_message.called)
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
-    @patch('swimai.client.swim_client.SwimClient._schedule_task')
+    @patch('swimai.SwimClient._schedule_task')
     @async_test
     async def test_downlink_manager_close_views_multiple(self, mock_schedule_task, mock_send_message):
         # Given

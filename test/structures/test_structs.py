@@ -14,8 +14,8 @@
 import os
 import unittest
 
-from swimai.structures import Record, Num, Attr, Slot, Text, RecordMap, Bool, Item, Extant, Absent, Value, \
-    RecordFlags, RecordMapView, ValueBuilder, RecordConverter
+from swimai.structures import Num, Attr, Slot, Text, RecordMap, Bool, Value, RecordConverter
+from swimai.structures._structs import _Item, _Extant, _Absent, _RecordFlags, _Record, _RecordMapView, _ValueBuilder
 from test.utils import CustomString, CustomItem, MockPerson, MockPet, MockCar
 
 
@@ -36,10 +36,10 @@ class TestStructs(unittest.TestCase):
 
     def test_item_concat_single_num(self):
         # Given
-        headers = Record.create().add_slot('node', 'foo').add_slot('lane', 'bar')
+        headers = _Record.create()._add_slot('node', 'foo')._add_slot('lane', 'bar')
         body = Num.create_from(42)
         # When
-        actual = Attr.create_attr('tag', headers).concat(body)
+        actual = Attr.create_attr('tag', headers)._concat(body)
         # Then
         self.assertEqual(2, actual.size)
         self.assertIsInstance(actual.get_items()[0], Attr)
@@ -49,10 +49,10 @@ class TestStructs(unittest.TestCase):
 
     def test_item_concat_single_record(self):
         # Given
-        headers = Record.create().add_slot('node', 'foo').add_slot('lane', 'bar')
-        body = Record.create().add_slot('attr', 'hello').add_slot('message', 'world')
+        headers = _Record.create()._add_slot('node', 'foo')._add_slot('lane', 'bar')
+        body = _Record.create()._add_slot('attr', 'hello')._add_slot('message', 'world')
         # When
-        actual = Attr.create_attr('tag', headers).concat(body)
+        actual = Attr.create_attr('tag', headers)._concat(body)
         # Then
         self.assertEqual(3, actual.size)
         self.assertIsInstance(actual.get_items()[0], Attr)
@@ -66,11 +66,11 @@ class TestStructs(unittest.TestCase):
 
     def test_item_concat_multiple_text(self):
         # Given
-        headers = Record.create().add_slot('node', 'foo').add_slot('lane', 'bar')
+        headers = _Record.create()._add_slot('node', 'foo')._add_slot('lane', 'bar')
         headers.add(Num.create_from(42))
         body = Text.create_from('Polly the parrot')
         # When
-        actual = headers.concat(body)
+        actual = headers._concat(body)
         # Then
         self.assertEqual(2, actual.size)
         self.assertIsInstance(actual.get_items()[0], RecordMap)
@@ -81,11 +81,11 @@ class TestStructs(unittest.TestCase):
 
     def test_item_concat_multiple_record(self):
         # Given
-        headers = Record.create().add_slot('node', 'foo').add_slot('lane', 'bar')
-        headers.add(Record.create().add_slot('node', 'boo').add_slot('lane', 'far'))
-        body = Record.create().add_slot('node', 'poo').add_slot('lane', 'car')
+        headers = _Record.create()._add_slot('node', 'foo')._add_slot('lane', 'bar')
+        headers.add(_Record.create()._add_slot('node', 'boo')._add_slot('lane', 'far'))
+        body = _Record.create()._add_slot('node', 'poo')._add_slot('lane', 'car')
         # When
-        actual = headers.concat(body)
+        actual = headers._concat(body)
         # Then
         self.assertEqual(3, actual.size)
         self.assertIsInstance(actual.get_items()[0], RecordMap)
@@ -99,10 +99,10 @@ class TestStructs(unittest.TestCase):
 
     def test_item_concat_zero_bool(self):
         # Given
-        headers = Record.create()
+        headers = _Record.create()
         body = Bool.create_from(True)
         # When
-        actual = headers.concat(body)
+        actual = headers._concat(body)
         # Then
         self.assertEqual(2, actual.size)
         self.assertIsInstance(actual.get_items()[0], RecordMap)
@@ -113,10 +113,10 @@ class TestStructs(unittest.TestCase):
 
     def test_item_concat_zero_record(self):
         # Given
-        headers = Record.create()
-        body = Record.create().add_slot('node', 'moo').add_slot('lane', 'cow')
+        headers = _Record.create()
+        body = _Record.create()._add_slot('node', 'moo')._add_slot('lane', 'cow')
         # When
-        actual = headers.concat(body)
+        actual = headers._concat(body)
         # Then
         self.assertEqual(3, actual.size)
         self.assertIsInstance(actual.get_items()[0], RecordMap)
@@ -131,23 +131,23 @@ class TestStructs(unittest.TestCase):
 
     def test_item_extant(self):
         # Given
-        actual = Item.extant()
+        actual = _Item.extant()
         # Then
-        self.assertEqual(Extant.get_extant(), actual)
+        self.assertEqual(_Extant._get_extant(), actual)
         self.assertEqual(self.expected_strings.get(self.get_name()), str(actual))
 
     def test_item_absent(self):
         # Given
-        actual = Item.absent()
+        actual = _Item.absent()
         # Then
-        self.assertEqual(Absent.get_absent(), actual)
+        self.assertEqual(_Absent._get_absent(), actual)
         self.assertEqual(self.expected_strings.get(self.get_name()), str(actual))
 
     def test_item_create_from_item(self):
         # Given
-        record = Record.create().add_slot('node', 'boo').add_slot('lane', 'ghost')
+        record = _Record.create()._add_slot('node', 'boo')._add_slot('lane', 'ghost')
         # When
-        actual = Item.create_from(record)
+        actual = _Item.create_from(record)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(2, actual.size)
@@ -162,7 +162,7 @@ class TestStructs(unittest.TestCase):
         record = {'node': 'boo'}
         # When
         dict()
-        actual = Item.create_from(record)
+        actual = _Item.create_from(record)
         # Then
         self.assertIsInstance(actual, Slot)
         self.assertEqual('node', actual.key)
@@ -173,7 +173,7 @@ class TestStructs(unittest.TestCase):
         # Given
         record = 'monkey'
         # When
-        actual = Item.create_from(record)
+        actual = _Item.create_from(record)
         # Then
         self.assertIsInstance(actual, Text)
         self.assertEqual('monkey', actual.value)
@@ -245,7 +245,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual.key, Text)
         self.assertEqual('Moo', actual.key.value)
-        self.assertIsInstance(actual.value, Extant)
+        self.assertIsInstance(actual.value, _Extant)
         self.assertEqual(Value.extant(), actual.value)
         self.assertEqual(self.expected_strings.get(self.get_name()), str(actual))
 
@@ -305,8 +305,8 @@ class TestStructs(unittest.TestCase):
         # Given
         actual = Value()
         # Then
-        self.assertEqual(Absent.get_absent(), actual.key)
-        self.assertEqual(Absent.get_absent(), actual.value)
+        self.assertEqual(_Absent._get_absent(), actual.key)
+        self.assertEqual(_Absent._get_absent(), actual.value)
         self.assertEqual(0, actual.size)
 
     def test_create_value_from_object_none(self):
@@ -315,7 +315,7 @@ class TestStructs(unittest.TestCase):
         # When
         actual = Value.create_from(obj)
         # Then
-        self.assertEqual(Extant.get_extant(), actual)
+        self.assertEqual(_Extant._get_extant(), actual)
         self.assertEqual(self.expected_strings.get(self.get_name()), str(actual))
 
     def test_create_value_from_object_value(self):
@@ -526,7 +526,7 @@ class TestStructs(unittest.TestCase):
         actual = Bool.create_from(boolean)
         # Then
         self.assertIsInstance(actual, Bool)
-        self.assertEqual(Bool.TRUE, actual)
+        self.assertEqual(Bool._TRUE, actual)
         self.assertTrue(actual.get_bool_value())
         self.assertTrue(actual)
 
@@ -538,7 +538,7 @@ class TestStructs(unittest.TestCase):
         actual = Bool.create_from(boolean)
         # Then
         self.assertIsInstance(actual, Bool)
-        self.assertEqual(Bool.TRUE, actual)
+        self.assertEqual(Bool._TRUE, actual)
         self.assertTrue(actual.get_bool_value())
         self.assertTrue(actual)
 
@@ -549,7 +549,7 @@ class TestStructs(unittest.TestCase):
         actual = Bool.create_from(boolean)
         # Then
         self.assertIsInstance(actual, Bool)
-        self.assertEqual(Bool.FALSE, actual)
+        self.assertEqual(Bool._FALSE, actual)
         self.assertFalse(actual.get_bool_value())
         self.assertFalse(actual)
 
@@ -561,57 +561,57 @@ class TestStructs(unittest.TestCase):
         actual = Bool.create_from(boolean)
         # Then
         self.assertIsInstance(actual, Bool)
-        self.assertEqual(Bool.FALSE, actual)
+        self.assertEqual(Bool._FALSE, actual)
         self.assertFalse(actual.get_bool_value())
         self.assertFalse(actual)
 
     def test_get_absent_once(self):
         # When
-        actual = Absent.get_absent()
+        actual = _Absent._get_absent()
         # Then
-        self.assertIsInstance(actual, Absent)
-        self.assertEqual(Absent.absent, actual)
-        self.assertEqual(Absent.get_absent(), actual)
-        self.assertFalse(Absent.get_absent())
+        self.assertIsInstance(actual, _Absent)
+        self.assertEqual(_Absent._absent, actual)
+        self.assertEqual(_Absent._get_absent(), actual)
+        self.assertFalse(_Absent._get_absent())
         self.assertFalse(actual)
-        self.assertFalse(Absent.absent)
+        self.assertFalse(_Absent._absent)
 
     def test_get_absent_twice(self):
         # Given
-        Absent.get_absent()
+        _Absent._get_absent()
         # When
-        actual = Absent.get_absent()
+        actual = _Absent._get_absent()
         # Then
-        self.assertIsInstance(actual, Absent)
-        self.assertEqual(Absent.absent, actual)
-        self.assertEqual(Absent.get_absent(), actual)
+        self.assertIsInstance(actual, _Absent)
+        self.assertEqual(_Absent._absent, actual)
+        self.assertEqual(_Absent._get_absent(), actual)
         self.assertFalse(actual)
-        self.assertFalse(Absent.get_absent())
-        self.assertFalse(Absent.absent)
+        self.assertFalse(_Absent._get_absent())
+        self.assertFalse(_Absent._absent)
 
     def test_get_extant_once(self):
         # When
-        actual = Extant.get_extant()
+        actual = _Extant._get_extant()
         # Then
-        self.assertIsInstance(actual, Extant)
-        self.assertEqual(Extant.extant, actual)
-        self.assertEqual(Extant.get_extant(), actual)
-        self.assertFalse(Extant.extant)
+        self.assertIsInstance(actual, _Extant)
+        self.assertEqual(_Extant.extant, actual)
+        self.assertEqual(_Extant._get_extant(), actual)
+        self.assertFalse(_Extant.extant)
         self.assertFalse(actual)
-        self.assertFalse(Extant.get_extant())
+        self.assertFalse(_Extant._get_extant())
 
     def test_get_extant_twice(self):
         # Given
-        Extant.get_extant()
+        _Extant._get_extant()
         # When
-        actual = Extant.get_extant()
+        actual = _Extant._get_extant()
         # Then
-        self.assertIsInstance(actual, Extant)
-        self.assertEqual(Extant.extant, actual)
-        self.assertEqual(Extant.get_extant(), actual)
-        self.assertFalse(Extant.extant)
+        self.assertIsInstance(actual, _Extant)
+        self.assertEqual(_Extant.extant, actual)
+        self.assertEqual(_Extant._get_extant(), actual)
+        self.assertFalse(_Extant.extant)
         self.assertFalse(actual)
-        self.assertFalse(Extant.get_extant())
+        self.assertFalse(_Extant._get_extant())
 
     def test_slot_key_value(self):
         # Given
@@ -628,7 +628,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(slot, Slot)
         self.assertEqual('Foo', slot.key)
-        self.assertEqual(Extant.get_extant(), slot.value)
+        self.assertEqual(_Extant._get_extant(), slot.value)
         self.assertEqual(self.expected_strings.get(self.get_name()), str(slot))
 
     def test_create_slot_key_value(self):
@@ -650,7 +650,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, Slot)
         self.assertEqual('dog', actual.key)
-        self.assertEqual(Extant.get_extant(), actual.value)
+        self.assertEqual(_Extant._get_extant(), actual.value)
 
     def test_create_slot_no_key(self):
         # Given
@@ -664,36 +664,36 @@ class TestStructs(unittest.TestCase):
 
     def test_record_create(self):
         # When
-        actual = Record.create()
+        actual = _Record.create()
         # Then
         self.assertIsInstance(actual, RecordMap)
 
     def test_record_add_all_single(self):
         # Given
-        actual = Record.create()
+        actual = _Record.create()
         item = Text.create_from('Foo')
         items = [item]
         # When
-        actual_response = actual.add_all(items)
+        actual_response = actual._add_all(items)
         # Then
         self.assertEqual(1, actual.size)
-        self.assertEqual(1, actual.item_count)
+        self.assertEqual(1, actual._item_count)
         self.assertEqual(item, actual.get_item(0))
         self.assertTrue(actual_response)
         self.assertEqual(self.expected_strings.get(self.get_name()), str(actual))
 
     def test_record_add_all_multiple(self):
         # Given
-        actual = Record.create()
+        actual = _Record.create()
         first_item = Text.create_from('Foo')
         second_item = Text.create_from('Bar')
         third_item = Text.create_from('Baz')
         items = [first_item, second_item, third_item]
         # When
-        actual_response = actual.add_all(items)
+        actual_response = actual._add_all(items)
         # Then
         self.assertEqual(3, actual.size)
-        self.assertEqual(3, actual.item_count)
+        self.assertEqual(3, actual._item_count)
         self.assertEqual(first_item, actual.get_item(0))
         self.assertEqual(second_item, actual.get_item(1))
         self.assertEqual(third_item, actual.get_item(2))
@@ -702,26 +702,26 @@ class TestStructs(unittest.TestCase):
 
     def test_record_add_all_empty(self):
         # Given
-        actual = Record.create()
+        actual = _Record.create()
         items = []
         # When
-        actual_response = actual.add_all(items)
+        actual_response = actual._add_all(items)
         # Then
         self.assertEqual(0, actual.size)
-        self.assertEqual(0, actual.item_count)
+        self.assertEqual(0, actual._item_count)
         self.assertEqual(False, actual_response)
         self.assertEqual(self.expected_strings.get(self.get_name()), str(actual))
 
     def test_record_add_slot_key_item_value_item(self):
         # Given
-        actual = Record.create()
+        actual = _Record.create()
         key = Text.create_from('Good')
         value = Text.create_from('Dog')
         # When
-        actual = actual.add_slot(key, value)
+        actual = actual._add_slot(key, value)
         # Then
         self.assertEqual(1, actual.size)
-        self.assertIsInstance(actual, Record)
+        self.assertIsInstance(actual, _Record)
         self.assertIsInstance(actual.get_item(0), Slot)
         self.assertEqual(key, actual.get_item(0).key)
         self.assertEqual(value, actual.get_item(0).value)
@@ -729,14 +729,14 @@ class TestStructs(unittest.TestCase):
 
     def test_record_add_slot_key_string_value_item(self):
         # Given
-        actual = Record.create()
+        actual = _Record.create()
         key = 'Baz'
         value = Text.create_from('Qux')
         # When
-        actual = actual.add_slot(key, value)
+        actual = actual._add_slot(key, value)
         # Then
         self.assertEqual(1, actual.size)
-        self.assertIsInstance(actual, Record)
+        self.assertIsInstance(actual, _Record)
         self.assertIsInstance(actual.get_item(0), Slot)
         self.assertEqual('Baz', actual.get_item(0).key.value)
         self.assertEqual('Qux', actual.get_item(0).value.value)
@@ -744,14 +744,14 @@ class TestStructs(unittest.TestCase):
 
     def test_record_add_slot_key_item_value_string(self):
         # Given
-        actual = Record.create()
+        actual = _Record.create()
         key = Text.create_from('Foo')
         value = 'Bar'
         # When
-        actual = actual.add_slot(key, value)
+        actual = actual._add_slot(key, value)
         # Then
         self.assertEqual(1, actual.size)
-        self.assertIsInstance(actual, Record)
+        self.assertIsInstance(actual, _Record)
         self.assertIsInstance(actual.get_item(0), Slot)
         self.assertEqual('Foo', actual.get_item(0).key.value)
         self.assertEqual('Bar', actual.get_item(0).value.value)
@@ -759,14 +759,14 @@ class TestStructs(unittest.TestCase):
 
     def test_record_add_slot_key_string_value_string(self):
         # Given
-        actual = Record.create()
+        actual = _Record.create()
         key = 'Wibble'
         value = 'Wobble'
         # When
-        actual = actual.add_slot(key, value)
+        actual = actual._add_slot(key, value)
         # Then
         self.assertEqual(1, actual.size)
-        self.assertIsInstance(actual, Record)
+        self.assertIsInstance(actual, _Record)
         self.assertIsInstance(actual.get_item(0), Slot)
         self.assertEqual('Wibble', actual.get_item(0).key.value)
         self.assertEqual('Wobble', actual.get_item(0).value.value)
@@ -774,63 +774,63 @@ class TestStructs(unittest.TestCase):
 
     def test_record_get_headers_record(self):
         # Given
-        record = Record.create()
-        body = Record.create()
-        body.add_slot('Foo', 'Bar')
+        record = _Record.create()
+        body = _Record.create()
+        body._add_slot('Foo', 'Bar')
         record.add(Attr.create_attr(Text.create_from('cat'), body))
         # When
-        actual = record.get_headers('cat')
+        actual = record._get_headers('cat')
         # Then
-        self.assertIsInstance(actual, Record)
+        self.assertIsInstance(actual, _Record)
         self.assertEqual(1, actual.size)
         self.assertEqual('Foo', actual.get_item(0).key.value)
         self.assertEqual('Bar', actual.get_item(0).value.value)
 
     def test_record_get_headers_object(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         body = Slot.create_slot('Baz', 'Qux')
         record.add(Attr.create_attr(Text.create_from('dog'), body))
         # When
-        actual = record.get_headers('dog')
+        actual = record._get_headers('dog')
         # Then
-        self.assertIsInstance(actual, Record)
+        self.assertIsInstance(actual, _Record)
         self.assertEqual(1, actual.size)
         self.assertEqual('Baz', actual.get_item(0).key)
         self.assertEqual('Qux', actual.get_item(0).value)
 
     def test_record_get_headers_none(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         body = Slot.create_slot('Hello', 'World')
         record.add(Attr.create_attr(Text.create_from('mouse'), body))
         # When
-        actual = record.get_headers('bird')
+        actual = record._get_headers('bird')
         # Then
         self.assertIsNone(actual)
 
     def test_record_get_head(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         body = Slot.create_slot('Hello', 'World')
         first_item = Attr.create_attr(Text.create_from('bird'), body)
         second_item = Attr.create_attr(Text.create_from('frog'), body)
         record.add(first_item)
         record.add(second_item)
         # When
-        actual = record.get_head()
+        actual = record._get_head()
         # Then
         self.assertEqual(first_item, actual)
         self.assertNotEqual(second_item, actual)
 
     def test_record_bind(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         body = Slot.create_slot('Hello', 'Friend')
         first_item = Attr.create_attr(Text.create_from('dog'), body)
         record.add(first_item)
         # When
-        actual = record.bind()
+        actual = record._bind()
         # Then
         self.assertEqual(record, actual)
 
@@ -866,7 +866,7 @@ class TestStructs(unittest.TestCase):
         record = RecordMap.create()
         record.add(Attr.create_attr('Foo', 'Bar'))
         # When
-        actual = record.tag
+        actual = record._tag
         # Then
         self.assertEqual('Foo', actual)
 
@@ -875,7 +875,7 @@ class TestStructs(unittest.TestCase):
         record = RecordMap.create()
         record.add(Slot.create_slot('Foo', 'Bar'))
         # When
-        actual = record.tag
+        actual = record._tag
         # Then
         self.assertEqual(None, actual)
 
@@ -883,7 +883,7 @@ class TestStructs(unittest.TestCase):
         # Given
         record = RecordMap.create()
         # When
-        actual = record.tag
+        actual = record._tag
         # Then
         self.assertEqual(None, actual)
 
@@ -892,7 +892,7 @@ class TestStructs(unittest.TestCase):
         actual = RecordMap.create()
         # Then
         self.assertEqual(0, actual.size)
-        self.assertEqual(RecordFlags.ALIASED.value, actual.flags)
+        self.assertEqual(_RecordFlags.ALIASED.value, actual._flags)
 
     def test_record_map_create_with_empty(self):
         # Given
@@ -901,8 +901,8 @@ class TestStructs(unittest.TestCase):
         actual = RecordMap.create_record_map(item)
         # Then
         self.assertEqual(1, actual.size)
-        self.assertEqual(0, actual.field_count)
-        self.assertEqual(Extant.get_extant(), actual.get_item(0))
+        self.assertEqual(0, actual._field_count)
+        self.assertEqual(_Extant._get_extant(), actual.get_item(0))
 
     def test_record_map_create_with_field(self):
         # Given
@@ -911,7 +911,7 @@ class TestStructs(unittest.TestCase):
         actual = RecordMap.create_record_map(item)
         # Then
         self.assertEqual(1, actual.size)
-        self.assertEqual(1, actual.field_count)
+        self.assertEqual(1, actual._field_count)
         self.assertEqual(item, actual.get_item(0))
         self.assertEqual(self.expected_strings.get(self.get_name()), str(actual))
 
@@ -922,7 +922,7 @@ class TestStructs(unittest.TestCase):
         actual = RecordMap.create_record_map(item)
         # Then
         self.assertEqual(1, actual.size)
-        self.assertEqual(0, actual.field_count)
+        self.assertEqual(0, actual._field_count)
         self.assertEqual(item, actual.get_item(0))
 
     def test_record_map_get_item_existing(self):
@@ -950,7 +950,7 @@ class TestStructs(unittest.TestCase):
         # When
         actual = record_map.get_item(-1)
         # Then
-        self.assertEqual(Absent.get_absent(), actual)
+        self.assertEqual(_Absent._get_absent(), actual)
 
     def test_record_map_get_item_overflow(self):
         # Given
@@ -960,7 +960,7 @@ class TestStructs(unittest.TestCase):
         # When
         actual = record_map.get_item(2)
         # Then
-        self.assertEqual(Absent.get_absent(), actual)
+        self.assertEqual(_Absent._get_absent(), actual)
 
     def test_record_map_get_items_empty(self):
         # Given
@@ -998,7 +998,7 @@ class TestStructs(unittest.TestCase):
         # When
         actual = record_map.get_body()
         # Then
-        self.assertEqual(Absent.get_absent(), actual)
+        self.assertEqual(_Absent._get_absent(), actual)
 
     def test_record_map_get_body_empty_with_head(self):
         # Given
@@ -1007,7 +1007,7 @@ class TestStructs(unittest.TestCase):
         # When
         actual = record_map.get_body()
         # Then
-        self.assertEqual(Absent.get_absent(), actual)
+        self.assertEqual(_Absent._get_absent(), actual)
 
     def test_record_map_get_body_single_value(self):
         # Given
@@ -1050,7 +1050,7 @@ class TestStructs(unittest.TestCase):
     def test_record_immutable_map_add(self):
         # Given
         record_map = RecordMap.create()
-        record_map.flags = RecordFlags.IMMUTABLE.value
+        record_map._flags = _RecordFlags.IMMUTABLE.value
         item = Attr.create_attr('Moo', 'Moo')
         # When
         with self.assertRaises(TypeError) as error:
@@ -1062,48 +1062,48 @@ class TestStructs(unittest.TestCase):
     def test_record_aliased_map_add(self):
         # Given
         record_map = RecordMap.create()
-        record_map.flags = RecordFlags.ALIASED.value
+        record_map._flags = _RecordFlags.ALIASED.value
         item = Attr.create_attr('Moo', 'Moo')
         # When
         actual_response = record_map.add(item)
         # Then
         self.assertTrue(actual_response)
-        self.assertEqual([item], record_map.items)
-        self.assertEqual(1, record_map.item_count)
-        self.assertEqual(1, record_map.field_count)
-        self.assertEqual(0, record_map.flags)
-        self.assertEqual(None, record_map.fields)
+        self.assertEqual([item], record_map._items)
+        self.assertEqual(1, record_map._item_count)
+        self.assertEqual(1, record_map._field_count)
+        self.assertEqual(0, record_map._flags)
+        self.assertEqual(None, record_map._fields)
 
     def test_record_mutable_map_add(self):
         # Given
         record_map = RecordMap.create()
-        record_map.flags = 0
+        record_map._flags = 0
         item = Attr.create_attr('Foo', 'Foo')
         # When
         actual_response = record_map.add(item)
         # Then
-        self.assertEqual([item], record_map.items)
+        self.assertEqual([item], record_map._items)
         self.assertTrue(actual_response)
-        self.assertEqual(1, record_map.item_count)
-        self.assertEqual(1, record_map.field_count)
+        self.assertEqual(1, record_map._item_count)
+        self.assertEqual(1, record_map._field_count)
 
     def test_record_map_add_mutable_non_field(self):
         # Given
         record_map = RecordMap.create()
-        record_map.flags = 0
+        record_map._flags = 0
         item = Value.create_from('Foo')
         # When
         actual_response = record_map.add(item)
         # Then
-        self.assertEqual([item], record_map.items)
+        self.assertEqual([item], record_map._items)
         self.assertTrue(actual_response)
-        self.assertEqual(1, record_map.item_count)
-        self.assertEqual(0, record_map.field_count)
+        self.assertEqual(1, record_map._item_count)
+        self.assertEqual(0, record_map._field_count)
 
     def test_record_map_add_mutable_field_with_hashtable_unique(self):
         # Given
         record_map = RecordMap.create()
-        record_map.flags = 0
+        record_map._flags = 0
         first_item = Attr.create_attr('Foo', 'Foo')
         second_item = Attr.create_attr('Moo', 'Moo')
 
@@ -1112,15 +1112,15 @@ class TestStructs(unittest.TestCase):
         record_map.contains_key('Foo')
         record_map.add(second_item)
         # Then
-        self.assertEqual([first_item, second_item], record_map.items)
-        self.assertEqual(2, record_map.item_count)
-        self.assertEqual(2, record_map.field_count)
-        self.assertEqual({'Foo': first_item, 'Moo': second_item}, record_map.fields)
+        self.assertEqual([first_item, second_item], record_map._items)
+        self.assertEqual(2, record_map._item_count)
+        self.assertEqual(2, record_map._field_count)
+        self.assertEqual({'Foo': first_item, 'Moo': second_item}, record_map._fields)
 
     def test_record_map_add_mutable_field_with_hashtable_duplicate(self):
         # Given
         record_map = RecordMap.create()
-        record_map.flags = 0
+        record_map._flags = 0
         first_item = Attr.create_attr('Boo', 'Foo')
         second_item = Attr.create_attr('Boo', 'Moo')
         # When
@@ -1128,53 +1128,53 @@ class TestStructs(unittest.TestCase):
         record_map.add(second_item)
         record_map.contains_key('Boo')
         # Then
-        self.assertEqual([first_item, second_item], record_map.items)
-        self.assertEqual(2, record_map.item_count)
-        self.assertEqual(2, record_map.field_count)
-        self.assertEqual({'Boo': second_item}, record_map.fields)
+        self.assertEqual([first_item, second_item], record_map._items)
+        self.assertEqual(2, record_map._item_count)
+        self.assertEqual(2, record_map._field_count)
+        self.assertEqual({'Boo': second_item}, record_map._fields)
 
     def test_record_map_add_aliased_non_field(self):
         # Given
         record_map = RecordMap.create()
-        record_map.flags = 2
+        record_map._flags = 2
         item = Value.create_from('Boo')
         # When
         actual_response = record_map.add(item)
         # Then
-        self.assertEqual([item], record_map.items)
+        self.assertEqual([item], record_map._items)
         self.assertEqual(True, actual_response)
-        self.assertEqual(1, record_map.item_count)
-        self.assertEqual(0, record_map.field_count)
+        self.assertEqual(1, record_map._item_count)
+        self.assertEqual(0, record_map._field_count)
 
     def test_record_map_commit_mutable(self):
         # Given
         record_map = RecordMap.create()
-        record_map.flags = 0
+        record_map._flags = 0
         # When
         actual = record_map.commit()
         # Then
         self.assertEqual(record_map, actual)
-        self.assertEqual(RecordFlags.IMMUTABLE.value, actual.flags)
+        self.assertEqual(_RecordFlags.IMMUTABLE.value, actual._flags)
 
     def test_record_map_commit_aliased(self):
         # Given
         record_map = RecordMap.create()
-        record_map.flags = 2
+        record_map._flags = 2
         # When
         actual = record_map.commit()
         # Then
         self.assertEqual(record_map, actual)
-        self.assertEqual(3, actual.flags)
+        self.assertEqual(3, actual._flags)
 
     def test_record_map_commit_immutable(self):
         # Given
         record_map = RecordMap.create()
-        record_map.flags = 1
+        record_map._flags = 1
         # When
         actual = record_map.commit()
         # Then
         self.assertEqual(record_map, actual)
-        self.assertEqual(1, actual.flags)
+        self.assertEqual(1, actual._flags)
 
     def test_record_map_contains_key_value(self):
         # Given
@@ -1226,173 +1226,173 @@ class TestStructs(unittest.TestCase):
 
     def test_record_map_branch_empty(self):
         # Given
-        original_record = Record.create()
-        original_record.flags = 0
+        original_record = _Record.create()
+        original_record._flags = 0
         # When
-        copy_record = original_record.branch()
+        copy_record = original_record._branch()
         # Then
-        self.assertEqual(original_record.items, copy_record.items)
-        self.assertEqual(original_record.fields, copy_record.fields)
-        self.assertEqual(original_record.item_count, copy_record.item_count)
-        self.assertEqual(original_record.field_count, copy_record.field_count)
-        self.assertEqual(2, original_record.flags)
-        self.assertEqual(original_record.flags, copy_record.flags)
+        self.assertEqual(original_record._items, copy_record._items)
+        self.assertEqual(original_record._fields, copy_record._fields)
+        self.assertEqual(original_record._item_count, copy_record._item_count)
+        self.assertEqual(original_record._field_count, copy_record._field_count)
+        self.assertEqual(2, original_record._flags)
+        self.assertEqual(original_record._flags, copy_record._flags)
 
     def test_record_map_branch_single(self):
         # Given
-        original_record = Record.create()
-        original_record.flags = 0
+        original_record = _Record.create()
+        original_record._flags = 0
         original_record.add(Attr.create_attr('Foo', 'Bar'))
         # When
-        copy_record = original_record.branch()
+        copy_record = original_record._branch()
         # Then
-        self.assertEqual(2, original_record.flags)
-        self.assertEqual(original_record.items, copy_record.items)
-        self.assertEqual(original_record.fields, copy_record.fields)
-        self.assertEqual(1, copy_record.item_count)
-        self.assertEqual(1, copy_record.field_count)
+        self.assertEqual(2, original_record._flags)
+        self.assertEqual(original_record._items, copy_record._items)
+        self.assertEqual(original_record._fields, copy_record._fields)
+        self.assertEqual(1, copy_record._item_count)
+        self.assertEqual(1, copy_record._field_count)
 
     def test_record_map_branch_multiple(self):
         # Given
-        original_record = Record.create()
-        original_record.flags = 0
+        original_record = _Record.create()
+        original_record._flags = 0
         original_record.add(Attr.create_attr('Foo', 'Bar'))
         original_record.add(Attr.create_attr('Baz', 'Qux'))
         # When
-        copy_record = original_record.branch()
+        copy_record = original_record._branch()
         # Then
-        self.assertEqual(2, original_record.flags)
-        self.assertEqual(original_record.items, copy_record.items)
-        self.assertEqual(original_record.fields, copy_record.fields)
-        self.assertEqual(2, copy_record.item_count)
-        self.assertEqual(2, copy_record.field_count)
+        self.assertEqual(2, original_record._flags)
+        self.assertEqual(original_record._items, copy_record._items)
+        self.assertEqual(original_record._fields, copy_record._fields)
+        self.assertEqual(2, copy_record._item_count)
+        self.assertEqual(2, copy_record._field_count)
 
     def test_record_map_branch_with_hashtable(self):
         # Given
-        original_record = Record.create()
-        original_record.flags = 0
+        original_record = _Record.create()
+        original_record._flags = 0
         original_record.add(Attr.create_attr('Bar', 'Baz'))
         original_record.contains_key('Bar')
         # When
-        copy_record = original_record.branch()
+        copy_record = original_record._branch()
         # Then
-        self.assertIsNotNone(copy_record.fields)
-        self.assertEqual(original_record.items, copy_record.items)
-        self.assertEqual(original_record.fields, copy_record.fields)
-        self.assertEqual(1, copy_record.item_count)
-        self.assertEqual(1, copy_record.field_count)
+        self.assertIsNotNone(copy_record._fields)
+        self.assertEqual(original_record._items, copy_record._items)
+        self.assertEqual(original_record._fields, copy_record._fields)
+        self.assertEqual(1, copy_record._item_count)
+        self.assertEqual(1, copy_record._field_count)
 
     def test_record_map_branch_mutate_original(self):
         # Given
-        original_record = Record.create()
+        original_record = _Record.create()
         original_record.add(Attr.create_attr('K', 'V'))
         original_record.add(Attr.create_attr('A', 'B'))
         # When
         original_record.contains_key('K')
-        copy_record = original_record.branch()
+        copy_record = original_record._branch()
         original_record.add(Attr.create_attr(Text.create_from('P'), Text.create_from('V')))
         original_record.contains_key('K')
         # Then
-        self.assertEqual(0, original_record.flags)
-        self.assertEqual(2, copy_record.flags)
-        self.assertNotEqual(original_record.items, copy_record.items)
-        self.assertEqual(3, original_record.item_count)
-        self.assertEqual(2, copy_record.item_count)
-        self.assertEqual(3, original_record.field_count)
-        self.assertEqual(2, copy_record.field_count)
-        self.assertIsNotNone(original_record.fields)
-        self.assertIsNotNone(copy_record.fields)
-        self.assertEqual(3, len(original_record.fields))
-        self.assertEqual(2, len(copy_record.fields))
+        self.assertEqual(0, original_record._flags)
+        self.assertEqual(2, copy_record._flags)
+        self.assertNotEqual(original_record._items, copy_record._items)
+        self.assertEqual(3, original_record._item_count)
+        self.assertEqual(2, copy_record._item_count)
+        self.assertEqual(3, original_record._field_count)
+        self.assertEqual(2, copy_record._field_count)
+        self.assertIsNotNone(original_record._fields)
+        self.assertIsNotNone(copy_record._fields)
+        self.assertEqual(3, len(original_record._fields))
+        self.assertEqual(2, len(copy_record._fields))
 
     def test_record_map_branch_mutate_copy(self):
         # Given
-        original_record = Record.create()
+        original_record = _Record.create()
         original_record.add(Attr.create_attr('F', 'L'))
         original_record.add(Attr.create_attr('M', 'S'))
         # When
         original_record.contains_key('P')
-        copy_record = original_record.branch()
+        copy_record = original_record._branch()
         copy_record.add(Attr.create_attr(Text.create_from('P'), Text.create_from('V')))
         copy_record.add(Attr.create_attr(Text.create_from('T'), Text.create_from('B')))
         copy_record.contains_key('H')
         # Then
-        self.assertEqual(2, original_record.flags)
-        self.assertEqual(0, copy_record.flags)
-        self.assertNotEqual(original_record.items, copy_record.items)
-        self.assertEqual(2, original_record.item_count)
-        self.assertEqual(4, copy_record.item_count)
-        self.assertEqual(2, original_record.field_count)
-        self.assertEqual(4, copy_record.field_count)
-        self.assertIsNotNone(original_record.fields)
-        self.assertIsNotNone(copy_record.fields)
-        self.assertEqual(2, len(original_record.fields))
-        self.assertEqual(4, len(copy_record.fields))
+        self.assertEqual(2, original_record._flags)
+        self.assertEqual(0, copy_record._flags)
+        self.assertNotEqual(original_record._items, copy_record._items)
+        self.assertEqual(2, original_record._item_count)
+        self.assertEqual(4, copy_record._item_count)
+        self.assertEqual(2, original_record._field_count)
+        self.assertEqual(4, copy_record._field_count)
+        self.assertIsNotNone(original_record._fields)
+        self.assertIsNotNone(copy_record._fields)
+        self.assertEqual(2, len(original_record._fields))
+        self.assertEqual(4, len(copy_record._fields))
 
     def test_record_map_view(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('A', 'B'))
         record.add(Attr.create_attr('C', 'D'))
         record.add(Attr.create_attr('E', 'F'))
         record.add(Attr.create_attr('G', 'H'))
         # When
-        actual = RecordMapView(record, 1, 3)
+        actual = _RecordMapView(record, 1, 3)
         # Then
         self.assertEqual(2, actual.size)
-        self.assertEqual(1, actual.lower)
-        self.assertEqual(3, actual.upper)
+        self.assertEqual(1, actual._lower)
+        self.assertEqual(3, actual._upper)
 
     def test_record_map_view_get_item_existing(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('Z', 'X'))
         record.add(Attr.create_attr('Y', 'W'))
         record.add(Attr.create_attr('P', 'L'))
         record.add(Attr.create_attr('M', 'N'))
         # When
-        actual = RecordMapView(record, 1, 3)
+        actual = _RecordMapView(record, 1, 3)
         # Then
         self.assertEqual('W', actual.get_item(0).value)
         self.assertEqual('L', actual.get_item(1).value)
 
     def test_record_map_view_get_item_underflow(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('G', 'V'))
         record.add(Attr.create_attr('H', 'B'))
         record.add(Attr.create_attr('J', 'N'))
         record.add(Attr.create_attr('K', 'M'))
         # When
-        actual = RecordMapView(record, 1, 3)
+        actual = _RecordMapView(record, 1, 3)
         # Then
-        self.assertEqual(Absent.get_absent(), actual.get_item(-1).value)
+        self.assertEqual(_Absent._get_absent(), actual.get_item(-1).value)
 
     def test_record_map_view_get_item_overflow(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('F', 'V'))
         record.add(Attr.create_attr('Y', 'B'))
         record.add(Attr.create_attr('U', 'N'))
         record.add(Attr.create_attr('I', 'M'))
         # When
-        actual = RecordMapView(record, 1, 3)
+        actual = _RecordMapView(record, 1, 3)
         # Then
-        self.assertEqual(Absent.get_absent(), actual.get_item(3).value)
+        self.assertEqual(_Absent._get_absent(), actual.get_item(3).value)
 
     def test_record_map_view_get_items_none(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('U', 'N'))
         record.add(Attr.create_attr('I', 'M'))
         # When
-        actual = RecordMapView(record, 4, 5)
+        actual = _RecordMapView(record, 4, 5)
         # Then
         self.assertEqual([], actual.get_items())
 
     def test_record_map_view_get_items_single(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         first = Attr.create_attr('U', 'N')
         second = Attr.create_attr('A', 'N')
         third = Attr.create_attr('I', 'M')
@@ -1400,13 +1400,13 @@ class TestStructs(unittest.TestCase):
         record.add(second)
         record.add(third)
         # When
-        actual = RecordMapView(record, 1, 2)
+        actual = _RecordMapView(record, 1, 2)
         # Then
         self.assertEqual([second], actual.get_items())
 
     def test_record_map_view_get_items_multiple(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         first = Attr.create_attr('A', 'K')
         second = Attr.create_attr('K', 'P')
         third = Attr.create_attr('Q', 'F')
@@ -1414,19 +1414,19 @@ class TestStructs(unittest.TestCase):
         record.add(second)
         record.add(third)
         # When
-        actual = RecordMapView(record, 1, 3)
+        actual = _RecordMapView(record, 1, 3)
         # Then
         self.assertEqual([second, third], actual.get_items())
 
     def test_record_map_view_immutable_add(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('L', 'K'))
         record.add(Attr.create_attr('T', 'P'))
         record.add(Attr.create_attr('R', 'F'))
         new_item = Attr.create_attr('New', 'Item')
-        record.flags = 1
-        record_map_view = RecordMapView(record, 1, 3)
+        record._flags = 1
+        record_map_view = _RecordMapView(record, 1, 3)
         # When
         with self.assertRaises(TypeError) as error:
             record_map_view.add(new_item, 2)
@@ -1436,12 +1436,12 @@ class TestStructs(unittest.TestCase):
 
     def test_record_map_view_out_of_bounds_add(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('T', 'K'))
         record.add(Attr.create_attr('I', 'P'))
         record.add(Attr.create_attr('M', 'F'))
         new_item = Attr.create_attr('Foo', 'Bar')
-        record_map_view = RecordMapView(record, 1, 3)
+        record_map_view = _RecordMapView(record, 1, 3)
         # When
         with self.assertRaises(IndexError) as error:
             record_map_view.add(new_item, 5)
@@ -1451,118 +1451,118 @@ class TestStructs(unittest.TestCase):
 
     def test_record_map_view_add_field(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('T', 'K'))
         record.add(Attr.create_attr('C', 'P'))
         record.add(Attr.create_attr('M', 'F'))
         new_item = Attr.create_attr('Field', 'Item')
-        record_map_view = RecordMapView(record, 1, 3)
+        record_map_view = _RecordMapView(record, 1, 3)
         # When
         actual_response = record_map_view.add(new_item, 2)
         # Then
         self.assertTrue(actual_response)
         self.assertEqual(3, record_map_view.size)
-        self.assertEqual(4, record_map_view.upper)
-        self.assertEqual(1, record_map_view.lower)
+        self.assertEqual(4, record_map_view._upper)
+        self.assertEqual(1, record_map_view._lower)
         self.assertEqual(new_item, record_map_view.get_item(2))
-        self.assertEqual(4, record_map_view.record.item_count)
-        self.assertEqual(4, record_map_view.record.field_count)
-        self.assertEqual(0, record_map_view.record.flags)
-        self.assertEqual(None, record_map_view.record.fields)
+        self.assertEqual(4, record_map_view._record.size)
+        self.assertEqual(4, record_map_view._record._field_count)
+        self.assertEqual(0, record_map_view._record._flags)
+        self.assertEqual(None, record_map_view._record._fields)
 
     def test_record_map_view_add_value(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('T', 'K'))
         record.add(Attr.create_attr('T', 'P'))
         new_item = Text.create_from('Text')
-        record_map_view = RecordMapView(record, 0, 2)
+        record_map_view = _RecordMapView(record, 0, 2)
         # When
         actual_response = record_map_view.add(new_item, 1)
         # Then
         self.assertTrue(actual_response)
         self.assertEqual(3, record_map_view.size)
-        self.assertEqual(3, record_map_view.upper)
-        self.assertEqual(0, record_map_view.lower)
+        self.assertEqual(3, record_map_view._upper)
+        self.assertEqual(0, record_map_view._lower)
         self.assertEqual(new_item, record_map_view.get_item(1))
-        self.assertEqual(3, record_map_view.record.item_count)
-        self.assertEqual(2, record_map_view.record.field_count)
-        self.assertEqual(0, record_map_view.record.flags)
-        self.assertEqual(None, record_map_view.record.fields)
+        self.assertEqual(3, record_map_view._record.size)
+        self.assertEqual(2, record_map_view._record._field_count)
+        self.assertEqual(0, record_map_view._record._flags)
+        self.assertEqual(None, record_map_view._record._fields)
 
     def test_record_map_view_add_none_index(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('B', 'H'))
         record.add(Attr.create_attr('E', 'R'))
         new_item = Text.create_from('Foo')
-        record_map_view = RecordMapView(record, 1, 2)
+        record_map_view = _RecordMapView(record, 1, 2)
         # When
         actual_response = record_map_view.add(new_item)
         # Then
         self.assertTrue(actual_response)
         self.assertEqual(2, record_map_view.size)
-        self.assertEqual(3, record_map_view.upper)
-        self.assertEqual(1, record_map_view.lower)
+        self.assertEqual(3, record_map_view._upper)
+        self.assertEqual(1, record_map_view._lower)
         self.assertEqual(new_item, record_map_view.get_item(1))
 
     def test_record_map_view_branch_empty(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Attr.create_attr('Q', 'H'))
         record.add(Attr.create_attr('W', 'R'))
-        record_map_view = RecordMapView(record, 0, 0)
+        record_map_view = _RecordMapView(record, 0, 0)
         # When
-        actual = record_map_view.branch()
+        actual = record_map_view._branch()
         # Then
         self.assertEqual(0, actual.size)
-        self.assertEqual(0, actual.field_count)
+        self.assertEqual(0, actual._field_count)
         self.assertIsInstance(actual, RecordMap)
-        self.assertNotEqual(record_map_view.record.items, actual.items)
-        self.assertEqual([], actual.items)
-        self.assertEqual(None, actual.fields)
+        self.assertNotEqual(record_map_view._record.get_items(), actual._items)
+        self.assertEqual([], actual._items)
+        self.assertEqual(None, actual._fields)
 
     def test_record_map_view_branch_single(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         first = Attr.create_attr('R', 'H')
         second = Attr.create_attr('Y', 'R')
         record.add(first)
         record.add(second)
-        record_map_view = RecordMapView(record, 0, 1)
+        record_map_view = _RecordMapView(record, 0, 1)
         # When
-        actual = record_map_view.branch()
+        actual = record_map_view._branch()
         # Then
         self.assertEqual(1, actual.size)
-        self.assertEqual(1, actual.field_count)
+        self.assertEqual(1, actual._field_count)
         self.assertIsInstance(actual, RecordMap)
-        self.assertNotEqual(record_map_view.record.items, actual.items)
-        self.assertEqual([first], actual.items)
-        self.assertEqual(None, actual.fields)
+        self.assertNotEqual(record_map_view._record.get_items(), actual._items)
+        self.assertEqual([first], actual._items)
+        self.assertEqual(None, actual._fields)
 
     def test_record_map_view_branch_multiple_fields(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         first = Attr.create_attr('T', 'H')
         second = Attr.create_attr('E', 'R')
         third = Attr.create_attr('P', 'Q')
         record.add(first)
         record.add(second)
         record.add(third)
-        record_map_view = RecordMapView(record, 0, 2)
+        record_map_view = _RecordMapView(record, 0, 2)
         # When
-        actual = record_map_view.branch()
+        actual = record_map_view._branch()
         # Then
         self.assertEqual(2, actual.size)
-        self.assertEqual(2, actual.field_count)
+        self.assertEqual(2, actual._field_count)
         self.assertIsInstance(actual, RecordMap)
-        self.assertNotEqual(record_map_view.record.items, actual.items)
-        self.assertEqual([first, second], actual.items)
-        self.assertEqual(None, actual.fields)
+        self.assertNotEqual(record_map_view._record.get_items(), actual._items)
+        self.assertEqual([first, second], actual._items)
+        self.assertEqual(None, actual._fields)
 
     def test_record_map_view_branch_multiple_values(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         second = Text.create_from('Bar')
         third = Text.create_from('Baz')
         fourth = Text.create_from('Qux')
@@ -1570,20 +1570,20 @@ class TestStructs(unittest.TestCase):
         record.add(second)
         record.add(third)
         record.add(fourth)
-        record_map_view = RecordMapView(record, 1, 4)
+        record_map_view = _RecordMapView(record, 1, 4)
         # When
-        actual = record_map_view.branch()
+        actual = record_map_view._branch()
         # Then
         self.assertEqual(3, actual.size)
-        self.assertEqual(0, actual.field_count)
+        self.assertEqual(0, actual._field_count)
         self.assertIsInstance(actual, RecordMap)
-        self.assertNotEqual(record_map_view.record.items, actual.items)
-        self.assertEqual([second, third, fourth], actual.items)
-        self.assertEqual(None, actual.fields)
+        self.assertNotEqual(record_map_view._record.get_items(), actual._items)
+        self.assertEqual([second, third, fourth], actual._items)
+        self.assertEqual(None, actual._fields)
 
     def test_record_map_view_branch_multiple_values_and_fields(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         first = Text.create_from('Bar')
         second = Attr.create_attr('E', 'R')
         third = Text.create_from('Baz')
@@ -1592,57 +1592,57 @@ class TestStructs(unittest.TestCase):
         record.add(second)
         record.add(third)
         record.add(fourth)
-        record_map_view = RecordMapView(record, 0, 3)
+        record_map_view = _RecordMapView(record, 0, 3)
         # When
-        actual = record_map_view.branch()
+        actual = record_map_view._branch()
         # Then
         self.assertEqual(3, actual.size)
-        self.assertEqual(1, actual.field_count)
+        self.assertEqual(1, actual._field_count)
         self.assertIsInstance(actual, RecordMap)
-        self.assertNotEqual(record_map_view.record.items, actual.items)
-        self.assertEqual([first, second, third], actual.items)
-        self.assertEqual(None, actual.fields)
+        self.assertNotEqual(record_map_view._record.get_items(), actual._items)
+        self.assertEqual([first, second, third], actual._items)
+        self.assertEqual(None, actual._fields)
 
     def test_value_builder_add_field_to_empty_record(self):
         # Given
-        value_builder = ValueBuilder()
+        value_builder = _ValueBuilder()
         item = Attr.create_attr('Foo', 'Boo')
         # When
         actual_response = value_builder.add(item)
         # Then
         self.assertTrue(actual_response)
-        self.assertEqual(1, value_builder.record.size)
-        self.assertEqual(None, value_builder.value)
+        self.assertEqual(1, value_builder._record.size)
+        self.assertEqual(None, value_builder._value)
 
     def test_value_builder_add_field_existing_record(self):
         # Given
-        value_builder = ValueBuilder()
+        value_builder = _ValueBuilder()
         value_builder.add(Attr.create_attr('Baz', 'Qux'))
         item = Attr.create_attr('Foo', 'Boo')
         # When
         actual_response = value_builder.add(item)
         # Then
         self.assertTrue(actual_response)
-        self.assertEqual(2, value_builder.record.size)
-        self.assertEqual(None, value_builder.value)
+        self.assertEqual(2, value_builder._record.size)
+        self.assertEqual(None, value_builder._value)
 
     def test_value_builder_add_field_to_empty_record_and_existing_value(self):
         # Given
-        value_builder = ValueBuilder()
+        value_builder = _ValueBuilder()
         value_builder.add(Text.create_from('Baz'))
         item = Attr.create_attr('Moo', 'Cow')
         # When
         actual_response = value_builder.add(item)
         # Then
         self.assertTrue(actual_response)
-        self.assertEqual(2, value_builder.record.size)
-        self.assertEqual(None, value_builder.value)
-        self.assertIsInstance(value_builder.record.get_item(0), Text)
-        self.assertIsInstance(value_builder.record.get_item(1), Attr)
+        self.assertEqual(2, value_builder._record.size)
+        self.assertEqual(None, value_builder._value)
+        self.assertIsInstance(value_builder._record.get_item(0), Text)
+        self.assertIsInstance(value_builder._record.get_item(1), Attr)
 
     def test_value_builder_add_value_to_existing_record(self):
         # Given
-        value_builder = ValueBuilder()
+        value_builder = _ValueBuilder()
         value_builder.add(Attr.create_attr('Moo', 'Cow'))
         value_builder.add(Attr.create_attr('Boo', 'Ghost'))
         item = Text.create_from('Baz')
@@ -1650,26 +1650,26 @@ class TestStructs(unittest.TestCase):
         actual_response = value_builder.add(item)
         # Then
         self.assertTrue(actual_response)
-        self.assertEqual(3, value_builder.record.size)
-        self.assertEqual(None, value_builder.value)
-        self.assertIsInstance(value_builder.record.get_item(0), Attr)
-        self.assertIsInstance(value_builder.record.get_item(1), Attr)
-        self.assertIsInstance(value_builder.record.get_item(2), Text)
+        self.assertEqual(3, value_builder._record.size)
+        self.assertEqual(None, value_builder._value)
+        self.assertIsInstance(value_builder._record.get_item(0), Attr)
+        self.assertIsInstance(value_builder._record.get_item(1), Attr)
+        self.assertIsInstance(value_builder._record.get_item(2), Text)
 
     def test_value_builder_add_value_to_empty_record_and_value(self):
         # Given
-        value_builder = ValueBuilder()
+        value_builder = _ValueBuilder()
         item = Text.create_from('Bar')
         # When
         actual_response = value_builder.add(item)
         # Then
         self.assertTrue(actual_response)
-        self.assertEqual(None, value_builder.record)
-        self.assertEqual('Bar', value_builder.value.value)
+        self.assertEqual(None, value_builder._record)
+        self.assertEqual('Bar', value_builder._value.value)
 
     def test_value_builder_add_value_to_empty_record_exiting_value(self):
         # Given
-        value_builder = ValueBuilder()
+        value_builder = _ValueBuilder()
         value_builder.add(Text.create_from('Bar'))
         value_builder.add(Text.create_from('Boo'))
         value_builder.add(Text.create_from('Foo'))
@@ -1678,14 +1678,14 @@ class TestStructs(unittest.TestCase):
         actual_response = value_builder.add(item)
         # Then
         self.assertTrue(actual_response)
-        self.assertEqual(4, value_builder.record.size)
-        self.assertEqual(None, value_builder.value)
-        self.assertIsInstance(value_builder.record.get_item(0), Text)
-        self.assertIsInstance(value_builder.record.get_item(1), Text)
+        self.assertEqual(4, value_builder._record.size)
+        self.assertEqual(None, value_builder._value)
+        self.assertIsInstance(value_builder._record.get_item(0), Text)
+        self.assertIsInstance(value_builder._record.get_item(1), Text)
 
     def test_value_builder_add_not_supported(self):
         # Given
-        value_builder = ValueBuilder()
+        value_builder = _ValueBuilder()
         item = CustomItem()
         # When
         with self.assertRaises(TypeError) as error:
@@ -1696,11 +1696,11 @@ class TestStructs(unittest.TestCase):
 
     def test_value_builder_bind_with_record(self):
         # Given
-        value_builder = ValueBuilder()
+        value_builder = _ValueBuilder()
         attr = Attr.create_attr('Foo', 'Bar')
         value_builder.add(attr)
         # When
-        actual = value_builder.bind()
+        actual = value_builder._bind()
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(1, actual.size)
@@ -1708,21 +1708,21 @@ class TestStructs(unittest.TestCase):
 
     def test_value_builder_bind_with_value(self):
         # Given
-        value_builder = ValueBuilder()
+        value_builder = _ValueBuilder()
         value = Text.create_from('Foo')
         value_builder.add(value)
         # When
-        actual = value_builder.bind()
+        actual = value_builder._bind()
         # Then
         self.assertEqual(value, actual)
 
     def test_value_builder_bind_with_empty_record_and_value(self):
         # Given
-        value_builder = ValueBuilder()
+        value_builder = _ValueBuilder()
         # When
-        actual = value_builder.bind()
+        actual = value_builder._bind()
         # Then
-        self.assertEqual(Absent.get_absent(), actual)
+        self.assertEqual(_Absent._get_absent(), actual)
 
     def test_get_converter_first(self):
         # When
@@ -1730,7 +1730,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, RecordConverter)
         self.assertEqual(RecordConverter.get_converter(), actual)
-        self.assertEqual(RecordConverter.converter, actual)
+        self.assertEqual(RecordConverter._converter, actual)
 
     def test_get_converter_existing(self):
         # Given
@@ -1740,7 +1740,7 @@ class TestStructs(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, RecordConverter)
         self.assertEqual(RecordConverter.get_converter(), actual)
-        self.assertEqual(RecordConverter.converter, actual)
+        self.assertEqual(RecordConverter._converter, actual)
         self.assertEqual(expected, actual)
 
     def test_converter_object_to_record_item(self):
@@ -1790,7 +1790,7 @@ class TestStructs(unittest.TestCase):
         actual = converter.object_to_record(obj)
         # Then
         self.assertIsInstance(actual, Bool)
-        self.assertEqual(Bool.TRUE, actual)
+        self.assertEqual(Bool._TRUE, actual)
 
     def test_converter_object_to_record_dict_single(self):
         # Given
@@ -1875,15 +1875,15 @@ class TestStructs(unittest.TestCase):
     def test_convert_record_to_object_absent(self):
         # Given
         converter = RecordConverter.get_converter()
-        record = Absent.get_absent()
+        record = _Absent._get_absent()
         classes = {}
         strict = False
         # When
         # noinspection PyTypeChecker
         actual = converter.record_to_object(record, classes, strict)
         # Then
-        self.assertIsInstance(actual, Absent)
-        self.assertEqual(Absent.get_absent(), actual)
+        self.assertIsInstance(actual, _Absent)
+        self.assertEqual(_Absent._get_absent(), actual)
 
     def test_convert_record_to_object_text(self):
         # Given

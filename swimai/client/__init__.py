@@ -12,6 +12,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .swim_client import SwimClient
+from ._swim_client import SwimClient
 
 __all__ = [SwimClient]

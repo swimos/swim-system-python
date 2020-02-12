@@ -15,7 +15,7 @@
 import unittest
 
 from aiounittest import async_test
-from swimai.recon import ReconUtils, OutputMessage, InputMessage
+from swimai.recon._parsers import _ReconUtils, _OutputMessage, _InputMessage
 from test.utils import CustomString
 
 
@@ -26,7 +26,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'A'
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -35,7 +35,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'Z'
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -44,7 +44,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'P'
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -53,7 +53,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'a'
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -62,7 +62,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'z'
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -71,7 +71,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'h'
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -80,7 +80,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '_'
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -89,7 +89,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '4'
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertFalse(actual)
 
@@ -98,7 +98,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '-'
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertFalse(actual)
 
@@ -107,7 +107,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '$'
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertFalse(actual)
 
@@ -116,7 +116,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = ''
         # When
-        actual = await ReconUtils.is_ident_start_char(character)
+        actual = await _ReconUtils._is_ident_start_char(character)
         # Then
         self.assertFalse(actual)
 
@@ -125,7 +125,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'A'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -134,7 +134,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'Z'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -143,7 +143,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'N'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -152,7 +152,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'a'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -161,7 +161,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'z'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -170,7 +170,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'g'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -179,7 +179,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '_'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -188,7 +188,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '-'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -197,7 +197,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '0'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -206,7 +206,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '9'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -215,7 +215,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '5'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertTrue(actual)
 
@@ -224,7 +224,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '$'
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertFalse(actual)
 
@@ -233,7 +233,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = ''
         # When
-        actual = await ReconUtils.is_ident_char(character)
+        actual = await _ReconUtils._is_ident_char(character)
         # Then
         self.assertFalse(actual)
 
@@ -242,7 +242,7 @@ class TestUtils(unittest.TestCase):
         # Given
         value = 'test1'
         # When
-        actual = await ReconUtils.is_ident(value)
+        actual = await _ReconUtils._is_ident(value)
         # Then
         self.assertTrue(actual)
 
@@ -251,7 +251,7 @@ class TestUtils(unittest.TestCase):
         # Given
         value = ''
         # When
-        actual = await ReconUtils.is_ident(value)
+        actual = await _ReconUtils._is_ident(value)
         # Then
         self.assertFalse(actual)
 
@@ -260,7 +260,7 @@ class TestUtils(unittest.TestCase):
         # Given
         value = '1test'
         # When
-        actual = await ReconUtils.is_ident(value)
+        actual = await _ReconUtils._is_ident(value)
         # Then
         self.assertFalse(actual)
 
@@ -269,7 +269,7 @@ class TestUtils(unittest.TestCase):
         # Given
         value = 'test$test'
         # When
-        actual = await ReconUtils.is_ident(value)
+        actual = await _ReconUtils._is_ident(value)
         # Then
         self.assertFalse(actual)
 
@@ -278,7 +278,7 @@ class TestUtils(unittest.TestCase):
         # Given
         value = 'test$'
         # When
-        actual = await ReconUtils.is_ident(value)
+        actual = await _ReconUtils._is_ident(value)
         # Then
         self.assertFalse(actual)
 
@@ -287,7 +287,7 @@ class TestUtils(unittest.TestCase):
         # Given
         value = '^%&*'
         # When
-        actual = await ReconUtils.is_ident(value)
+        actual = await _ReconUtils._is_ident(value)
         # Then
         self.assertFalse(actual)
 
@@ -296,7 +296,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = ' '
         # When
-        actual = await ReconUtils.is_space(character)
+        actual = await _ReconUtils._is_space(character)
         # Then
         self.assertTrue(actual)
 
@@ -305,7 +305,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '\t'
         # When
-        actual = await ReconUtils.is_space(character)
+        actual = await _ReconUtils._is_space(character)
         # Then
         self.assertTrue(actual)
 
@@ -314,7 +314,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '5'
         # When
-        actual = await ReconUtils.is_space(character)
+        actual = await _ReconUtils._is_space(character)
         # Then
         self.assertFalse(actual)
 
@@ -323,7 +323,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'l'
         # When
-        actual = await ReconUtils.is_space(character)
+        actual = await _ReconUtils._is_space(character)
         # Then
         self.assertFalse(actual)
 
@@ -332,7 +332,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = ''
         # When
-        actual = await ReconUtils.is_space(character)
+        actual = await _ReconUtils._is_space(character)
         # Then
         self.assertFalse(actual)
 
@@ -341,7 +341,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '2'
         # When
-        actual = await ReconUtils.is_digit(character)
+        actual = await _ReconUtils._is_digit(character)
         # Then
         self.assertTrue(actual)
 
@@ -350,7 +350,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '0'
         # When
-        actual = await ReconUtils.is_digit(character)
+        actual = await _ReconUtils._is_digit(character)
         # Then
         self.assertTrue(actual)
 
@@ -359,7 +359,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '7'
         # When
-        actual = await ReconUtils.is_digit(character)
+        actual = await _ReconUtils._is_digit(character)
         # Then
         self.assertTrue(actual)
 
@@ -368,7 +368,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '9'
         # When
-        actual = await ReconUtils.is_digit(character)
+        actual = await _ReconUtils._is_digit(character)
         # Then
         self.assertTrue(actual)
 
@@ -377,7 +377,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'b'
         # When
-        actual = await ReconUtils.is_digit(character)
+        actual = await _ReconUtils._is_digit(character)
         # Then
         self.assertFalse(actual)
 
@@ -386,7 +386,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = '_'
         # When
-        actual = await ReconUtils.is_digit(character)
+        actual = await _ReconUtils._is_digit(character)
         # Then
         self.assertFalse(actual)
 
@@ -395,7 +395,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = ''
         # When
-        actual = await ReconUtils.is_digit(character)
+        actual = await _ReconUtils._is_digit(character)
         # Then
         self.assertFalse(actual)
 
@@ -404,7 +404,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 'p'
         # When
-        actual = await ReconUtils.to_ord(character)
+        actual = await _ReconUtils._to_ord(character)
         # Then
         self.assertEqual(112, actual)
 
@@ -413,7 +413,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 3
         # When
-        actual = await ReconUtils.to_ord(character)
+        actual = await _ReconUtils._to_ord(character)
         # Then
         self.assertEqual(3, actual)
 
@@ -422,7 +422,7 @@ class TestUtils(unittest.TestCase):
         # Given
         character = 3.12
         # When
-        actual = await ReconUtils.to_ord(character)
+        actual = await _ReconUtils._to_ord(character)
         # Then
         self.assertEqual(None, actual)
 
@@ -431,110 +431,110 @@ class TestUtils(unittest.TestCase):
         # Given
         chars = None
         # When
-        actual = await OutputMessage.create(chars)
+        actual = await _OutputMessage._create(chars)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('', actual.value)
-        self.assertEqual(0, actual.size)
-        self.assertEqual('', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('', actual._value)
+        self.assertEqual(0, actual._size)
+        self.assertEqual('', actual._last_char)
 
     @async_test
     async def test_output_message_create_single(self):
         # Given
         chars = 'p'
         # When
-        actual = await OutputMessage.create(chars)
+        actual = await _OutputMessage._create(chars)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('p', actual.value)
-        self.assertEqual(1, actual.size)
-        self.assertEqual('p', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('p', actual._value)
+        self.assertEqual(1, actual._size)
+        self.assertEqual('p', actual._last_char)
 
     @async_test
     async def test_output_message_create_multiple(self):
         # Given
         chars = 'foo_bar'
         # When
-        actual = await OutputMessage.create(chars)
+        actual = await _OutputMessage._create(chars)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('foo_bar', actual.value)
-        self.assertEqual(7, actual.size)
-        self.assertEqual('r', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('foo_bar', actual._value)
+        self.assertEqual(7, actual._size)
+        self.assertEqual('r', actual._last_char)
 
     @async_test
     async def test_output_message_append_str_to_empty(self):
         # Given
-        output_message = await OutputMessage.create('')
+        output_message = await _OutputMessage._create('')
         chars = 'bar'
         # When
-        await output_message.append(chars)
+        await output_message._append(chars)
         # Then
-        self.assertIsInstance(output_message, OutputMessage)
-        self.assertEqual('bar', output_message.value)
-        self.assertEqual(3, output_message.size)
-        self.assertEqual('r', output_message.last_char)
+        self.assertIsInstance(output_message, _OutputMessage)
+        self.assertEqual('bar', output_message._value)
+        self.assertEqual(3, output_message._size)
+        self.assertEqual('r', output_message._last_char)
 
     @async_test
     async def test_output_message_append_float_to_empty(self):
         # Given
-        output_message = await OutputMessage.create('')
+        output_message = await _OutputMessage._create('')
         chars = 21.12
         # When
-        await output_message.append(chars)
+        await output_message._append(chars)
         # Then
-        self.assertIsInstance(output_message, OutputMessage)
-        self.assertEqual('21.12', output_message.value)
-        self.assertEqual(5, output_message.size)
-        self.assertEqual('2', output_message.last_char)
+        self.assertIsInstance(output_message, _OutputMessage)
+        self.assertEqual('21.12', output_message._value)
+        self.assertEqual(5, output_message._size)
+        self.assertEqual('2', output_message._last_char)
 
     @async_test
     async def test_output_message_append_int_to_empty(self):
         # Given
-        output_message = await OutputMessage.create('')
+        output_message = await _OutputMessage._create('')
         chars = 13
         # When
-        await output_message.append(chars)
+        await output_message._append(chars)
         # Then
-        self.assertIsInstance(output_message, OutputMessage)
-        self.assertEqual('13', output_message.value)
-        self.assertEqual(2, output_message.size)
-        self.assertEqual('3', output_message.last_char)
+        self.assertIsInstance(output_message, _OutputMessage)
+        self.assertEqual('13', output_message._value)
+        self.assertEqual(2, output_message._size)
+        self.assertEqual('3', output_message._last_char)
 
     @async_test
     async def test_output_message_append_output_message_to_empty(self):
         # Given
-        output_message = await OutputMessage.create('')
-        chars = await OutputMessage.create('boo_fast')
+        output_message = await _OutputMessage._create('')
+        chars = await _OutputMessage._create('boo_fast')
         # When
-        await output_message.append(chars)
+        await output_message._append(chars)
         # Then
-        self.assertIsInstance(output_message, OutputMessage)
-        self.assertEqual('boo_fast', output_message.value)
-        self.assertEqual(8, output_message.size)
-        self.assertEqual('t', output_message.last_char)
+        self.assertIsInstance(output_message, _OutputMessage)
+        self.assertEqual('boo_fast', output_message._value)
+        self.assertEqual(8, output_message._size)
+        self.assertEqual('t', output_message._last_char)
 
     @async_test
     async def test_output_message_append_input_message_to_empty(self):
         # Given
-        output_message = await OutputMessage.create('')
-        chars = await InputMessage.create('my_message')
+        output_message = await _OutputMessage._create('')
+        chars = await _InputMessage._create('my_message')
         # When
-        await output_message.append(chars)
+        await output_message._append(chars)
         # Then
-        self.assertIsInstance(output_message, OutputMessage)
-        self.assertEqual('my_message', output_message.value)
-        self.assertEqual(10, output_message.size)
-        self.assertEqual('e', output_message.last_char)
+        self.assertIsInstance(output_message, _OutputMessage)
+        self.assertEqual('my_message', output_message._value)
+        self.assertEqual(10, output_message._size)
+        self.assertEqual('e', output_message._last_char)
 
     @async_test
     async def test_output_message_append_invalid_to_empty(self):
         # Given
-        output_message = await OutputMessage.create('')
+        output_message = await _OutputMessage._create('')
         chars = CustomString('moo')
         # When
         with self.assertRaises(TypeError) as error:
-            await output_message.append(chars)
+            await output_message._append(chars)
         # Then
         message = error.exception.args[0]
         self.assertEqual(f'Item of type CustomString cannot be added to Message!', message)
@@ -542,76 +542,76 @@ class TestUtils(unittest.TestCase):
     @async_test
     async def test_output_message_append_str_to_existing(self):
         # Given
-        output_message = await OutputMessage.create('full')
+        output_message = await _OutputMessage._create('full')
         chars = '_qux'
         # When
-        await output_message.append(chars)
+        await output_message._append(chars)
         # Then
-        self.assertIsInstance(output_message, OutputMessage)
-        self.assertEqual('full_qux', output_message.value)
-        self.assertEqual(8, output_message.size)
-        self.assertEqual('x', output_message.last_char)
+        self.assertIsInstance(output_message, _OutputMessage)
+        self.assertEqual('full_qux', output_message._value)
+        self.assertEqual(8, output_message._size)
+        self.assertEqual('x', output_message._last_char)
 
     @async_test
     async def test_output_message_append_float_to_existing(self):
         # Given
-        output_message = await OutputMessage.create('full')
+        output_message = await _OutputMessage._create('full')
         chars = 22.1
         # When
-        await output_message.append(chars)
+        await output_message._append(chars)
         # Then
-        self.assertIsInstance(output_message, OutputMessage)
-        self.assertEqual('full22.1', output_message.value)
-        self.assertEqual(8, output_message.size)
-        self.assertEqual('1', output_message.last_char)
+        self.assertIsInstance(output_message, _OutputMessage)
+        self.assertEqual('full22.1', output_message._value)
+        self.assertEqual(8, output_message._size)
+        self.assertEqual('1', output_message._last_char)
 
     @async_test
     async def test_output_message_append_int_to_existing(self):
         # Given
-        output_message = await OutputMessage.create('empty')
+        output_message = await _OutputMessage._create('empty')
         chars = 73
         # When
-        await output_message.append(chars)
+        await output_message._append(chars)
         # Then
-        self.assertIsInstance(output_message, OutputMessage)
-        self.assertEqual('empty73', output_message.value)
-        self.assertEqual(7, output_message.size)
-        self.assertEqual('3', output_message.last_char)
+        self.assertIsInstance(output_message, _OutputMessage)
+        self.assertEqual('empty73', output_message._value)
+        self.assertEqual(7, output_message._size)
+        self.assertEqual('3', output_message._last_char)
 
     @async_test
     async def test_output_message_append_output_message_to_existing(self):
         # Given
-        output_message = await OutputMessage.create('empty')
-        chars = await OutputMessage.create(' house')
+        output_message = await _OutputMessage._create('empty')
+        chars = await _OutputMessage._create(' house')
         # When
-        await output_message.append(chars)
+        await output_message._append(chars)
         # Then
-        self.assertIsInstance(output_message, OutputMessage)
-        self.assertEqual('empty house', output_message.value)
-        self.assertEqual(11, output_message.size)
-        self.assertEqual('e', output_message.last_char)
+        self.assertIsInstance(output_message, _OutputMessage)
+        self.assertEqual('empty house', output_message._value)
+        self.assertEqual(11, output_message._size)
+        self.assertEqual('e', output_message._last_char)
 
     @async_test
     async def test_output_message_append_input_message_to_existing(self):
         # Given
-        output_message = await OutputMessage.create('input_')
-        chars = await InputMessage.create('message')
+        output_message = await _OutputMessage._create('input_')
+        chars = await _InputMessage._create('message')
         # When
-        await output_message.append(chars)
+        await output_message._append(chars)
         # Then
-        self.assertIsInstance(output_message, OutputMessage)
-        self.assertEqual('input_message', output_message.value)
-        self.assertEqual(13, output_message.size)
-        self.assertEqual('e', output_message.last_char)
+        self.assertIsInstance(output_message, _OutputMessage)
+        self.assertEqual('input_message', output_message._value)
+        self.assertEqual(13, output_message._size)
+        self.assertEqual('e', output_message._last_char)
 
     @async_test
     async def test_output_message_append_invalid_to_existing(self):
         # Given
-        output_message = await OutputMessage.create('bar')
+        output_message = await _OutputMessage._create('bar')
         chars = CustomString('foo')
         # When
         with self.assertRaises(TypeError) as error:
-            await output_message.append(chars)
+            await output_message._append(chars)
         # Then
         message = error.exception.args[0]
         self.assertEqual(f'Item of type CustomString cannot be added to Message!', message)
@@ -621,118 +621,118 @@ class TestUtils(unittest.TestCase):
         # Given
         chars = None
         # When
-        actual = await InputMessage.create(chars)
+        actual = await _InputMessage._create(chars)
         # Then
-        self.assertIsInstance(actual, InputMessage)
-        self.assertEqual('', actual.value)
-        self.assertEqual(0, actual.size)
-        self.assertEqual('', actual.head)
-        self.assertFalse(actual.is_cont)
+        self.assertIsInstance(actual, _InputMessage)
+        self.assertEqual('', actual._value)
+        self.assertEqual(0, actual._size)
+        self.assertEqual('', actual._head)
+        self.assertFalse(actual._is_cont)
 
     @async_test
     async def test_input_message_create_single(self):
         # Given
         chars = 'm'
         # When
-        actual = await InputMessage.create(chars)
+        actual = await _InputMessage._create(chars)
         # Then
-        self.assertIsInstance(actual, InputMessage)
-        self.assertEqual('m', actual.value)
-        self.assertEqual(1, actual.size)
-        self.assertEqual('m', actual.head)
-        self.assertTrue(actual.is_cont)
+        self.assertIsInstance(actual, _InputMessage)
+        self.assertEqual('m', actual._value)
+        self.assertEqual(1, actual._size)
+        self.assertEqual('m', actual._head)
+        self.assertTrue(actual._is_cont)
 
     @async_test
     async def test_input_message_create_multiple(self):
         # Given
         chars = 'moo_cow'
         # When
-        actual = await InputMessage.create(chars)
+        actual = await _InputMessage._create(chars)
         # Then
-        self.assertIsInstance(actual, InputMessage)
-        self.assertEqual('moo_cow', actual.value)
-        self.assertEqual(7, actual.size)
-        self.assertEqual('m', actual.head)
-        self.assertTrue(actual.is_cont)
+        self.assertIsInstance(actual, _InputMessage)
+        self.assertEqual('moo_cow', actual._value)
+        self.assertEqual(7, actual._size)
+        self.assertEqual('m', actual._head)
+        self.assertTrue(actual._is_cont)
 
     @async_test
     async def test_input_message_append_str_to_empty(self):
         # Given
-        input_message = await InputMessage.create('')
+        input_message = await _InputMessage._create('')
         chars = 'test'
         # When
-        await input_message.append(chars)
+        await input_message._append(chars)
         # Then
-        self.assertIsInstance(input_message, InputMessage)
-        self.assertEqual('test', input_message.value)
-        self.assertEqual(4, input_message.size)
-        self.assertEqual('t', input_message.head)
-        self.assertTrue(input_message.is_cont)
+        self.assertIsInstance(input_message, _InputMessage)
+        self.assertEqual('test', input_message._value)
+        self.assertEqual(4, input_message._size)
+        self.assertEqual('t', input_message._head)
+        self.assertTrue(input_message._is_cont)
 
     @async_test
     async def test_input_message_append_float_to_empty(self):
         # Given
-        input_message = await InputMessage.create('')
+        input_message = await _InputMessage._create('')
         chars = -0.12
         # When
-        await input_message.append(chars)
+        await input_message._append(chars)
         # Then
-        self.assertIsInstance(input_message, InputMessage)
-        self.assertEqual('-0.12', input_message.value)
-        self.assertEqual(5, input_message.size)
-        self.assertEqual('-', input_message.head)
-        self.assertTrue(input_message.is_cont)
+        self.assertIsInstance(input_message, _InputMessage)
+        self.assertEqual('-0.12', input_message._value)
+        self.assertEqual(5, input_message._size)
+        self.assertEqual('-', input_message._head)
+        self.assertTrue(input_message._is_cont)
 
     @async_test
     async def test_input_message_append_int_to_empty(self):
         # Given
-        input_message = await InputMessage.create('')
+        input_message = await _InputMessage._create('')
         chars = -32
         # When
-        await input_message.append(chars)
+        await input_message._append(chars)
         # Then
-        self.assertIsInstance(input_message, InputMessage)
-        self.assertEqual('-32', input_message.value)
-        self.assertEqual(3, input_message.size)
-        self.assertEqual('-', input_message.head)
-        self.assertTrue(input_message.is_cont)
+        self.assertIsInstance(input_message, _InputMessage)
+        self.assertEqual('-32', input_message._value)
+        self.assertEqual(3, input_message._size)
+        self.assertEqual('-', input_message._head)
+        self.assertTrue(input_message._is_cont)
 
     @async_test
     async def test_input_message_append_input_message_to_empty(self):
         # Given
-        input_message = await InputMessage.create('')
-        chars = await InputMessage.create('input_bar')
+        input_message = await _InputMessage._create('')
+        chars = await _InputMessage._create('input_bar')
         # When
-        await input_message.append(chars)
+        await input_message._append(chars)
         # Then
-        self.assertIsInstance(input_message, InputMessage)
-        self.assertEqual('input_bar', input_message.value)
-        self.assertEqual(9, input_message.size)
-        self.assertEqual('i', input_message.head)
-        self.assertTrue(input_message.is_cont)
+        self.assertIsInstance(input_message, _InputMessage)
+        self.assertEqual('input_bar', input_message._value)
+        self.assertEqual(9, input_message._size)
+        self.assertEqual('i', input_message._head)
+        self.assertTrue(input_message._is_cont)
 
     @async_test
     async def test_input_message_append_output_message_to_empty(self):
         # Given
-        input_message = await InputMessage.create('')
-        chars = await OutputMessage.create('output_bar')
+        input_message = await _InputMessage._create('')
+        chars = await _OutputMessage._create('output_bar')
         # When
-        await input_message.append(chars)
+        await input_message._append(chars)
         # Then
-        self.assertIsInstance(input_message, InputMessage)
-        self.assertEqual('output_bar', input_message.value)
-        self.assertEqual(10, input_message.size)
-        self.assertEqual('o', input_message.head)
-        self.assertTrue(input_message.is_cont)
+        self.assertIsInstance(input_message, _InputMessage)
+        self.assertEqual('output_bar', input_message._value)
+        self.assertEqual(10, input_message._size)
+        self.assertEqual('o', input_message._head)
+        self.assertTrue(input_message._is_cont)
 
     @async_test
     async def test_input_message_append_invalid_to_empty(self):
         # Given
-        input_message = await InputMessage.create('')
+        input_message = await _InputMessage._create('')
         chars = None
         # When
         with self.assertRaises(TypeError) as error:
-            await input_message.append(chars)
+            await input_message._append(chars)
         # Then
         message = error.exception.args[0]
         self.assertEqual(f'Item of type NoneType cannot be added to Message!', message)
@@ -740,81 +740,81 @@ class TestUtils(unittest.TestCase):
     @async_test
     async def test_input_message_append_str_to_existing(self):
         # Given
-        input_message = await InputMessage.create('cow')
+        input_message = await _InputMessage._create('cow')
         chars = '_moo'
         # When
-        await input_message.append(chars)
+        await input_message._append(chars)
         # Then
-        self.assertIsInstance(input_message, InputMessage)
-        self.assertEqual('cow_moo', input_message.value)
-        self.assertEqual(7, input_message.size)
-        self.assertEqual('c', input_message.head)
-        self.assertTrue(input_message.is_cont)
+        self.assertIsInstance(input_message, _InputMessage)
+        self.assertEqual('cow_moo', input_message._value)
+        self.assertEqual(7, input_message._size)
+        self.assertEqual('c', input_message._head)
+        self.assertTrue(input_message._is_cont)
 
     @async_test
     async def test_input_message_append_float_to_existing(self):
         # Given
-        input_message = await InputMessage.create('paw_')
+        input_message = await _InputMessage._create('paw_')
         chars = -1.23
         # When
-        await input_message.append(chars)
+        await input_message._append(chars)
         # Then
-        self.assertIsInstance(input_message, InputMessage)
-        self.assertEqual('paw_-1.23', input_message.value)
-        self.assertEqual(9, input_message.size)
-        self.assertEqual('p', input_message.head)
-        self.assertTrue(input_message.is_cont)
+        self.assertIsInstance(input_message, _InputMessage)
+        self.assertEqual('paw_-1.23', input_message._value)
+        self.assertEqual(9, input_message._size)
+        self.assertEqual('p', input_message._head)
+        self.assertTrue(input_message._is_cont)
 
     @async_test
     async def test_input_message_append_int_to_existing(self):
         # Given
-        input_message = await InputMessage.create('+-111')
+        input_message = await _InputMessage._create('+-111')
         chars = -1112
         # When
-        await input_message.append(chars)
+        await input_message._append(chars)
         # Then
-        self.assertIsInstance(input_message, InputMessage)
-        self.assertEqual('+-111-1112', input_message.value)
-        self.assertEqual(10, input_message.size)
-        self.assertEqual('+', input_message.head)
-        self.assertTrue(input_message.is_cont)
+        self.assertIsInstance(input_message, _InputMessage)
+        self.assertEqual('+-111-1112', input_message._value)
+        self.assertEqual(10, input_message._size)
+        self.assertEqual('+', input_message._head)
+        self.assertTrue(input_message._is_cont)
 
     @async_test
     async def test_input_message_append_input_message_to_existing(self):
         # Given
-        input_message = await InputMessage.create('+_/2')
-        chars = await InputMessage.create('10-1-2')
+        input_message = await _InputMessage._create('+_/2')
+        chars = await _InputMessage._create('10-1-2')
         # When
-        await input_message.append(chars)
+        await input_message._append(chars)
         # Then
-        self.assertIsInstance(input_message, InputMessage)
-        self.assertEqual('+_/210-1-2', input_message.value)
-        self.assertEqual(10, input_message.size)
-        self.assertEqual('+', input_message.head)
-        self.assertTrue(input_message.is_cont)
+        self.assertIsInstance(input_message, _InputMessage)
+        self.assertEqual('+_/210-1-2', input_message._value)
+        self.assertEqual(10, input_message._size)
+        self.assertEqual('+', input_message._head)
+        self.assertTrue(input_message._is_cont)
 
     @async_test
     async def test_input_message_append_output_message_to_existing(self):
         # Given
-        input_message = await InputMessage.create('bar')
-        chars = await OutputMessage.create('_foo')
+        input_message = await _InputMessage._create('bar')
+        chars = await _OutputMessage._create('_foo')
         # When
-        await input_message.append(chars)
+        await input_message._append(chars)
         # Then
-        self.assertIsInstance(input_message, InputMessage)
-        self.assertEqual('bar_foo', input_message.value)
-        self.assertEqual(7, input_message.size)
-        self.assertEqual('b', input_message.head)
-        self.assertTrue(input_message.is_cont)
+        self.assertIsInstance(input_message, _InputMessage)
+        self.assertEqual('bar_foo', input_message._value)
+        self.assertEqual(7, input_message._size)
+        self.assertEqual('b', input_message._head)
+        self.assertTrue(input_message._is_cont)
 
     @async_test
     async def test_input_message_append_invalid_to_existing(self):
         # Given
-        input_message = await InputMessage.create('bar')
+        input_message = await _InputMessage._create('bar')
         chars = None
         # When
         with self.assertRaises(TypeError) as error:
-            await input_message.append(chars)
+            await input_message._append(chars)
         # Then
         message = error.exception.args[0]
         self.assertEqual(f'Item of type NoneType cannot be added to Message!', message)
@@ -822,127 +822,127 @@ class TestUtils(unittest.TestCase):
     @async_test
     async def test_input_message_skip_spaces_none(self):
         # Given
-        message = await InputMessage.create('foo')
+        message = await _InputMessage._create('foo')
         # When
-        await message.skip_spaces(message)
+        await message._skip_spaces(message)
         # Then
-        self.assertEqual('f', message.head)
+        self.assertEqual('f', message._head)
 
     @async_test
     async def test_input_message_skip_spaces_single(self):
         # Given
-        message = await InputMessage.create(' bar')
+        message = await _InputMessage._create(' bar')
         # When
-        await message.skip_spaces(message)
+        await message._skip_spaces(message)
         # Then
-        self.assertEqual('b', message.head)
+        self.assertEqual('b', message._head)
 
     @async_test
     async def test_input_message_skip_spaces_multiple(self):
         # Given
-        message = await InputMessage.create('    qux')
+        message = await _InputMessage._create('    qux')
         # When
-        await message.skip_spaces(message)
+        await message._skip_spaces(message)
         # Then
-        self.assertEqual('q', message.head)
+        self.assertEqual('q', message._head)
 
     @async_test
     async def test_input_message_skip_spaces_spaces_only(self):
         # Given
-        message = await InputMessage.create('    ')
+        message = await _InputMessage._create('    ')
         # When
-        await message.skip_spaces(message)
+        await message._skip_spaces(message)
         # Then
-        self.assertEqual('', message.head)
+        self.assertEqual('', message._head)
 
     @async_test
     async def test_input_message_head_empty(self):
         # Given
-        message = await InputMessage.create('')
+        message = await _InputMessage._create('')
         # When
-        actual = message.head
+        actual = message._head
         # Then
         self.assertEqual('', actual)
 
     @async_test
     async def test_input_message_head_continuous(self):
         # Given
-        message = await InputMessage.create('abc')
+        message = await _InputMessage._create('abc')
         # When
-        message.step()
-        actual = message.head
+        message._step()
+        actual = message._head
         # Then
         self.assertEqual('b', actual)
 
     @async_test
     async def test_input_message_head_not_continuous(self):
         # Given
-        message = await InputMessage.create('abc')
+        message = await _InputMessage._create('abc')
         # When
-        message.step()
-        message.step()
-        message.step()
-        actual = message.head
+        message._step()
+        message._step()
+        message._step()
+        actual = message._head
         # Then
         self.assertEqual('', actual)
 
     @async_test
     async def test_input_message_is_continuous_empty(self):
         # Given
-        message = await InputMessage.create('')
+        message = await _InputMessage._create('')
         # When
-        actual = message.is_cont
+        actual = message._is_cont
         # Then
         self.assertFalse(actual)
 
     @async_test
     async def test_input_message_is_continuous_existing_true(self):
         # Given
-        message = await InputMessage.create('dog')
+        message = await _InputMessage._create('dog')
         # When
-        actual = message.is_cont
+        actual = message._is_cont
         # Then
         self.assertTrue(actual)
 
     @async_test
     async def test_input_message_is_continuous_existing_false(self):
         # Given
-        message = await InputMessage.create('dog')
+        message = await _InputMessage._create('dog')
         # When
-        message.step()
-        message.step()
-        message.step()
-        actual = message.is_cont
+        message._step()
+        message._step()
+        message._step()
+        actual = message._is_cont
         # Then
         self.assertFalse(actual)
 
     @async_test
     async def test_input_message_step_once(self):
         # Given
-        message = await InputMessage.create('dog')
+        message = await _InputMessage._create('dog')
         # When
-        actual = message.step()
+        actual = message._step()
         # Then
         self.assertEqual('o', actual)
 
     @async_test
     async def test_input_message_step_twice(self):
         # Given
-        message = await InputMessage.create('dog')
+        message = await _InputMessage._create('dog')
         # When
-        message.step()
-        actual = message.step()
+        message._step()
+        actual = message._step()
         # Then
         self.assertEqual('g', actual)
 
     @async_test
     async def test_input_message_step_out_of_bound(self):
         # Given
-        message = await InputMessage.create('dog')
+        message = await _InputMessage._create('dog')
         # When
-        message.step()
-        message.step()
-        message.step()
-        actual = message.step()
+        message._step()
+        message._step()
+        message._step()
+        actual = message._step()
         # Then
         self.assertEqual('', actual)

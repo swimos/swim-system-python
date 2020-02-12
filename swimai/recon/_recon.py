@@ -12,15 +12,15 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from swimai.structures.structs import Value
-from .parsers import ReconParser
-from .writers import ReconWriter
+from swimai.structures._structs import Value
+from ._parsers import _ReconParser
+from ._writers import _ReconWriter
 
 
 class Recon:
     # Singletons
-    writer = None
-    parser = None
+    _writer = None
+    _parser = None
 
     @staticmethod
     async def parse(recon_string: str) -> 'Value':
@@ -30,7 +30,7 @@ class Recon:
         :param recon_string:        - Recon message in string format.
         :return:                    - Swim structure object representing the Recon message.
         """
-        return await Recon.get_parser().parse_block_string(recon_string)
+        return await Recon._get_parser()._parse_block_string(recon_string)
 
     @staticmethod
     async def to_string(item: 'Value') -> str:
@@ -40,30 +40,30 @@ class Recon:
         :param item:               - Swim structure object.
         :return:                   - Recon message in string format representing the Swim structure object.
         """
-        return await Recon.get_writer().write_item(item)
+        return await Recon._get_writer()._write_item(item)
 
     @staticmethod
-    def get_writer() -> 'ReconWriter':
+    def _get_writer() -> '_ReconWriter':
         """
         Get a Recon writer if one already exists.
         Otherwise, instantiate a new one.
 
         :return:        - Recon writer.
         """
-        if Recon.writer is None:
-            Recon.writer = ReconWriter()
+        if Recon._writer is None:
+            Recon._writer = _ReconWriter()
 
-        return Recon.writer
+        return Recon._writer
 
     @staticmethod
-    def get_parser() -> 'ReconParser':
+    def _get_parser() -> '_ReconParser':
         """
         Get a Recon parser if one already exists.
         Otherwise, instantiate a new one.
 
         :return:        - Recon parser.
         """
-        if Recon.parser is None:
-            Recon.parser = ReconParser()
+        if Recon._parser is None:
+            Recon._parser = _ReconParser()
 
-        return Recon.parser
+        return Recon._parser

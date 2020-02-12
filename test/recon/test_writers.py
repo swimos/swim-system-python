@@ -16,10 +16,11 @@ import unittest
 
 from aiounittest import async_test
 
-from swimai.recon import OutputMessage
-from swimai.recon.writers import BoolWriter, IdentWriter, NumberWriter, StringWriter, SlotWriter, ReconWriter, \
-    AttrWriter, BlockWriter
-from swimai.structures import Text, Slot, Record, Extant, Attr, Num, Bool, Absent
+from swimai.recon._parsers import _OutputMessage
+from swimai.recon._writers import _BoolWriter, _IdentWriter, _NumberWriter, _StringWriter, _SlotWriter, _ReconWriter, \
+    _AttrWriter, _BlockWriter
+from swimai.structures import Text, Slot, Attr, Num, Bool
+from swimai.structures._structs import _Extant, _Absent, _Record
 from test.utils import CustomItem
 
 
@@ -30,247 +31,247 @@ class TestWriters(unittest.TestCase):
         # Given
         message = 'hello'
         # When
-        actual = await IdentWriter.write(message)
+        actual = await _IdentWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('hello', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('hello', actual._value)
 
     @async_test
     async def test_ident_writer_empty(self):
         # Given
         message = ''
         # When
-        actual = await IdentWriter.write(message)
+        actual = await _IdentWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('', actual._value)
 
     @async_test
     async def test_bool_writer_true(self):
         # Given
         message = True
         # When
-        actual = await BoolWriter.write(message)
+        actual = await _BoolWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('true', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('true', actual._value)
 
     @async_test
     async def test_bool_writer_false(self):
         # Given
         message = False
         # When
-        actual = await BoolWriter.write(message)
+        actual = await _BoolWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('false', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('false', actual._value)
 
     @async_test
     async def test_bool_writer_none(self):
         # Given
         message = None
         # When
-        actual = await BoolWriter.write(message)
+        actual = await _BoolWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('false', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('false', actual._value)
 
     @async_test
     async def test_number_writer_zero(self):
         # Given
         message = 0
         # When
-        actual = await NumberWriter.write(message)
+        actual = await _NumberWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('0', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('0', actual._value)
 
     @async_test
     async def test_number_writer_int(self):
         # Given
         message = 25
         # When
-        actual = await NumberWriter.write(message)
+        actual = await _NumberWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('25', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('25', actual._value)
 
     @async_test
     async def test_number_writer_float(self):
         # Given
         message = 0.02
         # When
-        actual = await NumberWriter.write(message)
+        actual = await _NumberWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('0.02', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('0.02', actual._value)
 
     @async_test
     async def test_number_writer_none(self):
         # Given
         message = None
         # When
-        actual = await NumberWriter.write(message)
+        actual = await _NumberWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('', actual._value)
 
     @async_test
     async def test_string_writer_str(self):
         # Given
         message = 'This is dog'
         # When
-        actual = await StringWriter.write(message)
+        actual = await _StringWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('"This is dog"', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('"This is dog"', actual._value)
 
     @async_test
     async def test_string_writer_empty(self):
         # Given
         message = None
         # When
-        actual = await StringWriter.write(message)
+        actual = await _StringWriter._write(message)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('""', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('""', actual._value)
 
     @async_test
     async def test_slot_writer_existing_key_and_value(self):
         # Given
         key = Text.create_from('animal')
         value = Text.create_from('dog')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await SlotWriter.write(key=key, writer=writer, value=value)
+        actual = await _SlotWriter._write(key=key, writer=writer, value=value)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('animal:dog', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('animal:dog', actual._value)
 
     @async_test
     async def test_slot_writer_existing_key_missing_value(self):
         # Given
         key = Text.create_from('animal')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await SlotWriter.write(key=key, writer=writer)
+        actual = await _SlotWriter._write(key=key, writer=writer)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('animal:', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('animal:', actual._value)
 
     @async_test
     async def test_slot_writer_missing_key_existing_value(self):
         # Given
         value = Text.create_from('dog')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await SlotWriter.write(value=value, writer=writer)
+        actual = await _SlotWriter._write(value=value, writer=writer)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(':dog', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(':dog', actual._value)
 
     @async_test
     async def test_slot_writer_missing_key_and_value(self):
         # Given
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await SlotWriter.write(writer=writer)
+        actual = await _SlotWriter._write(writer=writer)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(':', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(':', actual._value)
 
     @async_test
     async def test_attr_writer_existing_key_and_value_text(self):
         # Given
         key = Text.create_from('bird')
         value = Text.create_from('chirp')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await AttrWriter.write(key=key, writer=writer, value=value)
+        actual = await _AttrWriter._write(key=key, writer=writer, value=value)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@bird(chirp)', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@bird(chirp)', actual._message)
 
     @async_test
     async def test_attr_writer_existing_key_and_value_slot(self):
         # Given
         key = Text.create_from('animal')
-        value = Record.create()
+        value = _Record.create()
         value.add(Slot.create_slot(Text.create_from('dog'), Text.create_from('bark')))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await AttrWriter.write(key=key, writer=writer, value=value)
+        actual = await _AttrWriter._write(key=key, writer=writer, value=value)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@animal(dog:bark)', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@animal(dog:bark)', actual._message)
 
     @async_test
     async def test_attr_writer_missing_key_existing_value(self):
         # Given
         value = Text.create_from('chirp')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await AttrWriter.write(writer=writer, value=value)
+        actual = await _AttrWriter._write(writer=writer, value=value)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@(chirp)', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@(chirp)', actual._message)
 
     @async_test
     async def test_attr_writer_existing_key_missing_value(self):
         # Given
         key = Text.create_from('bird')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await AttrWriter.write(key=key, writer=writer)
+        actual = await _AttrWriter._write(key=key, writer=writer)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@bird', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@bird', actual._message)
 
     @async_test
     async def test_attr_writer_existing_key_extant_value(self):
         # Given
         key = Text.create_from('bird')
-        value = Extant.get_extant()
-        writer = ReconWriter()
+        value = _Extant._get_extant()
+        writer = _ReconWriter()
         # When
-        actual = await AttrWriter.write(key=key, writer=writer, value=value)
+        actual = await _AttrWriter._write(key=key, writer=writer, value=value)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@bird', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@bird', actual._message)
 
     @async_test
     async def test_attr_writer_missing_key_and_value(self):
         # Given
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await AttrWriter.write(writer=writer)
+        actual = await _AttrWriter._write(writer=writer)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@', actual._message)
 
     @async_test
     async def test_block_writer_attr(self):
         # Given
         items = list()
         items.append(Attr.create_attr(Text.create_from('dog'), Text.create_from('bark')))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer)
+        actual = await _BlockWriter._write(items, writer=writer)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@dog(bark)', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@dog(bark)', actual._message)
 
     @async_test
     async def test_block_writer_text_single(self):
         # Given
         items = list()
         items.append(Text.create_from('Dead parrot'))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer)
+        actual = await _BlockWriter._write(items, writer=writer)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('"Dead parrot"', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('"Dead parrot"', actual._message)
 
     @async_test
     async def test_block_writer_text_multiple(self):
@@ -278,36 +279,36 @@ class TestWriters(unittest.TestCase):
         items = list()
         items.append(Text.create_from('foo_'))
         items.append(Text.create_from('bar'))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer)
+        actual = await _BlockWriter._write(items, writer=writer)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('foo_bar', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('foo_bar', actual._message)
 
     @async_test
     async def test_block_writer_slot_single_first(self):
         # Given
         items = list()
         items.append(Slot.create_slot(Text.create_from('cat'), Text.create_from('meow')))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer, first=True)
+        actual = await _BlockWriter._write(items, writer=writer, first=True)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('cat:meow', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('cat:meow', actual._message)
 
     @async_test
     async def test_block_writer_slot_single_not_first(self):
         # Given
         items = list()
         items.append(Slot.create_slot(Text.create_from('cat'), Text.create_from('meow')))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer, first=False)
+        actual = await _BlockWriter._write(items, writer=writer, first=False)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(',cat:meow', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(',cat:meow', actual._message)
 
     @async_test
     async def test_block_writer_slot_multiple(self):
@@ -315,254 +316,254 @@ class TestWriters(unittest.TestCase):
         items = list()
         items.append(Slot.create_slot(Text.create_from('dog'), Text.create_from('bark')))
         items.append(Slot.create_slot(Text.create_from('cat'), Text.create_from('meow')))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer, first=True)
+        actual = await _BlockWriter._write(items, writer=writer, first=True)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('dog:bark,cat:meow', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('dog:bark,cat:meow', actual._message)
 
     @async_test
     async def test_block_writer_slot_in_attr(self):
         # Given
         items = list()
-        record_map = Record.create()
+        record_map = _Record.create()
         record_map.add(Slot.create_slot(Text.create_from('cat'), Text.create_from('meow')))
         items.append(Attr.create_attr(Text.create_from('animal'), record_map))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer, first=True)
+        actual = await _BlockWriter._write(items, writer=writer, first=True)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@animal(cat:meow)', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@animal(cat:meow)', actual._message)
 
     @async_test
     async def test_block_writer_slot_in_attr_and_slot(self):
         # Given
         items = list()
-        record_map = Record.create()
+        record_map = _Record.create()
         record_map.add(Slot.create_slot(Text.create_from('dog'), Text.create_from('bark')))
         items.append(Attr.create_attr(Text.create_from('animal'), record_map))
         items.append(Slot.create_slot(Text.create_from('cat'), Text.create_from('meow')))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer, first=True)
+        actual = await _BlockWriter._write(items, writer=writer, first=True)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@animal(dog:bark){cat:meow}', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@animal(dog:bark){cat:meow}', actual._message)
 
     @async_test
     async def test_block_writer_multiple_attributes(self):
         # Given
         items = list()
 
-        record_map = Record.create()
+        record_map = _Record.create()
 
-        dog_map = Record.create()
+        dog_map = _Record.create()
         dog_map.add(Slot.create_slot(Text.create_from('dog'), Text.create_from('bark')))
         record_map.add(Attr.create_attr(Text.create_from('Animal'), dog_map))
 
-        cat_map = Record.create()
+        cat_map = _Record.create()
         cat_map.add(Slot.create_slot(Text.create_from('cat'), Text.create_from('meow')))
         record_map.add(Attr.create_attr(Text.create_from('Animal'), cat_map))
 
-        bird_map = Record.create()
+        bird_map = _Record.create()
         bird_map.add(Slot.create_slot(Text.create_from('bird'), Text.create_from('chirp')))
         record_map.add(Attr.create_attr(Text.create_from('Animal'), bird_map))
 
         items.append(record_map)
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer, first=True)
+        actual = await _BlockWriter._write(items, writer=writer, first=True)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@Animal(dog:bark)@Animal(cat:meow)@Animal(bird:chirp)', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@Animal(dog:bark)@Animal(cat:meow)@Animal(bird:chirp)', actual._message)
 
     @async_test
     async def test_block_writer_nested_attributes(self):
         # Given
         items = list()
-        name_record = Record.create()
+        name_record = _Record.create()
         name_record.add(Slot.create_slot(Text.create_from('Name'), Text.create_from('Collie')))
-        breed_record = Record.create()
+        breed_record = _Record.create()
         breed_record.add(Attr.create_attr(Text.create_from('Breed'), name_record))
-        dog_record = Record.create()
+        dog_record = _Record.create()
         dog_record.add(Slot.create_slot(Text.create_from('Dog'), breed_record))
-        species_record = Record.create()
+        species_record = _Record.create()
         species_record.add(Attr.create_attr(Text.create_from('Species'), dog_record))
-        animals_record = Record.create()
+        animals_record = _Record.create()
         animals_record.add(Slot.create_slot(Text.create_from('Animals'), species_record))
         items.append(Attr.create_attr(Text.create_from('Zoo'), animals_record))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer, first=True)
+        actual = await _BlockWriter._write(items, writer=writer, first=True)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('@Zoo(Animals:@Species(Dog:@Breed(Name:Collie)))', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('@Zoo(Animals:@Species(Dog:@Breed(Name:Collie)))', actual._message)
 
     @async_test
     async def test_block_writer_empty(self):
         # Given
         items = list()
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await BlockWriter.write(items, writer=writer)
+        actual = await _BlockWriter._write(items, writer=writer)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual('', actual.message)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual('', actual._message)
 
     @async_test
     async def test_write_record_single(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Text.create_from('Dog'))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_record(record)
+        actual = await writer._write_record(record)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(3, actual.size)
-        self.assertEqual('Dog', actual.value)
-        self.assertEqual('g', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(3, actual._size)
+        self.assertEqual('Dog', actual._value)
+        self.assertEqual('g', actual._last_char)
 
     @async_test
     async def test_write_record_multiple(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Text.create_from('Dog'))
         record.add(Text.create_from('Cat'))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_record(record)
+        actual = await writer._write_record(record)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(6, actual.size)
-        self.assertEqual('DogCat', actual.value)
-        self.assertEqual('t', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(6, actual._size)
+        self.assertEqual('DogCat', actual._value)
+        self.assertEqual('t', actual._last_char)
 
     @async_test
     async def test_write_record_empty(self):
         # Given
-        record = Record.create()
-        writer = ReconWriter()
+        record = _Record.create()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_record(record)
+        actual = await writer._write_record(record)
         # Then
         self.assertIsNone(actual)
 
     @async_test
     async def test_write_value_record(self):
         # Given
-        record = Record.create()
+        record = _Record.create()
         record.add(Slot.create_slot(Text.create_from('Cow'), Text.create_from('Moo')))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_value(record)
+        actual = await writer._write_value(record)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(7, actual.size)
-        self.assertEqual('Cow:Moo', actual.value)
-        self.assertEqual('o', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(7, actual._size)
+        self.assertEqual('Cow:Moo', actual._value)
+        self.assertEqual('o', actual._last_char)
 
     @async_test
     async def test_write_value_text_ident(self):
         # Given
         ident = Text.create_from('Duck')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_value(ident)
+        actual = await writer._write_value(ident)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(4, actual.size)
-        self.assertEqual('Duck', actual.value)
-        self.assertEqual('k', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(4, actual._size)
+        self.assertEqual('Duck', actual._value)
+        self.assertEqual('k', actual._last_char)
 
     @async_test
     async def test_write_value_text_string(self):
         # Given
         string = Text.create_from('$duck')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_value(string)
+        actual = await writer._write_value(string)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(7, actual.size)
-        self.assertEqual('"$duck"', actual.value)
-        self.assertEqual('"', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(7, actual._size)
+        self.assertEqual('"$duck"', actual._value)
+        self.assertEqual('"', actual._last_char)
 
     @async_test
     async def test_write_value_number(self):
         # Given
         number = Num.create_from(-13.1)
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_value(number)
+        actual = await writer._write_value(number)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(5, actual.size)
-        self.assertEqual('-13.1', actual.value)
-        self.assertEqual('1', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(5, actual._size)
+        self.assertEqual('-13.1', actual._value)
+        self.assertEqual('1', actual._last_char)
 
     @async_test
     async def test_write_value_bool(self):
         # Given
         boolean = Bool.create_from(False)
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_value(boolean)
+        actual = await writer._write_value(boolean)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(5, actual.size)
-        self.assertEqual('false', actual.value)
-        self.assertEqual('e', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(5, actual._size)
+        self.assertEqual('false', actual._value)
+        self.assertEqual('e', actual._last_char)
 
     @async_test
     async def test_write_value_absent(self):
         # Given
-        absent = Absent.get_absent()
-        writer = ReconWriter()
+        absent = _Absent._get_absent()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_value(absent)
+        actual = await writer._write_value(absent)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(0, actual.size)
-        self.assertEqual('', actual.value)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(0, actual._size)
+        self.assertEqual('', actual._value)
 
     @async_test
     async def test_write_slot(self):
         # Given
         key = Text.create_from('Hello')
         value = Text.create_from('Friend')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_slot(key, value)
+        actual = await writer._write_slot(key, value)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(12, actual.size)
-        self.assertEqual('Hello:Friend', actual.value)
-        self.assertEqual('d', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(12, actual._size)
+        self.assertEqual('Hello:Friend', actual._value)
+        self.assertEqual('d', actual._last_char)
 
     @async_test
     async def test_write_attr(self):
         # Given
         key = Text.create_from('Hello')
         value = Text.create_from('Friend')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_attr(key, value)
+        actual = await writer._write_attr(key, value)
         # Then
-        self.assertIsInstance(actual, OutputMessage)
-        self.assertEqual(14, actual.size)
-        self.assertEqual('@Hello(Friend)', actual.value)
-        self.assertEqual(')', actual.last_char)
+        self.assertIsInstance(actual, _OutputMessage)
+        self.assertEqual(14, actual._size)
+        self.assertEqual('@Hello(Friend)', actual._value)
+        self.assertEqual(')', actual._last_char)
 
     @async_test
     async def test_write_item_attr(self):
         # Given
         item = Attr.create_attr(Text.create_from('Cat'), Text.create_from('Meow'))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_item(item)
+        actual = await writer._write_item(item)
         # Then
         self.assertIsInstance(actual, str)
         self.assertEqual('@Cat(Meow)', actual)
@@ -571,9 +572,9 @@ class TestWriters(unittest.TestCase):
     async def test_write_item_slot(self):
         # Given
         item = Slot.create_slot(Text.create_from('Age'), Num.create_from(32))
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_item(item)
+        actual = await writer._write_item(item)
         # Then
         self.assertIsInstance(actual, str)
         self.assertEqual('Age:32', actual)
@@ -582,9 +583,9 @@ class TestWriters(unittest.TestCase):
     async def test_write_item_value(self):
         # Given
         item = Text.create_from('Horse#')
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
-        actual = await writer.write_item(item)
+        actual = await writer._write_item(item)
         # Then
         self.assertIsInstance(actual, str)
         self.assertEqual('"Horse#"', actual)
@@ -593,10 +594,10 @@ class TestWriters(unittest.TestCase):
     async def test_write_item_invalid(self):
         # Given
         item = CustomItem()
-        writer = ReconWriter()
+        writer = _ReconWriter()
         # When
         with self.assertRaises(TypeError) as error:
-            await writer.write_item(item)
+            await writer._write_item(item)
 
         # Then
         message = error.exception.args[0]

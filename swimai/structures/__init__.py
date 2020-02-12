@@ -12,8 +12,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .structs import Item, Field, Attr, Value, Text, Num, Bool, Absent, Extant, Slot, RecordFlags, Record, RecordMap, \
-    RecordMapView, ValueBuilder, RecordConverter
+from ._structs import Attr, Value, Text, Num, Bool, Slot, RecordMap, RecordConverter
 
-__all__ = [Item, Field, Attr, Value, Text, Num, Bool, Absent, Extant, Slot, RecordFlags, Record, RecordMap,
-           RecordMapView, ValueBuilder, RecordConverter]
+__all__ = [Attr, Value, Text, Num, Bool, Slot, RecordMap, RecordConverter]

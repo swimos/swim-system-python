@@ -15,7 +15,7 @@ import asyncio
 from typing import Any
 from unittest.mock import MagicMock
 from swimai.client._connections import _ConnectionStatus
-from swimai.structures import Item
+from swimai.structures._structs import _Item
 
 
 class CustomString:
@@ -29,7 +29,7 @@ class CustomString:
         return f'CustomString({self.value})'
 
 
-class CustomItem(Item):
+class CustomItem(_Item):
     @property
     def key(self) -> 'Any':
         return 'MockKey'

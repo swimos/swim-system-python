@@ -11,11 +11,13 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
 import inspect
 import sys
 from abc import ABC, abstractmethod
 from typing import Any, Callable
-from swimai.structures import RecordMap, Slot, Text, RecordConverter, Attr, Record, Item
+from swimai.structures import RecordMap, Slot, Text, RecordConverter, Attr
+from swimai.structures._structs import _Item, _Record
 
 
 def before_open(function: 'Callable') -> 'Callable':
@@ -108,7 +110,7 @@ class MapRequest(ABC):
         """
         raise NotImplementedError
 
-    def get_key_item(self) -> 'Record':
+    def get_key_item(self) -> '_Record':
         """
         Convert the request key into an Item object.
 
@@ -120,7 +122,7 @@ class MapRequest(ABC):
 
         return key_slot
 
-    def get_value_item(self) -> 'Item':
+    def get_value_item(self) -> '_Item':
         """
         Convert the request value into an Item object.
 
@@ -132,7 +134,7 @@ class MapRequest(ABC):
 
 class UpdateRequest(MapRequest):
 
-    def to_record(self) -> 'Record':
+    def to_record(self) -> '_Record':
         key_slot = self.get_key_item()
         value_slot = self.get_value_item()
 
@@ -142,7 +144,7 @@ class UpdateRequest(MapRequest):
 
 
 class RemoveRequest(MapRequest):
-    def to_record(self) -> 'Record':
+    def to_record(self) -> '_Record':
         key_slot = self.get_key_item()
 
         remove_record = RecordMap.create_record_map(Attr.create_attr(Text.create_from('remove'), key_slot))

@@ -27,7 +27,7 @@ from ._connections import _ConnectionPool, _WSConnection
 from ._downlinks._downlinks import _ValueDownlinkView, _EventDownlinkView, _DownlinkView, _MapDownlinkView
 from ._utils import _URI, after_started
 from swimai.structures import RecordConverter
-from swimai.warp import CommandMessage
+from swimai.warp._warp import _CommandMessage
 
 
 class SwimClient:
@@ -201,9 +201,9 @@ class SwimClient:
         """
         record = RecordConverter.get_converter().object_to_record(body)
         host_uri = _URI._normalise_warp_scheme(host_uri)
-        message = CommandMessage(node_uri, lane_uri, body=record)
+        message = _CommandMessage(node_uri, lane_uri, body=record)
         connection = await self._get_connection(host_uri)
-        await connection._send_message(await message.to_recon())
+        await connection._send_message(await message._to_recon())
 
     def __start_event_loop(self) -> None:
         asyncio.set_event_loop(self._loop)

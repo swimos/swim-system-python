@@ -23,8 +23,9 @@ from swimai.client._downlinks._downlinks import _EventDownlinkModel, _DownlinkMo
     _EventDownlinkView, \
     _DownlinkView, _ValueDownlinkView, _MapDownlinkModel, _MapDownlinkView
 from swimai.client._downlinks._utils import UpdateRequest, RemoveRequest
-from swimai.structures import Record, Text, Attr, RecordMap, Absent, Num, Bool, Slot, Value
-from swimai.warp import LinkedResponse, SyncedResponse, EventMessage, UnlinkedResponse
+from swimai.structures import Text, Attr, RecordMap, Num, Bool, Slot, Value
+from swimai.structures._structs import _Absent, _Record
+from swimai.warp._warp import _LinkedResponse, _SyncedResponse, _EventMessage, _UnlinkedResponse
 from test.utils import MockConnection, MockExecuteOnException, MockWebsocketConnect, MockWebsocket, \
     mock_did_set_confirmation, ReceiveLoop, MockPerson, MockPet, NewScope, MockNoDefaultConstructor, MockCar, \
     MockModel, MockDownlinkManager, mock_on_event_callback, MockEventCallback, \
@@ -118,7 +119,7 @@ class TestDownlinks(unittest.TestCase):
             downlink = _EventDownlinkModel(client)
             downlink.connection = MockConnection.get_mock_connection()
             downlink.connection.owner = downlink
-            linked_message = LinkedResponse('linked_node', 'linked_lane')
+            linked_message = _LinkedResponse('linked_node', 'linked_lane')
             downlink.connection.messages_to_receive.append(linked_message)
 
             # When
@@ -137,7 +138,7 @@ class TestDownlinks(unittest.TestCase):
             downlink = _ValueDownlinkModel(client)
             downlink.connection = MockConnection.get_mock_connection()
             downlink.connection.owner = downlink
-            synced_message = SyncedResponse('synced_node', 'synced_lane')
+            synced_message = _SyncedResponse('synced_node', 'synced_lane')
             downlink.connection.messages_to_receive.append(synced_message)
 
             # When
@@ -158,8 +159,8 @@ class TestDownlinks(unittest.TestCase):
             downlink.connection.owner = downlink
             downlink_manager = _DownlinkManager(downlink.connection)
             downlink.downlink_manager = downlink_manager
-            event_message = EventMessage('event_node', 'event_lane',
-                                         Record.create_from(Text.create_from('event_body')))
+            event_message = _EventMessage('event_node', 'event_lane',
+                                          _Record.create_from(Text.create_from('event_body')))
             downlink.connection.messages_to_receive.append(event_message)
 
             # When
@@ -183,7 +184,7 @@ class TestDownlinks(unittest.TestCase):
             body = RecordMap.create()
             body.add(Attr.create_attr('laneNotFound', 'foo'))
 
-            unlinked_message = UnlinkedResponse('unlinked_node', 'unlinked_lane', body=body)
+            unlinked_message = _UnlinkedResponse('unlinked_node', 'unlinked_lane', body=body)
             downlink.connection.messages_to_receive.append(unlinked_message)
 
             # When
@@ -976,12 +977,12 @@ class TestDownlinks(unittest.TestCase):
         # noinspection PyTypeChecker
         mock_manager = MockDownlinkManager()
         downlink_model.downlink_manager = mock_manager
-        event_message = EventMessage(node_uri='foo', lane_uri='bar')
+        event_message = _EventMessage(node_uri='foo', lane_uri='bar')
         # When
         await downlink_model._receive_event(event_message)
         # Then
         self.assertEqual(1, mock_manager.called)
-        self.assertIsInstance(mock_manager.event, Absent)
+        self.assertIsInstance(mock_manager.event, _Absent)
 
     @async_test
     async def test_event_downlink_receive_event_text(self):
@@ -991,7 +992,7 @@ class TestDownlinks(unittest.TestCase):
         # noinspection PyTypeChecker
         mock_manager = MockDownlinkManager()
         downlink_model.downlink_manager = mock_manager
-        event_message = EventMessage(node_uri='foo', lane_uri='bar', body=Text.create_from('message'))
+        event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=Text.create_from('message'))
         # When
         await downlink_model._receive_event(event_message)
         # Then
@@ -1006,7 +1007,7 @@ class TestDownlinks(unittest.TestCase):
         # noinspection PyTypeChecker
         mock_manager = MockDownlinkManager()
         downlink_model.downlink_manager = mock_manager
-        event_message = EventMessage(node_uri='foo', lane_uri='bar', body=Num.create_from(21))
+        event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=Num.create_from(21))
         # When
         await downlink_model._receive_event(event_message)
         # Then
@@ -1021,7 +1022,7 @@ class TestDownlinks(unittest.TestCase):
         # noinspection PyTypeChecker
         mock_manager = MockDownlinkManager()
         downlink_model.downlink_manager = mock_manager
-        event_message = EventMessage(node_uri='foo', lane_uri='bar', body=Bool.create_from(True))
+        event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=Bool.create_from(True))
         # When
         await downlink_model._receive_event(event_message)
         # Then
@@ -1040,7 +1041,7 @@ class TestDownlinks(unittest.TestCase):
         recon_person.add(Attr.create_attr('MockPerson', Value.extant()))
         recon_person.add(Slot.create_slot(Text.create_from('name'), Text.create_from('George')))
         recon_person.add(Slot.create_slot(Text.create_from('age'), Num.create_from(25)))
-        event_message = EventMessage(node_uri='foo', lane_uri='bar', body=recon_person)
+        event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=recon_person)
         # When
         await downlink_model._receive_event(event_message)
         # Then
@@ -1116,7 +1117,7 @@ class TestDownlinks(unittest.TestCase):
             downlink_view = _EventDownlinkView(client)
             event = 20
             # When
-            with patch('swimai.client.swim_client.SwimClient._schedule_task') as mock_schedule_task:
+            with patch('swimai.SwimClient._schedule_task') as mock_schedule_task:
                 await downlink_view._execute_on_event(event)
 
         # Then
@@ -1197,7 +1198,7 @@ class TestDownlinks(unittest.TestCase):
             mock_manager = MockDownlinkManager()
             downlink_model.downlink_manager = mock_manager
             # When
-            event_message = EventMessage(node_uri='foo', lane_uri='bar')
+            event_message = _EventMessage(node_uri='foo', lane_uri='bar')
             await downlink_model._receive_event(event_message)
         # Then
         self.assertEqual(Value.absent(), downlink_model._value)
@@ -1214,7 +1215,7 @@ class TestDownlinks(unittest.TestCase):
             mock_manager = MockDownlinkManager()
             downlink_model.downlink_manager = mock_manager
             # When
-            event_message = EventMessage(node_uri='foo', lane_uri='bar', body=Text.create_from('value_text'))
+            event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=Text.create_from('value_text'))
             await downlink_model._receive_event(event_message)
         # Then
         self.assertEqual('value_text', downlink_model._value)
@@ -1231,9 +1232,9 @@ class TestDownlinks(unittest.TestCase):
             mock_manager = MockDownlinkManager()
             downlink_model.downlink_manager = mock_manager
             # When
-            event_message = EventMessage(node_uri='foo', lane_uri='bar', body=Num.create_from(11))
+            event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=Num.create_from(11))
             await downlink_model._receive_event(event_message)
-            event_message = EventMessage(node_uri='foo', lane_uri='bar', body=Num.create_from(50))
+            event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=Num.create_from(50))
             await downlink_model._receive_event(event_message)
         # Then
         self.assertEqual(50, downlink_model._value)
@@ -1250,7 +1251,7 @@ class TestDownlinks(unittest.TestCase):
             mock_manager = MockDownlinkManager()
             downlink_model.downlink_manager = mock_manager
             # When
-            event_message = EventMessage(node_uri='foo', lane_uri='bar', body=Bool.create_from(True))
+            event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=Bool.create_from(True))
             await downlink_model._receive_event(event_message)
         # Then
         self.assertEqual(True, downlink_model._value)
@@ -1270,7 +1271,7 @@ class TestDownlinks(unittest.TestCase):
             recon_person.add(Attr.create_attr('MockPerson', Value.extant()))
             recon_person.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Peter')))
             recon_person.add(Slot.create_slot(Text.create_from('age'), Num.create_from(90)))
-            event_message = EventMessage(node_uri='foo', lane_uri='bar', body=recon_person)
+            event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=recon_person)
             # When
             await downlink_model._receive_event(event_message)
         # Then
@@ -1293,7 +1294,7 @@ class TestDownlinks(unittest.TestCase):
             recon_person.add(Attr.create_attr('MockPerson', Value.extant()))
             recon_person.add(Slot.create_slot(Text.create_from('name'), Text.create_from('Peter')))
             recon_person.add(Slot.create_slot(Text.create_from('age'), Num.create_from(90)))
-            event_message = EventMessage(node_uri='foo', lane_uri='bar', body=recon_person)
+            event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=recon_person)
             # When
             await downlink_model._send_message(event_message)
         # Then
@@ -1585,7 +1586,7 @@ class TestDownlinks(unittest.TestCase):
             new_value = 'Test_new_value'
             old_value = 'Test_old_value'
             # When
-            with patch('swimai.client.swim_client.SwimClient._schedule_task') as mock_schedule_task:
+            with patch('swimai.SwimClient._schedule_task') as mock_schedule_task:
                 await downlink_view._execute_did_set(new_value, old_value)
 
         # Then
@@ -1661,7 +1662,7 @@ class TestDownlinks(unittest.TestCase):
             downlink_model.downlink_manager = mock_manager
             downlink_model._synced.set()
             update_request = UpdateRequest('Elliot', 29)
-            event_message = EventMessage(node_uri='foo', lane_uri='bar', body=update_request.to_record())
+            event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=update_request.to_record())
             # When
             await downlink_model._receive_event(event_message)
 
@@ -1683,7 +1684,7 @@ class TestDownlinks(unittest.TestCase):
             downlink_model._synced.set()
             person = MockPerson(name='Elliot', age=29)
             update_request = UpdateRequest(person, 'Hello')
-            event_message = EventMessage(node_uri='baz', lane_uri='qux', body=update_request.to_record())
+            event_message = _EventMessage(node_uri='baz', lane_uri='qux', body=update_request.to_record())
             # When
             await downlink_model._receive_event(event_message)
 
@@ -1705,7 +1706,7 @@ class TestDownlinks(unittest.TestCase):
             downlink_model._synced.set()
             downlink_model._map['Elliot'] = ('Elliot', 11)
             update_request = UpdateRequest('Elliot', 29)
-            event_message = EventMessage(node_uri='foo', lane_uri='bar', body=update_request.to_record())
+            event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=update_request.to_record())
             # When
             await downlink_model._receive_event(event_message)
 
@@ -1728,7 +1729,7 @@ class TestDownlinks(unittest.TestCase):
             person = MockPerson(name='Elliot', age=29)
             downlink_model._map['@MockPerson{name:Elliot,age:29}'] = (person, 'bar')
             update_request = UpdateRequest(person, 'Hello')
-            event_message = EventMessage(node_uri='baz', lane_uri='qux', body=update_request.to_record())
+            event_message = _EventMessage(node_uri='baz', lane_uri='qux', body=update_request.to_record())
             # When
             await downlink_model._receive_event(event_message)
 
@@ -1750,7 +1751,7 @@ class TestDownlinks(unittest.TestCase):
             downlink_model._synced.set()
             downlink_model._map = {'a': ('a', 1), 'b': ('b', 2), 'c': ('c', 3), 'd': ('d', 4), 'e': ('e', 5)}
             remove_request = RemoveRequest('b')
-            event_message = EventMessage(node_uri='baz', lane_uri='qux', body=remove_request.to_record())
+            event_message = _EventMessage(node_uri='baz', lane_uri='qux', body=remove_request.to_record())
             # When
             await downlink_model._receive_event(event_message)
 
@@ -1776,7 +1777,7 @@ class TestDownlinks(unittest.TestCase):
                                    '@MockPerson{name:Bar,age:2}': (second_person, 'b')}
 
             remove_request = RemoveRequest(first_person)
-            event_message = EventMessage(node_uri='baz', lane_uri='qux', body=remove_request.to_record())
+            event_message = _EventMessage(node_uri='baz', lane_uri='qux', body=remove_request.to_record())
             # When
             await downlink_model._receive_event(event_message)
 
@@ -1796,7 +1797,7 @@ class TestDownlinks(unittest.TestCase):
             downlink_model.downlink_manager = mock_manager
             downlink_model._synced.set()
             remove_request = RemoveRequest('b')
-            event_message = EventMessage(node_uri='baz', lane_uri='qux', body=remove_request.to_record())
+            event_message = _EventMessage(node_uri='baz', lane_uri='qux', body=remove_request.to_record())
             # When
             await downlink_model._receive_event(event_message)
 
@@ -1814,7 +1815,7 @@ class TestDownlinks(unittest.TestCase):
             downlink_model.connection.owner = downlink_model
             downlink_model.linked.set()
             update_request = UpdateRequest('Elliot', 29)
-            event_message = EventMessage(node_uri='foo', lane_uri='bar', body=update_request.to_record())
+            event_message = _EventMessage(node_uri='foo', lane_uri='bar', body=update_request.to_record())
             # When
             await downlink_model._send_message(event_message)
 
@@ -2381,7 +2382,7 @@ class TestDownlinks(unittest.TestCase):
             new_value = 'Test_update_new_value'
             old_value = 'Test_update_old_value'
             # When
-            with patch('swimai.client.swim_client.SwimClient._schedule_task') as mock_schedule_task:
+            with patch('swimai.SwimClient._schedule_task') as mock_schedule_task:
                 await downlink_view._execute_did_update(key, new_value, old_value)
 
         # Then
@@ -2412,7 +2413,7 @@ class TestDownlinks(unittest.TestCase):
             key = 'Test_remove_key'
             value = 'Test_remove_value'
             # When
-            with patch('swimai.client.swim_client.SwimClient._schedule_task') as mock_schedule_task:
+            with patch('swimai.SwimClient._schedule_task') as mock_schedule_task:
                 await downlink_view._execute_did_remove(key, value)
 
         # Then

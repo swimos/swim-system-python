@@ -16,9 +16,9 @@ import math
 import unittest
 
 from swimai.structures import Value, Text, RecordMap, Slot, Attr, Num
-from swimai.warp import SyncedResponseForm, SyncedResponse, SyncRequestForm, SyncRequest, LinkedResponseForm, \
-    CommandMessageForm, EventMessageForm, LinkedResponse, CommandMessage, EventMessage, LinkRequestForm, LinkRequest, \
-    UnlinkedResponseForm, UnlinkedResponse
+from swimai.warp._warp import _SyncedResponseForm, _SyncedResponse, _SyncRequestForm, _SyncRequest, _LinkedResponseForm, \
+    _CommandMessageForm, _EventMessageForm, _LinkedResponse, _CommandMessage, _EventMessage, _LinkRequestForm, _LinkRequest, \
+    _UnlinkedResponseForm, _UnlinkedResponse
 
 
 class TestForms(unittest.TestCase):
@@ -26,62 +26,62 @@ class TestForms(unittest.TestCase):
     def test_lane_addressed_form_mold_empty(self):
         # Given
         envelope = None
-        form = SyncedResponseForm()
+        form = _SyncedResponseForm()
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertEqual(Value.extant(), actual)
 
     def test_lane_addressed_form_cast_missing_headers(self):
         # Given
-        form = SyncedResponseForm()
+        form = _SyncedResponseForm()
         items = RecordMap.create()
         record_map = RecordMap.create()
         record_map.add(Attr.create_attr(Text.create_from('synced'), items))
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
         self.assertEqual(None, actual)
 
     def test_lane_addressed_form_cast_missing_node(self):
         # Given
-        form = SyncedResponseForm()
+        form = _SyncedResponseForm()
         items = RecordMap.create()
         items.add(Attr.create_attr(Text.create_from('lane'), Text.create_from('foo_lane')))
         record_map = RecordMap.create()
         record_map.add(Attr.create_attr(Text.create_from('synced'), items))
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
         self.assertEqual(None, actual)
 
     def test_lane_addressed_form_cast_missing_lane(self):
         # Given
-        form = SyncedResponseForm()
+        form = _SyncedResponseForm()
         items = RecordMap.create()
         items.add(Attr.create_attr(Text.create_from('node'), Text.create_from('foo_node')))
         record_map = RecordMap.create()
         record_map.add(Attr.create_attr(Text.create_from('synced'), items))
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
         self.assertEqual(None, actual)
 
     def test_link_addressed_form_mold_empty(self):
         # Given
         envelope = None
-        form = SyncRequestForm()
+        form = _SyncRequestForm()
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertEqual(Value.extant(), actual)
 
     def test_link_addressed_form_mold_prio_zero(self):
         # Given
-        envelope = SyncRequest('node_foo', 'lane_bar', prio=0, rate=2.5)
-        form = SyncRequestForm()
+        envelope = _SyncRequest('node_foo', 'lane_bar', prio=0, rate=2.5)
+        form = _SyncRequestForm()
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual('node_foo', actual.get_item(0).value.get_item(0).value.value)
@@ -91,10 +91,10 @@ class TestForms(unittest.TestCase):
 
     def test_link_addressed_form_mold_prio_nan(self):
         # Given
-        envelope = SyncRequest('synced_node', 'synced_lane', prio=math.nan, rate=3.4)
-        form = SyncRequestForm()
+        envelope = _SyncRequest('synced_node', 'synced_lane', prio=math.nan, rate=3.4)
+        form = _SyncRequestForm()
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual('synced_node', actual.get_item(0).value.get_item(0).value.value)
@@ -104,10 +104,10 @@ class TestForms(unittest.TestCase):
 
     def test_link_addressed_form_mold_rate_zero(self):
         # Given
-        envelope = SyncRequest('node_rate_foo', 'lane_rate_bar', prio=2.1, rate=0)
-        form = SyncRequestForm()
+        envelope = _SyncRequest('node_rate_foo', 'lane_rate_bar', prio=2.1, rate=0)
+        form = _SyncRequestForm()
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual('node_rate_foo', actual.get_item(0).value.get_item(0).value.value)
@@ -117,10 +117,10 @@ class TestForms(unittest.TestCase):
 
     def test_link_addressed_form_mold_rate_nan(self):
         # Given
-        envelope = SyncRequest('node_baz', 'lane_qux', prio=13.4, rate=math.nan)
-        form = SyncRequestForm()
+        envelope = _SyncRequest('node_baz', 'lane_qux', prio=13.4, rate=math.nan)
+        form = _SyncRequestForm()
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual('node_baz', actual.get_item(0).value.get_item(0).value.value)
@@ -130,75 +130,75 @@ class TestForms(unittest.TestCase):
 
     def test_link_addressed_cast_missing_headers(self):
         # Given
-        form = SyncRequestForm()
+        form = _SyncRequestForm()
         items = RecordMap.create()
         record_map = RecordMap.create()
         record_map.add(Attr.create_attr(Text.create_from('sync'), items))
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
         self.assertEqual(None, actual)
 
     def test_link_addressed_form_cast_missing_node(self):
         # Given
-        form = SyncRequestForm()
+        form = _SyncRequestForm()
         items = RecordMap.create()
         items.add(Attr.create_attr(Text.create_from('lane'), Text.create_from('sync_foo_lane')))
         record_map = RecordMap.create()
         record_map.add(Attr.create_attr(Text.create_from('sync'), items))
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
         self.assertEqual(None, actual)
 
     def test_link_addressed_form_cast_missing_lane(self):
         # Given
-        form = SyncRequestForm()
+        form = _SyncRequestForm()
         items = RecordMap.create()
         items.add(Attr.create_attr(Text.create_from('node'), Text.create_from('sync_foo_node')))
         record_map = RecordMap.create()
         record_map.add(Attr.create_attr(Text.create_from('sync'), items))
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
         self.assertEqual(None, actual)
 
     def test_synced_form(self):
         # Given
-        actual = SyncedResponseForm()
+        actual = _SyncedResponseForm()
         # Then
-        self.assertIsInstance(actual, SyncedResponseForm)
-        self.assertEqual('synced', actual.tag)
+        self.assertIsInstance(actual, _SyncedResponseForm)
+        self.assertEqual('synced', actual._tag)
 
     def test_synced_form_create_envelope(self):
         # Given
-        form = SyncedResponseForm()
+        form = _SyncedResponseForm()
         body = Text.create_from('synced_body')
         # When
-        actual = form.create_envelope_from('foo', 'bar', body)
+        actual = form._create_envelope_from('foo', 'bar', body)
         # Then
-        self.assertIsInstance(actual, SyncedResponse)
-        self.assertEqual('foo', actual.node_uri)
-        self.assertEqual('bar', actual.lane_uri)
-        self.assertEqual(body, actual.body)
+        self.assertIsInstance(actual, _SyncedResponse)
+        self.assertEqual('foo', actual._node_uri)
+        self.assertEqual('bar', actual._lane_uri)
+        self.assertEqual(body, actual._body)
 
     def test_synced_form_mold(self):
         # Given
-        form = SyncedResponseForm()
-        envelope = SyncedResponse('foo_node', 'bar_lane', body=Text.create_from('Boo'))
+        form = _SyncedResponseForm()
+        envelope = _SyncedResponse('foo_node', 'bar_lane', body=Text.create_from('Boo'))
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(2, actual.size)
-        self.assertEqual('synced', actual.tag)
+        self.assertEqual('synced', actual._tag)
         self.assertEqual('foo_node', actual.get_item(0).value.get_item(0).value.value)
         self.assertEqual('bar_lane', actual.get_item(0).value.get_item(1).value.value)
         self.assertEqual('Boo', actual.get_item(1).value)
 
     def test_synced_form_cast(self):
         # Given
-        form = SyncedResponseForm()
+        form = _SyncedResponseForm()
         items = RecordMap.create()
         items.add(Slot.create_slot(Text.create_from('node'), Text.create_from('synced_node')))
         items.add(Slot.create_slot(Text.create_from('lane'), Text.create_from('synced_lane')))
@@ -207,44 +207,44 @@ class TestForms(unittest.TestCase):
         record_map.add(Attr.create_attr(Text.create_from('synced'), items))
         record_map.add(body)
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
-        self.assertIsInstance(actual, SyncedResponse)
-        self.assertEqual('synced_node', actual.node_uri)
-        self.assertEqual('synced_lane', actual.lane_uri)
-        self.assertEqual(body, actual.body.get_item(0))
+        self.assertIsInstance(actual, _SyncedResponse)
+        self.assertEqual('synced_node', actual._node_uri)
+        self.assertEqual('synced_lane', actual._lane_uri)
+        self.assertEqual(body, actual._body.get_item(0))
 
     def test_sync_form(self):
         # Given
-        actual = SyncRequestForm()
+        actual = _SyncRequestForm()
         # Then
-        self.assertIsInstance(actual, SyncRequestForm)
-        self.assertEqual('sync', actual.tag)
+        self.assertIsInstance(actual, _SyncRequestForm)
+        self.assertEqual('sync', actual._tag)
 
     def test_sync_form_create_envelope(self):
         # Given
-        form = SyncRequestForm()
+        form = _SyncRequestForm()
         body = Text.create_from('sync_body')
         # When
-        actual = form.create_envelope_from('foo', 'bar', prio=3.2, rate=2.1, body=body)
+        actual = form._create_envelope_from('foo', 'bar', prio=3.2, rate=2.1, body=body)
         # Then
-        self.assertIsInstance(actual, SyncRequest)
-        self.assertEqual('foo', actual.node_uri)
-        self.assertEqual('bar', actual.lane_uri)
-        self.assertEqual(3.2, actual.prio)
-        self.assertEqual(2.1, actual.rate)
-        self.assertEqual(body, actual.body)
+        self.assertIsInstance(actual, _SyncRequest)
+        self.assertEqual('foo', actual._node_uri)
+        self.assertEqual('bar', actual._lane_uri)
+        self.assertEqual(3.2, actual._prio)
+        self.assertEqual(2.1, actual._rate)
+        self.assertEqual(body, actual._body)
 
     def test_sync_form_mold(self):
         # Given
-        form = SyncRequestForm()
-        envelope = SyncRequest('sync_node', 'sync_lane', prio=99.1, rate=41.42, body=Text.create_from('Moo'))
+        form = _SyncRequestForm()
+        envelope = _SyncRequest('sync_node', 'sync_lane', prio=99.1, rate=41.42, body=Text.create_from('Moo'))
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(2, actual.size)
-        self.assertEqual('sync', actual.tag)
+        self.assertEqual('sync', actual._tag)
         self.assertEqual('sync_node', actual.get_item(0).value.get_item(0).value.value)
         self.assertEqual('sync_lane', actual.get_item(0).value.get_item(1).value.value)
         self.assertEqual(99.1, actual.get_item(0).value.get_item(2).value.value)
@@ -253,7 +253,7 @@ class TestForms(unittest.TestCase):
 
     def test_sync_form_cast(self):
         # Given
-        form = SyncRequestForm()
+        form = _SyncRequestForm()
         items = RecordMap.create()
         items.add(Slot.create_slot(Text.create_from('node'), Text.create_from('sync_node')))
         items.add(Slot.create_slot(Text.create_from('lane'), Text.create_from('sync_lane')))
@@ -264,46 +264,46 @@ class TestForms(unittest.TestCase):
         record_map.add(Attr.create_attr(Text.create_from('sync'), items))
         record_map.add(body)
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
-        self.assertIsInstance(actual, SyncRequest)
-        self.assertEqual('sync_node', actual.node_uri)
-        self.assertEqual('sync_lane', actual.lane_uri)
-        self.assertEqual(33.12, actual.prio)
-        self.assertEqual(12.33, actual.rate)
-        self.assertEqual(body, actual.body.get_item(0))
+        self.assertIsInstance(actual, _SyncRequest)
+        self.assertEqual('sync_node', actual._node_uri)
+        self.assertEqual('sync_lane', actual._lane_uri)
+        self.assertEqual(33.12, actual._prio)
+        self.assertEqual(12.33, actual._rate)
+        self.assertEqual(body, actual._body.get_item(0))
 
     def test_link_form(self):
         # Given
-        actual = LinkRequestForm()
+        actual = _LinkRequestForm()
         # Then
-        self.assertIsInstance(actual, LinkRequestForm)
-        self.assertEqual('link', actual.tag)
+        self.assertIsInstance(actual, _LinkRequestForm)
+        self.assertEqual('link', actual._tag)
 
     def test_link_form_create_envelope(self):
         # Given
-        form = LinkRequestForm()
+        form = _LinkRequestForm()
         body = Text.create_from('link_body')
         # When
-        actual = form.create_envelope_from('moo', 'cow', prio=0.13, rate=0.26, body=body)
+        actual = form._create_envelope_from('moo', 'cow', prio=0.13, rate=0.26, body=body)
         # Then
-        self.assertIsInstance(actual, LinkRequest)
-        self.assertEqual('moo', actual.node_uri)
-        self.assertEqual('cow', actual.lane_uri)
-        self.assertEqual(0.13, actual.prio)
-        self.assertEqual(0.26, actual.rate)
-        self.assertEqual(body, actual.body)
+        self.assertIsInstance(actual, _LinkRequest)
+        self.assertEqual('moo', actual._node_uri)
+        self.assertEqual('cow', actual._lane_uri)
+        self.assertEqual(0.13, actual._prio)
+        self.assertEqual(0.26, actual._rate)
+        self.assertEqual(body, actual._body)
 
     def test_link_form_mold(self):
         # Given
-        form = LinkRequestForm()
-        envelope = LinkRequest('link_node', 'link_lane', prio=1, rate=2, body=Text.create_from('Moo'))
+        form = _LinkRequestForm()
+        envelope = _LinkRequest('link_node', 'link_lane', prio=1, rate=2, body=Text.create_from('Moo'))
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(2, actual.size)
-        self.assertEqual('link', actual.tag)
+        self.assertEqual('link', actual._tag)
         self.assertEqual('link_node', actual.get_item(0).value.get_item(0).value.value)
         self.assertEqual('link_lane', actual.get_item(0).value.get_item(1).value.value)
         self.assertEqual(1, actual.get_item(0).value.get_item(2).value.value)
@@ -312,7 +312,7 @@ class TestForms(unittest.TestCase):
 
     def test_link_form_cast(self):
         # Given
-        form = LinkRequestForm()
+        form = _LinkRequestForm()
         items = RecordMap.create()
         items.add(Slot.create_slot(Text.create_from('node'), Text.create_from('link_node')))
         items.add(Slot.create_slot(Text.create_from('lane'), Text.create_from('link_lane')))
@@ -323,46 +323,46 @@ class TestForms(unittest.TestCase):
         record_map.add(Attr.create_attr(Text.create_from('link'), items))
         record_map.add(body)
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
-        self.assertIsInstance(actual, LinkRequest)
-        self.assertEqual('link_node', actual.node_uri)
-        self.assertEqual('link_lane', actual.lane_uri)
-        self.assertEqual(1, actual.prio)
-        self.assertEqual(3, actual.rate)
-        self.assertEqual(body, actual.body.get_item(0))
+        self.assertIsInstance(actual, _LinkRequest)
+        self.assertEqual('link_node', actual._node_uri)
+        self.assertEqual('link_lane', actual._lane_uri)
+        self.assertEqual(1, actual._prio)
+        self.assertEqual(3, actual._rate)
+        self.assertEqual(body, actual._body.get_item(0))
 
     def test_linked_form(self):
         # Given
-        actual = LinkedResponseForm()
+        actual = _LinkedResponseForm()
         # Then
-        self.assertIsInstance(actual, LinkedResponseForm)
-        self.assertEqual('linked', actual.tag)
+        self.assertIsInstance(actual, _LinkedResponseForm)
+        self.assertEqual('linked', actual._tag)
 
     def test_linked_form_create_envelope(self):
         # Given
-        form = LinkedResponseForm()
+        form = _LinkedResponseForm()
         body = Text.create_from('linked_body')
         # When
-        actual = form.create_envelope_from('boo', 'far', prio=1.13, rate=2.26, body=body)
+        actual = form._create_envelope_from('boo', 'far', prio=1.13, rate=2.26, body=body)
         # Then
-        self.assertIsInstance(actual, LinkedResponse)
-        self.assertEqual('boo', actual.node_uri)
-        self.assertEqual('far', actual.lane_uri)
-        self.assertEqual(1.13, actual.prio)
-        self.assertEqual(2.26, actual.rate)
-        self.assertEqual(body, actual.body)
+        self.assertIsInstance(actual, _LinkedResponse)
+        self.assertEqual('boo', actual._node_uri)
+        self.assertEqual('far', actual._lane_uri)
+        self.assertEqual(1.13, actual._prio)
+        self.assertEqual(2.26, actual._rate)
+        self.assertEqual(body, actual._body)
 
     def test_linked_form_mold(self):
         # Given
-        form = LinkedResponseForm()
-        envelope = LinkedResponse('linked_node', 'linked_lane', prio=13, rate=15, body=Text.create_from('Foo'))
+        form = _LinkedResponseForm()
+        envelope = _LinkedResponse('linked_node', 'linked_lane', prio=13, rate=15, body=Text.create_from('Foo'))
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(2, actual.size)
-        self.assertEqual('linked', actual.tag)
+        self.assertEqual('linked', actual._tag)
         self.assertEqual('linked_node', actual.get_item(0).value.get_item(0).value.value)
         self.assertEqual('linked_lane', actual.get_item(0).value.get_item(1).value.value)
         self.assertEqual(13, actual.get_item(0).value.get_item(2).value.value)
@@ -371,7 +371,7 @@ class TestForms(unittest.TestCase):
 
     def test_linked_form_cast(self):
         # Given
-        form = LinkedResponseForm()
+        form = _LinkedResponseForm()
         items = RecordMap.create()
         items.add(Slot.create_slot(Text.create_from('node'), Text.create_from('linked_node')))
         items.add(Slot.create_slot(Text.create_from('lane'), Text.create_from('linked_lane')))
@@ -382,46 +382,46 @@ class TestForms(unittest.TestCase):
         record_map.add(Attr.create_attr(Text.create_from('linked'), items))
         record_map.add(body)
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
-        self.assertIsInstance(actual, LinkedResponse)
-        self.assertEqual('linked_node', actual.node_uri)
-        self.assertEqual('linked_lane', actual.lane_uri)
-        self.assertEqual(14, actual.prio)
-        self.assertEqual(13, actual.rate)
-        self.assertEqual(body, actual.body.get_item(0))
+        self.assertIsInstance(actual, _LinkedResponse)
+        self.assertEqual('linked_node', actual._node_uri)
+        self.assertEqual('linked_lane', actual._lane_uri)
+        self.assertEqual(14, actual._prio)
+        self.assertEqual(13, actual._rate)
+        self.assertEqual(body, actual._body.get_item(0))
 
     def test_unlinked_form(self):
         # Given
-        actual = UnlinkedResponseForm()
+        actual = _UnlinkedResponseForm()
         # Then
-        self.assertIsInstance(actual, UnlinkedResponseForm)
-        self.assertEqual('unlinked', actual.tag)
+        self.assertIsInstance(actual, _UnlinkedResponseForm)
+        self.assertEqual('unlinked', actual._tag)
 
     def test_unlinked_form_create_envelope(self):
         # Given
-        form = UnlinkedResponseForm()
+        form = _UnlinkedResponseForm()
         body = Text.create_from('unlinked_body')
         # When
-        actual = form.create_envelope_from('oof', 'bar', prio=2, rate=6, body=body)
+        actual = form._create_envelope_from('oof', 'bar', prio=2, rate=6, body=body)
         # Then
-        self.assertIsInstance(actual, UnlinkedResponse)
-        self.assertEqual('oof', actual.node_uri)
-        self.assertEqual('bar', actual.lane_uri)
-        self.assertEqual(2, actual.prio)
-        self.assertEqual(6, actual.rate)
-        self.assertEqual(body, actual.body)
+        self.assertIsInstance(actual, _UnlinkedResponse)
+        self.assertEqual('oof', actual._node_uri)
+        self.assertEqual('bar', actual._lane_uri)
+        self.assertEqual(2, actual._prio)
+        self.assertEqual(6, actual._rate)
+        self.assertEqual(body, actual._body)
 
     def test_unlinked_form_mold(self):
         # Given
-        form = UnlinkedResponseForm()
-        envelope = LinkedResponse('unlinked_node', 'unlinked_lane', prio=9, rate=10, body=Text.create_from('Baz'))
+        form = _UnlinkedResponseForm()
+        envelope = _LinkedResponse('unlinked_node', 'unlinked_lane', prio=9, rate=10, body=Text.create_from('Baz'))
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(2, actual.size)
-        self.assertEqual('unlinked', actual.tag)
+        self.assertEqual('unlinked', actual._tag)
         self.assertEqual('unlinked_node', actual.get_item(0).value.get_item(0).value.value)
         self.assertEqual('unlinked_lane', actual.get_item(0).value.get_item(1).value.value)
         self.assertEqual(9, actual.get_item(0).value.get_item(2).value.value)
@@ -430,7 +430,7 @@ class TestForms(unittest.TestCase):
 
     def test_unlinked_form_cast(self):
         # Given
-        form = UnlinkedResponseForm()
+        form = _UnlinkedResponseForm()
         items = RecordMap.create()
         items.add(Slot.create_slot(Text.create_from('node'), Text.create_from('unlinked_node')))
         items.add(Slot.create_slot(Text.create_from('lane'), Text.create_from('unlinked_lane')))
@@ -441,51 +441,51 @@ class TestForms(unittest.TestCase):
         record_map.add(Attr.create_attr(Text.create_from('unlinked'), items))
         record_map.add(body)
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
-        self.assertIsInstance(actual, UnlinkedResponse)
-        self.assertEqual('unlinked_node', actual.node_uri)
-        self.assertEqual('unlinked_lane', actual.lane_uri)
-        self.assertEqual(20, actual.prio)
-        self.assertEqual(25, actual.rate)
-        self.assertEqual(body, actual.body.get_item(0))
+        self.assertIsInstance(actual, _UnlinkedResponse)
+        self.assertEqual('unlinked_node', actual._node_uri)
+        self.assertEqual('unlinked_lane', actual._lane_uri)
+        self.assertEqual(20, actual._prio)
+        self.assertEqual(25, actual._rate)
+        self.assertEqual(body, actual._body.get_item(0))
 
     def test_command_form(self):
         # Given
-        actual = CommandMessageForm()
+        actual = _CommandMessageForm()
         # Then
-        self.assertIsInstance(actual, CommandMessageForm)
-        self.assertEqual('command', actual.tag)
+        self.assertIsInstance(actual, _CommandMessageForm)
+        self.assertEqual('command', actual._tag)
 
     def test_command_form_create_envelope(self):
         # Given
-        form = CommandMessageForm()
+        form = _CommandMessageForm()
         body = Text.create_from('message_body')
         # When
-        actual = form.create_envelope_from('message_foo', 'message_bar', body=body)
+        actual = form._create_envelope_from('message_foo', 'message_bar', body=body)
         # Then
-        self.assertIsInstance(actual, CommandMessage)
-        self.assertEqual('message_foo', actual.node_uri)
-        self.assertEqual('message_bar', actual.lane_uri)
-        self.assertEqual(body, actual.body)
+        self.assertIsInstance(actual, _CommandMessage)
+        self.assertEqual('message_foo', actual._node_uri)
+        self.assertEqual('message_bar', actual._lane_uri)
+        self.assertEqual(body, actual._body)
 
     def test_command_form_mold(self):
         # Given
-        form = CommandMessageForm()
-        envelope = CommandMessage('command_node', 'command_lane', body=Text.create_from('Command_body'))
+        form = _CommandMessageForm()
+        envelope = _CommandMessage('command_node', 'command_lane', body=Text.create_from('Command_body'))
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(2, actual.size)
-        self.assertEqual('command', actual.tag)
+        self.assertEqual('command', actual._tag)
         self.assertEqual('command_node', actual.get_item(0).value.get_item(0).value.value)
         self.assertEqual('command_lane', actual.get_item(0).value.get_item(1).value.value)
         self.assertEqual('Command_body', actual.get_item(1).value)
 
     def test_command_form_cast(self):
         # Given
-        form = CommandMessageForm()
+        form = _CommandMessageForm()
         items = RecordMap.create()
         items.add(Slot.create_slot(Text.create_from('node'), Text.create_from('command_node')))
         items.add(Slot.create_slot(Text.create_from('lane'), Text.create_from('command_lane')))
@@ -494,49 +494,49 @@ class TestForms(unittest.TestCase):
         record_map.add(Attr.create_attr(Text.create_from('command'), items))
         record_map.add(body)
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
-        self.assertIsInstance(actual, CommandMessage)
-        self.assertEqual('command_node', actual.node_uri)
-        self.assertEqual('command_lane', actual.lane_uri)
-        self.assertEqual(body, actual.body.get_item(0))
+        self.assertIsInstance(actual, _CommandMessage)
+        self.assertEqual('command_node', actual._node_uri)
+        self.assertEqual('command_lane', actual._lane_uri)
+        self.assertEqual(body, actual._body.get_item(0))
 
     def test_event_form(self):
         # Given
-        actual = EventMessageForm()
+        actual = _EventMessageForm()
         # Then
-        self.assertIsInstance(actual, EventMessageForm)
-        self.assertEqual('event', actual.tag)
+        self.assertIsInstance(actual, _EventMessageForm)
+        self.assertEqual('event', actual._tag)
 
     def test_event_form_create_envelope(self):
         # Given
-        form = EventMessageForm()
+        form = _EventMessageForm()
         body = Text.create_from('event_body')
         # When
-        actual = form.create_envelope_from('event_foo', 'event_bar', body=body)
+        actual = form._create_envelope_from('event_foo', 'event_bar', body=body)
         # Then
-        self.assertIsInstance(actual, EventMessage)
-        self.assertEqual('event_foo', actual.node_uri)
-        self.assertEqual('event_bar', actual.lane_uri)
-        self.assertEqual(body, actual.body)
+        self.assertIsInstance(actual, _EventMessage)
+        self.assertEqual('event_foo', actual._node_uri)
+        self.assertEqual('event_bar', actual._lane_uri)
+        self.assertEqual(body, actual._body)
 
     def test_event_form_mold(self):
         # Given
-        form = EventMessageForm()
-        envelope = EventMessage('event_node', 'event_lane', body=Text.create_from('Event_body'))
+        form = _EventMessageForm()
+        envelope = _EventMessage('event_node', 'event_lane', body=Text.create_from('Event_body'))
         # When
-        actual = form.mold(envelope)
+        actual = form._mold(envelope)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(2, actual.size)
-        self.assertEqual('event', actual.tag)
+        self.assertEqual('event', actual._tag)
         self.assertEqual('event_node', actual.get_item(0).value.get_item(0).value.value)
         self.assertEqual('event_lane', actual.get_item(0).value.get_item(1).value.value)
         self.assertEqual('Event_body', actual.get_item(1).value)
 
     def test_event_form_cast(self):
         # Given
-        form = EventMessageForm()
+        form = _EventMessageForm()
         items = RecordMap.create()
         items.add(Slot.create_slot(Text.create_from('node'), Text.create_from('event_node')))
         items.add(Slot.create_slot(Text.create_from('lane'), Text.create_from('event_lane')))
@@ -545,9 +545,9 @@ class TestForms(unittest.TestCase):
         record_map.add(Attr.create_attr(Text.create_from('event'), items))
         record_map.add(body)
         # When
-        actual = form.cast(record_map)
+        actual = form._cast(record_map)
         # Then
-        self.assertIsInstance(actual, EventMessage)
-        self.assertEqual('event_node', actual.node_uri)
-        self.assertEqual('event_lane', actual.lane_uri)
-        self.assertEqual(body, actual.body.get_item(0))
+        self.assertIsInstance(actual, _EventMessage)
+        self.assertEqual('event_node', actual._node_uri)
+        self.assertEqual('event_lane', actual._lane_uri)
+        self.assertEqual(body, actual._body.get_item(0))
