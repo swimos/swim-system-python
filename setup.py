@@ -22,7 +22,7 @@ with open('requirements.txt') as f:
 
 setuptools.setup(
     name='swimai',
-    version='0.1.1.dev1',
+    version='1.0.0-alpha',
     author='Dobromir Marinov',
     author_email='dobromir@swim.it',
     description='Standalone Python framework for building massively real-time streaming WARP clients.',
@@ -32,7 +32,7 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['test']),
     classifiers=[
         'Programming Language :: Python :: 3',
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
