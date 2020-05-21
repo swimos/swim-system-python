@@ -1447,7 +1447,7 @@ class TestStructs(unittest.TestCase):
             record_map_view.add(new_item, 5)
         # Then
         message = error.exception.args[0]
-        self.assertEqual(f'Index 5 is out of range!', message)
+        self.assertEqual('Index 5 is out of range!', message)
 
     def test_record_map_view_add_field(self):
         # Given
@@ -1692,7 +1692,7 @@ class TestStructs(unittest.TestCase):
             value_builder.add(item)
         # Then
         message = error.exception.args[0]
-        self.assertEqual(f'Item of type CustomItem is not supported by the Value Builder', message)
+        self.assertEqual('Item of type CustomItem is not supported by the Value Builder', message)
 
     def test_value_builder_bind_with_record(self):
         # Given

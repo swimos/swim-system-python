@@ -537,7 +537,7 @@ class TestUtils(unittest.TestCase):
             await output_message._append(chars)
         # Then
         message = error.exception.args[0]
-        self.assertEqual(f'Item of type CustomString cannot be added to Message!', message)
+        self.assertEqual('Item of type CustomString cannot be added to Message!', message)
 
     @async_test
     async def test_output_message_append_str_to_existing(self):
@@ -614,7 +614,7 @@ class TestUtils(unittest.TestCase):
             await output_message._append(chars)
         # Then
         message = error.exception.args[0]
-        self.assertEqual(f'Item of type CustomString cannot be added to Message!', message)
+        self.assertEqual('Item of type CustomString cannot be added to Message!', message)
 
     @async_test
     async def test_input_message_create_empty(self):
@@ -735,7 +735,7 @@ class TestUtils(unittest.TestCase):
             await input_message._append(chars)
         # Then
         message = error.exception.args[0]
-        self.assertEqual(f'Item of type NoneType cannot be added to Message!', message)
+        self.assertEqual('Item of type NoneType cannot be added to Message!', message)
 
     @async_test
     async def test_input_message_append_str_to_existing(self):
@@ -817,7 +817,7 @@ class TestUtils(unittest.TestCase):
             await input_message._append(chars)
         # Then
         message = error.exception.args[0]
-        self.assertEqual(f'Item of type NoneType cannot be added to Message!', message)
+        self.assertEqual('Item of type NoneType cannot be added to Message!', message)
 
     @async_test
     async def test_input_message_skip_spaces_none(self):

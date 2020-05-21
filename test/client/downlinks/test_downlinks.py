@@ -1144,7 +1144,7 @@ class TestDownlinks(unittest.TestCase):
             downlink_view.on_event(222)
         # Then
         message = error.exception.args[0]
-        self.assertEqual(f'Callback must be a coroutine or a function!', message)
+        self.assertEqual('Callback must be a coroutine or a function!', message)
 
     @async_test
     async def test_create_value_downlink_model(self):
