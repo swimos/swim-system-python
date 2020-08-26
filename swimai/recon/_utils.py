@@ -19,7 +19,7 @@ from typing import Optional, Union, Any
 class _ReconUtils:
 
     @staticmethod
-    async def _is_ident_start_char(char: Union[str, int]) -> bool:
+    def _is_ident_start_char(char: Union[str, int]) -> bool:
         """
         Check if a character is a valid first character of an identifier.
         Valid start characters for identifiers: [A-Za-z_]
@@ -28,14 +28,14 @@ class _ReconUtils:
         :return:            - True if the character is valid, False otherwise.
         """
         if char:
-            char = await _ReconUtils._to_ord(char)
+            char = _ReconUtils._to_ord(char)
 
             return ord('A') <= char <= ord('Z') or char == ord('_') or ord('a') <= char <= ord('z')
         else:
             return False
 
     @staticmethod
-    async def _is_ident_char(char: Union[str, int]) -> bool:
+    def _is_ident_char(char: Union[str, int]) -> bool:
         """
         Check if a character is a valid character of an identifier.
         Valid characters for identifiers: [A-Za-z_-]
@@ -44,13 +44,13 @@ class _ReconUtils:
         :return:            - True if the character is valid, False otherwise.
         """
         if char:
-            char = await _ReconUtils._to_ord(char)
-            return char == ord('-') or await _ReconUtils._is_digit(char) or await _ReconUtils._is_ident_start_char(char)
+            char = _ReconUtils._to_ord(char)
+            return char == ord('-') or _ReconUtils._is_digit(char) or _ReconUtils._is_ident_start_char(char)
         else:
             return False
 
     @staticmethod
-    async def _is_ident(value: str) -> bool:
+    def _is_ident(value: str) -> bool:
         """
         Check if a string value is a valid identifier.
 
@@ -60,17 +60,17 @@ class _ReconUtils:
         if len(value) == 0:
             return False
 
-        if not await _ReconUtils._is_ident_start_char(value[0]):
+        if not _ReconUtils._is_ident_start_char(value[0]):
             return False
 
         for char in value:
-            if not await _ReconUtils._is_ident_char(char):
+            if not _ReconUtils._is_ident_char(char):
                 return False
 
         return True
 
     @staticmethod
-    async def _is_space(char: Union[str, int]) -> bool:
+    def _is_space(char: Union[str, int]) -> bool:
         """
         Check if a character is a space character.
 
@@ -78,13 +78,13 @@ class _ReconUtils:
         :return:            - True if the character is a space character, False otherwise.
         """
         if char:
-            char = await _ReconUtils._to_ord(char)
+            char = _ReconUtils._to_ord(char)
             return char == ord(' ') or char == ord('\t')
         else:
             return False
 
     @staticmethod
-    async def _is_digit(char: Union[str, int]) -> bool:
+    def _is_digit(char: Union[str, int]) -> bool:
         """
        Check if a character is a digit.
 
@@ -92,13 +92,13 @@ class _ReconUtils:
        :return:             - True if the character is a digit, False otherwise.
        """
         if char:
-            char = await _ReconUtils._to_ord(char)
+            char = _ReconUtils._to_ord(char)
             return ord('0') <= char <= ord('9')
         else:
             return False
 
     @staticmethod
-    async def _to_ord(char: Any) -> Optional[int]:
+    def _to_ord(char: Any) -> Optional[int]:
         """
         Convert a character to its integer representation.
 
@@ -128,10 +128,10 @@ class _Message(ABC):
 
     @staticmethod
     @abstractmethod
-    async def _create(chars: str) -> '_Message':
+    def _create(chars: str) -> '_Message':
         raise NotImplementedError
 
-    async def _append(self, obj: Any) -> None:
+    def _append(self, obj: Any) -> None:
         """
         Append the string representation of an object to the current message.
 
@@ -165,7 +165,7 @@ class _OutputMessage(_Message):
             return ''
 
     @staticmethod
-    async def _create(chars: str = None) -> '_OutputMessage':
+    def _create(chars: str = None) -> '_OutputMessage':
         """
         Create an OutputMessage instance and initialise its message.
 
@@ -175,7 +175,7 @@ class _OutputMessage(_Message):
         instance = _OutputMessage()
 
         if chars:
-            await instance._append(chars)
+            instance._append(chars)
 
         return instance
 
@@ -211,7 +211,7 @@ class _InputMessage(_Message):
             return True
 
     @staticmethod
-    async def _create(chars: str = None) -> '_InputMessage':
+    def _create(chars: str = None) -> '_InputMessage':
         """
         Create an OutputMessage instance and initialise its message.
 
@@ -221,19 +221,19 @@ class _InputMessage(_Message):
         instance = _InputMessage()
 
         if chars:
-            await instance._append(chars)
+            instance._append(chars)
 
         return instance
 
     @staticmethod
-    async def _skip_spaces(message: '_InputMessage') -> None:
+    def _skip_spaces(message: '_InputMessage') -> None:
         """
         Moves the head of the message to the next non-space character.
 
         :param message:     - InputMessage object.
         """
         char = message._head
-        while await _ReconUtils._is_space(char):
+        while _ReconUtils._is_space(char):
             char = message._step()
 
     def _step(self) -> str:

@@ -14,8 +14,6 @@
 
 import unittest
 
-from aiounittest import async_test
-
 from swimai.structures import RecordMap, Attr, Text, Slot
 from swimai.recon import Recon
 from swimai.recon._parsers import _ReconParser
@@ -24,12 +22,11 @@ from swimai.recon._writers import _ReconWriter
 
 class TestRecon(unittest.TestCase):
 
-    @async_test
-    async def test_parse(self):
+    def test_parse(self):
         # Given
         recon_string = '@sync(node: "foo/node", lane: "foo/lane")"Hello, World"'
         # When
-        actual = await Recon.parse(recon_string)
+        actual = Recon.parse(recon_string)
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual('sync', actual._tag)
@@ -38,15 +35,14 @@ class TestRecon(unittest.TestCase):
         self.assertEqual('foo/lane', actual.get_item(0).value.get_item(1).value.value)
         self.assertEqual('Hello, World', actual.get_item(1).value)
 
-    @async_test
-    async def test_to_string(self):
+    def test_to_string(self):
         # Given
         value = RecordMap.create()
         value.add(Attr.create_attr(Text.create_from('remove'),
                                    RecordMap.create_record_map(
                                        Slot.create_slot(Text.create_from('key'), Text.create_from('foo')))))
         # When
-        actual = await Recon.to_string(value)
+        actual = Recon.to_string(value)
         # Then
         self.assertEqual('@remove(key:foo)', actual)
 

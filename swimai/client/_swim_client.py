@@ -203,7 +203,7 @@ class SwimClient:
         host_uri = _URI._normalise_warp_scheme(host_uri)
         message = _CommandMessage(node_uri, lane_uri, body=record)
         connection = await self._get_connection(host_uri)
-        await connection._send_message(await message._to_recon())
+        await connection._send_message(message._to_recon())
 
     def __start_event_loop(self) -> None:
         asyncio.set_event_loop(self._loop)

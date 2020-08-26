@@ -23,24 +23,24 @@ class Recon:
     _parser = None
 
     @staticmethod
-    async def parse(recon_string: str) -> 'Value':
+    def parse(recon_string: str) -> 'Value':
         """
         Parse a Recon message in string format and return a Swim structure object.
 
         :param recon_string:        - Recon message in string format.
         :return:                    - Swim structure object representing the Recon message.
         """
-        return await Recon._get_parser()._parse_block_string(recon_string)
+        return Recon._get_parser()._parse_block_string(recon_string)
 
     @staticmethod
-    async def to_string(item: 'Value') -> str:
+    def to_string(item: 'Value') -> str:
         """
         Parse a Swim structure object to a Recon string.
 
         :param item:               - Swim structure object.
         :return:                   - Recon message in string format representing the Swim structure object.
         """
-        return await Recon._get_writer()._write_item(item)
+        return Recon._get_writer()._write_item(item)
 
     @staticmethod
     def _get_writer() -> '_ReconWriter':

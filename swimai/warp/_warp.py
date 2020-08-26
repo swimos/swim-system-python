@@ -55,14 +55,14 @@ class _Envelope(ABC):
         return f'{self._node_uri}/{self._lane_uri}'
 
     @staticmethod
-    async def _parse_recon(recon_message: str) -> Optional['_Envelope']:
+    def _parse_recon(recon_message: str) -> Optional['_Envelope']:
         """
         Parse a Recon message in string format into an Envelope.
 
         :param recon_message    - Recon message in string format.
         :return:                - Envelope from the Recon message.
         """
-        value = await Recon.parse(recon_message)
+        value = Recon.parse(recon_message)
         if isinstance(value, RecordMap):
             return _Envelope._create_from_value(value)
 
@@ -92,13 +92,13 @@ class _Envelope(ABC):
         else:
             raise TypeError(f'Invalid form tag: {tag}')
 
-    async def _to_recon(self) -> str:
+    def _to_recon(self) -> str:
         """
         Create a Recon message in string format representing this Envelope.
 
         :return:                - Recon message in string format from this Envelope.
         """
-        return await Recon.to_string(self._to_value())
+        return Recon.to_string(self._to_value())
 
 
 class _LinkAddressedEnvelope(_Envelope):

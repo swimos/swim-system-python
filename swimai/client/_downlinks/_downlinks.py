@@ -302,7 +302,7 @@ class _EventDownlinkModel(_DownlinkModel):
 
     async def _establish_downlink(self) -> None:
         link_request = _LinkRequest(self.node_uri, self.lane_uri)
-        await self.connection._send_message(await link_request._to_recon())
+        await self.connection._send_message(link_request._to_recon())
 
     async def _receive_event(self, message: _Envelope) -> None:
         converter = RecordConverter.get_converter()
@@ -359,7 +359,7 @@ class _ValueDownlinkModel(_DownlinkModel):
 
     async def _establish_downlink(self) -> None:
         sync_request = _SyncRequest(self.node_uri, self.lane_uri)
-        await self.connection._send_message(await sync_request._to_recon())
+        await self.connection._send_message(sync_request._to_recon())
 
     async def _receive_event(self, message: '_Envelope') -> None:
         await self.__set_value(message)
@@ -374,7 +374,7 @@ class _ValueDownlinkModel(_DownlinkModel):
         :param message:         - Message to send to the remote agent.
         """
         await self.linked.wait()
-        await self.connection._send_message(await message._to_recon())
+        await self.connection._send_message(message._to_recon())
 
     async def _get_value(self) -> Any:
         """
@@ -501,7 +501,7 @@ class _MapDownlinkModel(_DownlinkModel):
 
     async def _establish_downlink(self) -> None:
         sync_request = _SyncRequest(self.node_uri, self.lane_uri)
-        await self.connection._send_message(await sync_request._to_recon())
+        await self.connection._send_message(sync_request._to_recon())
 
     async def _receive_event(self, message: '_Envelope') -> None:
         if message._body._tag == 'update':
@@ -519,7 +519,7 @@ class _MapDownlinkModel(_DownlinkModel):
         :param message:         - Message to send to the remote agent.
         """
         await self.linked.wait()
-        await self.connection._send_message(await message._to_recon())
+        await self.connection._send_message(message._to_recon())
 
     async def _get_value(self, key) -> Any:
         """
@@ -547,7 +547,7 @@ class _MapDownlinkModel(_DownlinkModel):
                                                                  self.downlink_manager.registered_classes,
                                                                  self.downlink_manager.strict)
 
-        recon_key = await Recon.to_string(message._body._get_head().value._get_head().value)
+        recon_key = Recon.to_string(message._body._get_head().value._get_head().value)
         old_value = await self._get_value(recon_key)
 
         self._map[recon_key] = (key, value)
@@ -558,7 +558,7 @@ class _MapDownlinkModel(_DownlinkModel):
                                                                self.downlink_manager.registered_classes,
                                                                self.downlink_manager.strict)
 
-        recon_key = await Recon.to_string(message._body._get_head().value._get_head().value)
+        recon_key = Recon.to_string(message._body._get_head().value._get_head().value)
         old_value = self._map.pop(recon_key, (Value.absent(), Value.absent()))[1]
 
         await self.downlink_manager._subscribers_did_remove(key, old_value)

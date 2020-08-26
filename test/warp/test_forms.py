@@ -17,8 +17,8 @@ import unittest
 
 from swimai.structures import Value, Text, RecordMap, Slot, Attr, Num
 from swimai.warp._warp import _SyncedResponseForm, _SyncedResponse, _SyncRequestForm, _SyncRequest, _LinkedResponseForm, \
-    _CommandMessageForm, _EventMessageForm, _LinkedResponse, _CommandMessage, _EventMessage, _LinkRequestForm, _LinkRequest, \
-    _UnlinkedResponseForm, _UnlinkedResponse
+    _CommandMessageForm, _EventMessageForm, _LinkedResponse, _CommandMessage, _EventMessage, _LinkRequestForm, \
+    _LinkRequest, _UnlinkedResponseForm, _UnlinkedResponse
 
 
 class TestForms(unittest.TestCase):

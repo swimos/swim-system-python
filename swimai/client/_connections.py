@@ -179,7 +179,7 @@ class _WSConnection:
             try:
                 while self.status == _ConnectionStatus.RUNNING:
                     message = await self.websocket.recv()
-                    response = await _Envelope._parse_recon(message)
+                    response = _Envelope._parse_recon(message)
                     await self.__subscribers._receive_message(response)
             finally:
                 await self._close()

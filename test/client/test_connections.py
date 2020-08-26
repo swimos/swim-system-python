@@ -512,7 +512,7 @@ class TestConnections(unittest.TestCase):
         # When
         await connection._wait_for_messages()
         # Then
-        actual = await mock_receive_message.call_args[0][0]._to_recon()
+        actual = mock_receive_message.call_args[0][0]._to_recon()
         self.assertEqual(expected, actual)
         self.assertEqual(_ConnectionStatus.CLOSED, connection.status)
         mock_add_view.assert_called_once_with(downlink_view)
@@ -552,9 +552,9 @@ class TestConnections(unittest.TestCase):
         await mock_receive_message.all_messages_has_been_sent().wait()
         # Then
         messages = mock_receive_message.call_args_list
-        first_actual_message = await messages[0][0][0]._to_recon()
-        second_actual_message = await messages[1][0][0]._to_recon()
-        third_actual_message = await messages[2][0][0]._to_recon()
+        first_actual_message = messages[0][0][0]._to_recon()
+        second_actual_message = messages[1][0][0]._to_recon()
+        third_actual_message = messages[2][0][0]._to_recon()
         actual = {first_actual_message, second_actual_message, third_actual_message}
         self.assertEqual(expected, actual)
         self.assertEqual(_ConnectionStatus.CLOSED, connection.status)
