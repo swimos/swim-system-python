@@ -378,11 +378,10 @@ class _ValueDownlinkModel(_DownlinkModel):
 
     async def _get_value(self) -> Any:
         """
-        Get the value of the downlink after it has been synced.
+        Get the value of the downlink.
 
         :return:                - The current value of the downlink.
         """
-        await self._synced.wait()
         return self._value
 
     async def __set_value(self, message: '_Envelope') -> None:
@@ -529,7 +528,6 @@ class _MapDownlinkModel(_DownlinkModel):
         :param key              - The key of the entry.
         :return:                - The current value of the downlink.
         """
-        await self._synced.wait()
         return self._map.get(key, (Value.absent(), Value.absent()))[1]
 
     async def _get_values(self) -> list:
@@ -538,7 +536,6 @@ class _MapDownlinkModel(_DownlinkModel):
 
         :return:                - A list with all the values from the downlink map.
         """
-        await self._synced.wait()
         return list(self._map.values())
 
     async def __receive_update(self, message: '_Envelope') -> None:
