@@ -12,12 +12,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import asyncio
-import unittest
+import aiounittest
 from concurrent import futures
 from threading import Thread
 from unittest.mock import patch
 
-from aiounittest import async_test
 from swimai.client._downlinks._downlinks import _ValueDownlinkView, _MapDownlinkView, _EventDownlinkView
 from swimai.structures import Text
 from test.utils import MockWebsocketConnect, MockWebsocket, MockAsyncFunction, MockScheduleTask, \
@@ -25,7 +24,7 @@ from test.utils import MockWebsocketConnect, MockWebsocket, MockAsyncFunction, M
 from swimai import SwimClient
 
 
-class TestSwimClient(unittest.TestCase):
+class TestSwimClient(aiounittest.AsyncTestCase):
 
     def setUp(self):
         MockWebsocket.clear()
@@ -270,7 +269,6 @@ class TestSwimClient(unittest.TestCase):
                          mock_warn.call_args_list[0][0][0])
 
     @patch('swimai.client._connections._ConnectionPool._add_downlink_view', new_callable=MockAsyncFunction)
-    @async_test
     async def test_swim_client_add_downlink_view(self, mock_add_downlink):
         # Given
         host_uri = 'ws://localhost:9001'
@@ -292,7 +290,6 @@ class TestSwimClient(unittest.TestCase):
 
     @patch('swimai.client._connections._ConnectionPool._add_downlink_view', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._ConnectionPool._remove_downlink_view', new_callable=MockAsyncFunction)
-    @async_test
     async def test_swim_client_remove_downlink_view(self, mock_remove_downlink, mock_add_downlink):
         # Given
         host_uri = 'ws://localhost:9001'
@@ -315,7 +312,6 @@ class TestSwimClient(unittest.TestCase):
         mock_remove_downlink.assert_called_once_with(downlink_view)
 
     @patch('swimai.client._connections._ConnectionPool._get_connection', new_callable=MockAsyncFunction)
-    @async_test
     async def test_swim_client_get_connection(self, mock_get_connection):
         # Given
         host_uri = 'ws://localhost:9001'
@@ -335,7 +331,6 @@ class TestSwimClient(unittest.TestCase):
         # Then
         mock_get_connection.assert_called_once_with(host_uri)
 
-    @async_test
     async def test_swim_client_test_schedule_task(self):
         #  Given
         mock_task = MockScheduleTask.get_mock_schedule_task()

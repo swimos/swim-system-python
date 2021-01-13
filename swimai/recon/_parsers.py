@@ -129,7 +129,13 @@ class _RecordParser(_AbstractParser):
                 if value_output is None:
                     value_output = parser._parse_block_expression(message)
 
-            builder.add(parser._create_slot(key_output, value_output))
+                builder.add(parser._create_slot(key_output, value_output))
+
+            elif value_output is not None:
+                builder.add(parser._create_slot(key_output, value_output))
+            else:
+                builder.add(key_output)
+
             key_output = None
 
             char = message._head

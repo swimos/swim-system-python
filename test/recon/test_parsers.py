@@ -16,7 +16,7 @@ import unittest
 
 from swimai.recon._parsers import _ReconParser, _InputMessage, _OutputMessage, _DecimalParser
 from swimai.structures import RecordMap, Slot, Text, Attr, Num, Bool
-from swimai.structures._structs import _Absent, _Extant
+from swimai.structures._structs import _Absent
 
 
 class TestParsers(unittest.TestCase):
@@ -521,9 +521,8 @@ class TestParsers(unittest.TestCase):
         self.assertEqual('animal', actual.key.value)
         self.assertIsInstance(actual.value, RecordMap)
         self.assertEqual(1, actual.value.size)
-        self.assertIsInstance(actual.value.get_item(0), Slot)
-        self.assertEqual('node', actual.value.get_item(0).key.value)
-        self.assertEqual(_Extant._get_extant(), actual.value.get_item(0).value)
+        self.assertIsInstance(actual.value.get_item(0), Text)
+        self.assertEqual('node', actual.value.get_item(0).value)
 
     def test_parse_attr_slot_key_and_value(self):
         # Given
@@ -629,7 +628,7 @@ class TestParsers(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(1, actual.size)
-        self.assertEqual('record', actual.get_item(0).key.value)
+        self.assertEqual('record', actual.get_item(0).value)
 
     def test_attr_expression_parser_parse_record_square_brackets(self):
         # Given
@@ -640,7 +639,7 @@ class TestParsers(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(1, actual.size)
-        self.assertEqual('record', actual.get_item(0).key.value)
+        self.assertEqual('record', actual.get_item(0).value)
 
     def test_record_parser_parse_single(self):
         # Given
@@ -761,8 +760,8 @@ class TestParsers(unittest.TestCase):
         # Then
         self.assertIsInstance(actual, RecordMap)
         self.assertEqual(1, actual.size)
-        self.assertIsInstance(actual.get_item(0), Slot)
-        self.assertEqual('foo', actual.get_item(0).key.value)
+        self.assertIsInstance(actual.get_item(0), Text)
+        self.assertEqual('foo', actual.get_item(0).value)
 
     def test_record_parser_parse_existing_key_empty(self):
         # Given

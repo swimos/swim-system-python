@@ -11,10 +11,9 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-import unittest
+import aiounittest
 
 from unittest.mock import patch
-from aiounittest import async_test
 from swimai import SwimClient
 from swimai.client._connections import _WSConnection, _ConnectionStatus, _ConnectionPool, _DownlinkManagerPool, \
     _DownlinkManager, _DownlinkManagerStatus
@@ -26,7 +25,7 @@ from test.utils import MockWebsocket, MockWebsocketConnect, MockAsyncFunction, M
     mock_did_remove_callback, MockWebsocketConnectException
 
 
-class TestConnections(unittest.TestCase):
+class TestConnections(aiounittest.AsyncTestCase):
 
     def setUp(self):
         MockWebsocket.clear()
@@ -39,7 +38,6 @@ class TestConnections(unittest.TestCase):
         # Then
         self.assertEqual(0, actual._size)
 
-    @async_test
     async def test_pool_get_connection_new(self):
         # Given
         pool = _ConnectionPool()
@@ -52,7 +50,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(_ConnectionStatus.CLOSED, actual.status)
         self.assertEqual(1, pool._size)
 
-    @async_test
     async def test_pool_get_connection_existing(self):
         # Given
         pool = _ConnectionPool()
@@ -65,7 +62,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(expected, actual)
         self.assertEqual(1, pool._size)
 
-    @async_test
     async def test_pool_get_connection_closed(self):
         # Given
         pool = _ConnectionPool()
@@ -80,7 +76,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(_ConnectionStatus.CLOSED, actual.status)
         self.assertEqual(1, pool._size)
 
-    @async_test
     async def test_pool_remove_connection_existing(self):
         # Given
         pool = _ConnectionPool()
@@ -93,7 +88,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(0, pool._size)
         self.assertEqual(_ConnectionStatus.CLOSED, connection.status)
 
-    @async_test
     async def test_pool_remove_connection_non_existing(self):
         # Given
         pool = _ConnectionPool()
@@ -104,7 +98,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(0, pool._size)
 
     @patch('swimai.client._connections._WSConnection._subscribe', new_callable=MockAsyncFunction)
-    @async_test
     async def test_pool_add_downlink_view_existing_connection(self, mock_subscribe):
         # Given
         pool = _ConnectionPool()
@@ -126,7 +119,6 @@ class TestConnections(unittest.TestCase):
         mock_subscribe.assert_called_once_with(downlink_view)
 
     @patch('swimai.client._connections._WSConnection._subscribe', new_callable=MockAsyncFunction)
-    @async_test
     async def test_pool_add_downlink_view_non_existing_connection(self, mock_subscribe):
         # Given
         pool = _ConnectionPool()
@@ -144,7 +136,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._subscribe', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._WSConnection._unsubscribe', new_callable=MockAsyncFunction)
-    @async_test
     async def test_pool_remove_downlink_view_existing_connection_open(self, mock_unsubscribe, mock_subscribed):
         # Given
         pool = _ConnectionPool()
@@ -166,7 +157,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._subscribe', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._WSConnection._unsubscribe', new_callable=MockAsyncFunction)
-    @async_test
     async def test_pool_remove_downlink_view_existing_connection_closed(self, mock_unsubscribe, mock_subscribe):
         # Given
         pool = _ConnectionPool()
@@ -188,7 +178,6 @@ class TestConnections(unittest.TestCase):
         mock_unsubscribe.assert_called_once_with(downlink_view)
 
     @patch('swimai.client._connections._DownlinkManagerPool._deregister_downlink_view', new_callable=MockAsyncFunction)
-    @async_test
     async def test_pool_remove_downlink_view_non_existing_connection(self, mock_deregister_downlink_view):
         # Given
         pool = _ConnectionPool()
@@ -205,7 +194,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(0, pool._size)
         mock_deregister_downlink_view.assert_not_called()
 
-    @async_test
     async def test_ws_connection(self):
         # Given
         host_uri = 'ws://localhost:9001'
@@ -218,7 +206,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
     @patch('swimai.client._connections._DownlinkManager._add_view', new_callable=MockAsyncFunction)
-    @async_test
     async def test_ws_connection_subscribe_single(self, mock_add_view, mock_websocket):
         # Given
         host_uri = 'ws://localhost:9001'
@@ -241,7 +228,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
     @patch('swimai.client._connections._DownlinkManager._add_view', new_callable=MockAsyncFunction)
-    @async_test
     async def test_ws_connection_subscribe_multiple(self, mock_add_view, mock_websocket):
         # Given
         host_uri = 'ws://1.1.1.1:9001'
@@ -273,7 +259,6 @@ class TestConnections(unittest.TestCase):
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
     @patch('swimai.client._connections._DownlinkManager._add_view', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._DownlinkManager._remove_view', new_callable=MockAsyncFunction)
-    @async_test
     async def test_ws_connection_unsubscribe_all(self, mock_remove_view, mock_add_view, mock_websocket):
         # Given
         host_uri = 'ws://0.0.0.0:9001'
@@ -301,7 +286,6 @@ class TestConnections(unittest.TestCase):
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
     @patch('swimai.client._connections._DownlinkManager._add_view', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._DownlinkManager._remove_view', new_callable=MockAsyncFunction)
-    @async_test
     async def test_ws_connection_unsubscribe_one(self, mock_remove_view, mock_add_view, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -335,7 +319,6 @@ class TestConnections(unittest.TestCase):
         mock_remove_view.assert_called_once_with(first_downlink_view)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @async_test
     async def test_ws_connection_open_new(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -347,7 +330,6 @@ class TestConnections(unittest.TestCase):
         mock_websocket.assert_called_once_with(host_uri)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnectException)
-    @async_test
     async def test_ws_connection_open_error(self, mock_websocket):
         # Given
         MockWebsocket.get_mock_websocket().raise_exception = True
@@ -364,7 +346,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(_ConnectionStatus.CLOSED, connection.status)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @async_test
     async def test_ws_connection_open_already_opened(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -377,7 +358,6 @@ class TestConnections(unittest.TestCase):
         mock_websocket.assert_called_once_with(host_uri)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @async_test
     async def test_ws_connection_close_opened(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -391,7 +371,6 @@ class TestConnections(unittest.TestCase):
         self.assertTrue(connection.websocket.closed)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @async_test
     async def test_ws_connection_close_missing_websocket(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -404,7 +383,6 @@ class TestConnections(unittest.TestCase):
         self.assertIsNone(connection.websocket)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @async_test
     async def test_ws_connection_close_already_closed(self, mock_websocket):
         # Given
         host_uri = 'ws://5.5.5.5:9001'
@@ -419,7 +397,6 @@ class TestConnections(unittest.TestCase):
         self.assertTrue(connection.websocket.closed)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @async_test
     async def test_ws_connection_send_message_existing_websocket_single(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -433,7 +410,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(message, connection.websocket.sent_messages[0])
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @async_test
     async def test_ws_connection_send_message_existing_websocket_multiple(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -450,7 +426,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(second_message, connection.websocket.sent_messages[1])
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @async_test
     async def test_ws_connection_send_message_non_existing_websocket(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -463,7 +438,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(message, connection.websocket.sent_messages[0])
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
-    @async_test
     async def test_ws_connection_send_message_closed(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -478,7 +452,6 @@ class TestConnections(unittest.TestCase):
         mock_websocket.assert_called_with(host_uri)
         self.assertEqual(message, connection.websocket.sent_messages[0])
 
-    @async_test
     async def test_ws_connection_wait_for_message_closed(self):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -491,7 +464,6 @@ class TestConnections(unittest.TestCase):
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
     @patch('swimai.client._connections._DownlinkManager._add_view', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._DownlinkManager._receive_message', new_callable=MockAsyncFunction)
-    @async_test
     async def test_ws_connection_wait_for_message_receive_single(self, mock_receive_message, mock_add_view,
                                                                  mock_websocket):
         # Given
@@ -522,7 +494,6 @@ class TestConnections(unittest.TestCase):
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
     @patch('swimai.client._connections._DownlinkManager._add_view', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._DownlinkManager._receive_message', new_callable=MockReceiveMessage)
-    @async_test
     async def test_ws_connection_wait_for_message_receive_multiple(self, mock_receive_message, mock_add_view,
                                                                    mock_websocket):
         # Given
@@ -565,7 +536,6 @@ class TestConnections(unittest.TestCase):
     @patch('websockets.connect', new_callable=MockWebsocketConnect)
     @patch('swimai.client._connections._DownlinkManager._add_view', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._DownlinkManager._receive_message', new_callable=MockReceiveMessage)
-    @async_test
     async def test_ws_connection_wait_for_message_receive_exception(self, mock_receive_message, mock_add_view,
                                                                     mock_websocket):
         # Given
@@ -591,7 +561,6 @@ class TestConnections(unittest.TestCase):
         mock_websocket.assert_called_once()
         mock_add_view.assert_called_once_with(downlink_view)
 
-    @async_test
     async def test_downlink_manager_pool(self):
         # When
         actual = _DownlinkManagerPool()
@@ -600,7 +569,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(0, actual._size)
 
     @patch('swimai.client._connections._DownlinkManager._open', new_callable=MockAsyncFunction)
-    @async_test
     async def test_downlink_manager_pool_register_downlink_view_single(self, mock_open):
         # Given
         client = SwimClient()
@@ -616,7 +584,6 @@ class TestConnections(unittest.TestCase):
         mock_open.assert_called_once()
 
     @patch('swimai.client._connections._DownlinkManager._open', new_callable=MockAsyncFunction)
-    @async_test
     async def test_downlink_manager_pool_register_downlink_view_multiple_different_routes(self, mock_open):
         # Given
         client = SwimClient()
@@ -636,7 +603,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(2, mock_open.call_count)
 
     @patch('swimai.client._connections._DownlinkManager._open', new_callable=MockAsyncFunction)
-    @async_test
     async def test_downlink_manager_pool_register_downlink_view_multiple_same_route(self, mock_open):
         # Given
         client = SwimClient()
@@ -657,7 +623,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._DownlinkManager._close', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._DownlinkManager._open', new_callable=MockAsyncFunction)
-    @async_test
     async def test_downlink_manager_pool_deregister_downlink_view_single_existing(self, mock_open, mock_close):
         # Given
         client = SwimClient()
@@ -675,7 +640,6 @@ class TestConnections(unittest.TestCase):
         mock_close.assert_called_once()
 
     @patch('swimai.client._connections._DownlinkManager._close', new_callable=MockAsyncFunction)
-    @async_test
     async def test_downlink_manager_pool_deregister_downlink_view_single_non_existing(self, mock_close):
         # Given
         client = SwimClient()
@@ -692,7 +656,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._DownlinkManager._close', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._DownlinkManager._open', new_callable=MockAsyncFunction)
-    @async_test
     async def test_downlink_manager_pool_deregister_downlink_view_multiple_same_route(self, mock_open, mock_close):
         # Given
         client = SwimClient()
@@ -716,7 +679,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._DownlinkManager._close', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._DownlinkManager._open', new_callable=MockAsyncFunction)
-    @async_test
     async def test_downlink_manager_pool_deregister_downlink_view_multiple_different_routes(self, mock_open,
                                                                                             mock_close):
         # Given
@@ -741,7 +703,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._DownlinkManager._open', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._DownlinkManager._receive_message', new_callable=MockAsyncFunction)
-    @async_test
     async def test_downlink_manager_pool_receive_message_existing_route(self, mock_receive_message, mock_open):
         # Given
         client = SwimClient()
@@ -760,7 +721,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._DownlinkManager._open', new_callable=MockAsyncFunction)
     @patch('swimai.client._connections._DownlinkManager._receive_message', new_callable=MockAsyncFunction)
-    @async_test
     async def test_downlink_manager_pool_receive_message_non_existing_route(self, mock_receive_message, mock_open):
         # Given
         client = SwimClient()
@@ -777,7 +737,6 @@ class TestConnections(unittest.TestCase):
         mock_open.assert_called_once()
         mock_receive_message.assert_not_called()
 
-    @async_test
     async def test_downlink_manager(self):
         # Given
         host_uri = 'ws://5.5.5.5:9001'
@@ -792,7 +751,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(_DownlinkManagerStatus.CLOSED, actual.status)
 
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_open_new(self, mock_schedule_task):
         # Given
         host_uri = 'ws://5.5.5.5:9001'
@@ -815,7 +773,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual('@sync(node:foo,lane:bar)', MockConnection.get_mock_connection().messages_sent[0])
 
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_open_existing(self, mock_schedule_task):
         # Given
         host_uri = 'ws://5.5.5.5:9001'
@@ -839,7 +796,6 @@ class TestConnections(unittest.TestCase):
         mock_schedule_task.assert_called_once_with(MockConnection.get_mock_connection()._wait_for_messages)
 
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_close_running(self, mock_schedule_task):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
@@ -862,7 +818,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(2, mock_schedule_task.call_count)
 
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_close_stopped(self, mock_schedule_task):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
@@ -883,7 +838,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(0, len(MockConnection.get_mock_connection().messages_sent))
         self.assertEqual(0, mock_schedule_task.call_count)
 
-    @async_test
     async def test_downlink_manager_init_downlink_model(self):
         # Given
         host_uri = 'ws://100.100.100.100:9001'
@@ -908,7 +862,6 @@ class TestConnections(unittest.TestCase):
         self.assertEqual(actual.downlink_model.downlink_manager, actual)
         self.assertFalse(actual.strict)
 
-    @async_test
     async def test_downlink_manager_init_downlink_model_strict_classes(self):
         # Given
         host_uri = 'ws://100.100.100.100:9001'
@@ -939,7 +892,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_add_view_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://99.99.99.99:9001'
@@ -968,7 +920,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_add_view_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://11.22.33.44:9001'
@@ -1007,7 +958,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_remove_view_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://11.11.11.11:9001'
@@ -1037,7 +987,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_remove_view_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://44.33.22.11:9001'
@@ -1074,7 +1023,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_remove_view_non_existing(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://66.66.66.66:9001'
@@ -1096,7 +1044,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_receive_message_linked(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://66.66.66.66:9001'
@@ -1118,7 +1065,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_receive_message_synced(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://11.11.11.11:9001'
@@ -1140,7 +1086,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_receive_message_event(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://33.33.33.33:9001'
@@ -1163,7 +1108,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_receive_message_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://44.44.44.44:9001'
@@ -1192,7 +1136,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_subscribers_did_set_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
@@ -1217,7 +1160,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_subscribers_did_set_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://10.9.8.7:9001'
@@ -1269,7 +1211,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_subscribers_on_event_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
@@ -1293,7 +1234,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_subscribers_on_event_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://10.9.8.7:9001'
@@ -1334,7 +1274,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_subscribers_did_update_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
@@ -1360,7 +1299,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_subscribers_did_update_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://10.9.8.7:9001'
@@ -1407,7 +1345,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_subscribers_did_remove_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
@@ -1432,7 +1369,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_subscribers_did_remove_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://10.9.8.7:9001'
@@ -1476,7 +1412,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_close_views_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
@@ -1496,7 +1431,6 @@ class TestConnections(unittest.TestCase):
 
     @patch('swimai.client._connections._WSConnection._send_message', new_callable=MockAsyncFunction)
     @patch('swimai.SwimClient._schedule_task')
-    @async_test
     async def test_downlink_manager_close_views_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'

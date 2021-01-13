@@ -101,7 +101,9 @@ class _DownlinkModel(ABC):
 
         :param message          - Response message.
         """
-        if message._body._tag == 'laneNotFound':
+        if message._body == Value.absent():
+            raise Exception(f'Lane "{self.lane_uri}" was unlinked!')
+        elif message._body != message._body._tag == 'laneNotFound':
             raise Exception(f'Lane "{self.lane_uri}" was not found on the remote agent!')
 
     async def __close(self) -> None:
