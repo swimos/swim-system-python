@@ -42,8 +42,9 @@ class TestConnections(aiounittest.AsyncTestCase):
         # Given
         pool = _ConnectionPool()
         uri = 'ws://foo_bar:9000'
+        scheme = 'ws'
         # When
-        actual = await pool._get_connection(uri)
+        actual = await pool._get_connection(uri, scheme)
         # Then
         self.assertEqual(uri, actual.host_uri)
         self.assertEqual(None, actual.websocket)
@@ -54,10 +55,11 @@ class TestConnections(aiounittest.AsyncTestCase):
         # Given
         pool = _ConnectionPool()
         uri = 'ws://foo_bar:9000'
-        expected = await pool._get_connection(uri)
+        scheme = 'ws'
+        expected = await pool._get_connection(uri, scheme)
         expected.status = _ConnectionStatus.IDLE
         # When
-        actual = await pool._get_connection(uri)
+        actual = await pool._get_connection(uri, scheme)
         # Then
         self.assertEqual(expected, actual)
         self.assertEqual(1, pool._size)
@@ -66,9 +68,10 @@ class TestConnections(aiounittest.AsyncTestCase):
         # Given
         pool = _ConnectionPool()
         uri = 'ws://foo_bar:9000'
-        expected = await pool._get_connection(uri)
+        scheme = 'ws'
+        expected = await pool._get_connection(uri, scheme)
         # When
-        actual = await pool._get_connection(uri)
+        actual = await pool._get_connection(uri, scheme)
         # Then
         self.assertNotEqual(expected, actual)
         self.assertEqual(uri, actual.host_uri)
@@ -80,7 +83,8 @@ class TestConnections(aiounittest.AsyncTestCase):
         # Given
         pool = _ConnectionPool()
         uri = 'ws://foo_bar:9000'
-        connection = await pool._get_connection(uri)
+        scheme = 'ws'
+        connection = await pool._get_connection(uri, scheme)
         connection.status = _ConnectionStatus.IDLE
         # When
         await pool._remove_connection(uri)
@@ -102,7 +106,8 @@ class TestConnections(aiounittest.AsyncTestCase):
         # Given
         pool = _ConnectionPool()
         uri = 'ws://foo_bar:9000'
-        connection = await pool._get_connection(uri)
+        scheme = 'ws'
+        connection = await pool._get_connection(uri, scheme)
         connection.status = _ConnectionStatus.IDLE
         client = SwimClient()
         client._has_started = True
@@ -161,12 +166,13 @@ class TestConnections(aiounittest.AsyncTestCase):
         # Given
         pool = _ConnectionPool()
         uri = 'ws://foo_bar:9000'
+        scheme = 'ws'
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
         downlink_view.set_host_uri(uri)
         await pool._add_downlink_view(downlink_view)
-        connection = pool._get_connection(uri)
+        connection = pool._get_connection(uri, scheme)
         connection.close()
         # When
         await pool._remove_downlink_view(downlink_view)
@@ -197,8 +203,9 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection(self):
         # Given
         host_uri = 'ws://localhost:9001'
+        scheme = 'ws'
         # When
-        actual = _WSConnection(host_uri)
+        actual = _WSConnection(host_uri, scheme)
         # Then
         self.assertEqual(host_uri, actual.host_uri)
         self.assertIsNone(actual.websocket)
@@ -209,7 +216,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection_subscribe_single(self, mock_add_view, mock_websocket):
         # Given
         host_uri = 'ws://localhost:9001'
-        actual = _WSConnection(host_uri)
+        scheme = 'ws'
+        actual = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -231,7 +239,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection_subscribe_multiple(self, mock_add_view, mock_websocket):
         # Given
         host_uri = 'ws://1.1.1.1:9001'
-        actual = _WSConnection(host_uri)
+        scheme = 'ws'
+        actual = _WSConnection(host_uri, scheme)
 
         client = SwimClient()
         client._has_started = True
@@ -262,7 +271,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection_unsubscribe_all(self, mock_remove_view, mock_add_view, mock_websocket):
         # Given
         host_uri = 'ws://0.0.0.0:9001'
-        actual = _WSConnection(host_uri)
+        scheme = 'ws'
+        actual = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -289,7 +299,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection_unsubscribe_one(self, mock_remove_view, mock_add_view, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
-        actual = _WSConnection(host_uri)
+        scheme = 'ws'
+        actual = _WSConnection(host_uri, scheme)
 
         client = SwimClient()
         client._has_started = True
@@ -322,7 +333,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection_open_new(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         # When
         await connection._open()
         # Then
@@ -334,7 +346,8 @@ class TestConnections(aiounittest.AsyncTestCase):
         # Given
         MockWebsocket.get_mock_websocket().raise_exception = True
         host_uri = 'ws://1.2.3.4:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         # When
         with self.assertRaises(Exception) as error:
             # noinspection PyTypeChecker
@@ -349,7 +362,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection_open_already_opened(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         await connection._open()
         # When
         await connection._open()
@@ -361,7 +375,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection_close_opened(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         await connection._open()
         # When
         await connection._close()
@@ -374,7 +389,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection_close_missing_websocket(self, mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         # When
         await connection._close()
         # Then
@@ -386,7 +402,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection_close_already_closed(self, mock_websocket):
         # Given
         host_uri = 'ws://5.5.5.5:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         await connection._open()
         await connection._close()
         # When
@@ -401,7 +418,8 @@ class TestConnections(aiounittest.AsyncTestCase):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
         message = 'Hello, World'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         await connection._open()
         # When
         await connection._send_message(message)
@@ -415,7 +433,8 @@ class TestConnections(aiounittest.AsyncTestCase):
         host_uri = 'ws://1.2.3.4:9001'
         first_message = 'Hello, World'
         second_message = 'Hello, Friend'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         await connection._open()
         # When
         await connection._send_message(first_message)
@@ -430,7 +449,8 @@ class TestConnections(aiounittest.AsyncTestCase):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
         message = 'Hello, World'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         # When
         await connection._send_message(message)
         # Then
@@ -442,7 +462,8 @@ class TestConnections(aiounittest.AsyncTestCase):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
         message = 'Hello, World'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         await connection._open()
         await connection._close()
         # When
@@ -455,7 +476,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_ws_connection_wait_for_message_closed(self):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         # When
         await connection._wait_for_messages()
         # Then
@@ -468,7 +490,8 @@ class TestConnections(aiounittest.AsyncTestCase):
                                                                  mock_websocket):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         MockWebsocket.get_mock_websocket().connection = connection
 
         client = SwimClient()
@@ -498,7 +521,8 @@ class TestConnections(aiounittest.AsyncTestCase):
                                                                    mock_websocket):
         # Given
         host_uri = 'ws://2.2.2.2:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         MockWebsocket.get_mock_websocket().connection = connection
         mock_receive_message.set_call_count(3)
 
@@ -540,7 +564,8 @@ class TestConnections(aiounittest.AsyncTestCase):
                                                                     mock_websocket):
         # Given
         host_uri = 'ws://5.5.5.5:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         MockWebsocket.get_mock_websocket().connection = connection
         mock_websocket.set_raise_exception(True)
 
@@ -740,7 +765,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager(self):
         # Given
         host_uri = 'ws://5.5.5.5:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         # When
         actual = _DownlinkManager(connection)
         # Then
@@ -754,7 +780,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_open_new(self, mock_schedule_task):
         # Given
         host_uri = 'ws://5.5.5.5:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -776,7 +803,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_open_existing(self, mock_schedule_task):
         # Given
         host_uri = 'ws://5.5.5.5:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -799,7 +827,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_close_running(self, mock_schedule_task):
         # Given
         host_uri = 'ws://1.2.3.4:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -821,7 +850,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_close_stopped(self, mock_schedule_task):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -841,7 +871,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_init_downlink_model(self):
         # Given
         host_uri = 'ws://100.100.100.100:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -865,7 +896,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_init_downlink_model_strict_classes(self):
         # Given
         host_uri = 'ws://100.100.100.100:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client.start()
         downlink_view = client.downlink_value()
@@ -895,7 +927,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_add_view_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://99.99.99.99:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -923,7 +956,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_add_view_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://11.22.33.44:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         first_downlink_view = client.downlink_value()
@@ -961,7 +995,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_remove_view_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://11.11.11.11:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -990,7 +1025,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_remove_view_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://44.33.22.11:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         first_downlink_view = client.downlink_value()
@@ -1026,7 +1062,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_remove_view_non_existing(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://66.66.66.66:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -1047,7 +1084,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_receive_message_linked(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://66.66.66.66:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -1068,7 +1106,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_receive_message_synced(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://11.11.11.11:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -1089,7 +1128,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_receive_message_event(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://33.33.33.33:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -1111,7 +1151,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_receive_message_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://44.44.44.44:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -1139,7 +1180,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_subscribers_did_set_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_value()
@@ -1163,7 +1205,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_subscribers_did_set_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://10.9.8.7:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         did_set_callback = mock_did_set_callback
@@ -1214,7 +1257,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_subscribers_on_event_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_event()
@@ -1237,7 +1281,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_subscribers_on_event_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://10.9.8.7:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         on_event_callback = mock_on_event_callback
@@ -1277,7 +1322,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_subscribers_did_update_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_map()
@@ -1302,7 +1348,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_subscribers_did_update_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://10.9.8.7:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         did_update_callback = mock_did_update_callback
@@ -1348,7 +1395,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_subscribers_did_remove_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_map()
@@ -1372,7 +1420,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_subscribers_did_remove_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://10.9.8.7:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         did_remove_callback = mock_on_event_callback
@@ -1415,7 +1464,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_close_views_single(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         downlink_view = client.downlink_map()
@@ -1434,7 +1484,8 @@ class TestConnections(aiounittest.AsyncTestCase):
     async def test_downlink_manager_close_views_multiple(self, mock_schedule_task, mock_send_message):
         # Given
         host_uri = 'ws://4.3.2.1:9001'
-        connection = _WSConnection(host_uri)
+        scheme = 'ws'
+        connection = _WSConnection(host_uri, scheme)
         client = SwimClient()
         client._has_started = True
         actual = _DownlinkManager(connection)

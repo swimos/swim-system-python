@@ -129,14 +129,15 @@ class SwimClient:
         """
         await self.__connection_pool._remove_downlink_view(downlink_view)
 
-    async def _get_connection(self, host_uri: str) -> '_WSConnection':
+    async def _get_connection(self, host_uri: str, scheme: str) -> '_WSConnection':
         """
         Get a WebSocket connection to the specified host from the connection pool.
 
         :param host_uri:        - URI of the host.
+        :param scheme:          - URI scheme.
         :return:                - WebSocket connection to the host.
         """
-        connection = await self.__connection_pool._get_connection(host_uri)
+        connection = await self.__connection_pool._get_connection(host_uri, scheme)
         return connection
 
     @after_started
@@ -200,9 +201,9 @@ class SwimClient:
         :param body:            - The message body.
         """
         record = RecordConverter.get_converter().object_to_record(body)
-        host_uri = _URI._normalise_warp_scheme(host_uri)
+        host_uri, scheme = _URI._parse_uri(host_uri)
         message = _CommandMessage(node_uri, lane_uri, body=record)
-        connection = await self._get_connection(host_uri)
+        connection = await self._get_connection(host_uri, scheme)
         await connection._send_message(message._to_recon())
 
     def __start_event_loop(self) -> None:

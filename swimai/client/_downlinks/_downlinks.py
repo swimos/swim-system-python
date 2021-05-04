@@ -120,6 +120,7 @@ class _DownlinkView(ABC):
     def __init__(self, client: 'SwimClient') -> None:
         self._client = client
         self._host_uri = None
+        self._scheme = None
         self._node_uri = None
         self._lane_uri = None
         self._connection = None
@@ -181,7 +182,7 @@ class _DownlinkView(ABC):
 
     @before_open
     def set_host_uri(self, host_uri: str) -> '_DownlinkView':
-        self._host_uri = _URI._normalise_warp_scheme(host_uri)
+        self._host_uri, self._scheme = _URI._parse_uri(host_uri)
         return self
 
     @before_open

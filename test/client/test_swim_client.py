@@ -315,6 +315,7 @@ class TestSwimClient(aiounittest.AsyncTestCase):
     async def test_swim_client_get_connection(self, mock_get_connection):
         # Given
         host_uri = 'ws://localhost:9001'
+        scheme = 'ws'
         node_uri = 'moo'
         lane_uri = 'cow'
 
@@ -326,10 +327,10 @@ class TestSwimClient(aiounittest.AsyncTestCase):
             downlink_view._node_uri = node_uri
             downlink_view._lane_uri = lane_uri
             # When
-            await swim_client._get_connection(host_uri)
+            await swim_client._get_connection(host_uri, scheme)
 
         # Then
-        mock_get_connection.assert_called_once_with(host_uri)
+        mock_get_connection.assert_called_once_with(host_uri, scheme)
 
     async def test_swim_client_test_schedule_task(self):
         #  Given

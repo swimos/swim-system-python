@@ -13,7 +13,7 @@
 #  limitations under the License.
 
 import sys
-from typing import Callable
+from typing import Callable, Optional, Tuple
 from urllib.parse import urlparse, ParseResult
 
 
@@ -42,27 +42,36 @@ def after_started(function: 'Callable') -> 'Callable':
 class _URI:
 
     @staticmethod
-    def _normalise_warp_scheme(uri: str) -> str:
+    def _parse_uri(uri: str) -> Tuple[str, str]:
         """
-        Normalise all different representations of the WARP scheme to a websocket connection.
+        Parse the given URI.
 
-        :param uri:             - URI to normalise.
-        :return:                - URI with `ws` scheme.
+        :param uri:             - URI to parse.
+        :return:                - ParseResult containing the different parts of the URI.
         """
         uri = urlparse(uri)
-        if _URI._has_valid_scheme(uri):
-            uri = uri._replace(scheme='ws')
-            return uri.geturl()
+        normalised_scheme = _URI._normalise_warp_scheme(uri)
+
+        if normalised_scheme is not None:
+            uri = uri._replace(scheme=normalised_scheme)
+            return uri.geturl(), uri.scheme
         else:
             raise TypeError(f'Invalid scheme "{uri.scheme}" for Warp URI!')
 
     @staticmethod
-    def _has_valid_scheme(uri: ParseResult) -> bool:
+    def _normalise_warp_scheme(uri: ParseResult) -> Optional[str]:
         """
-        Check if a URI has a WARP compatible scheme.
+        Normalise all different representations of the WARP scheme to a websocket connection.
 
-        :param uri:             - URI to check.
-        :return:                - True if the given URI has a scheme that is WARP compatible. False otherwise.
+        :param uri:             - URI to normalise.
+        :return:                - The corresponding scheme if the given URI is WARP compatible.
+                                  None otherwise.
         """
         scheme = uri.scheme
-        return scheme == 'ws' or scheme == 'warp'
+
+        if scheme == 'ws' or scheme == 'warp':
+            return 'ws'
+        elif scheme == 'wss' or scheme == 'warps':
+            return 'wss'
+        else:
+            return None

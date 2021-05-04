@@ -33,18 +33,19 @@ class _ConnectionPool:
     def _size(self) -> int:
         return len(self.__connections)
 
-    async def _get_connection(self, host_uri: str) -> '_WSConnection':
+    async def _get_connection(self, host_uri: str, scheme: str) -> '_WSConnection':
         """
         Return a WebSocket connection to the given Host URI. If it is a new
         host or the existing connection is closing, create a new connection.
 
         :param host_uri:        - URI of the connection host.
+        :param scheme:          - URI scheme.
         :return:                - WebSocket connection.
         """
         connection = self.__connections.get(host_uri)
 
         if connection is None or connection.status == _ConnectionStatus.CLOSED:
-            connection = _WSConnection(host_uri)
+            connection = _WSConnection(host_uri, scheme)
             self.__connections[host_uri] = connection
 
         return connection
@@ -68,7 +69,8 @@ class _ConnectionPool:
         :param downlink_view:   - Downlink view to subscribe to a connection.
         """
         host_uri = downlink_view._host_uri
-        connection = await self._get_connection(host_uri)
+        scheme = downlink_view._scheme
+        connection = await self._get_connection(host_uri, scheme)
         downlink_view._connection = connection
 
         await connection._subscribe(downlink_view)
@@ -93,8 +95,9 @@ class _ConnectionPool:
 
 class _WSConnection:
 
-    def __init__(self, host_uri: str) -> None:
+    def __init__(self, host_uri: str, scheme: str) -> None:
         self.host_uri = host_uri
+        self.scheme = scheme
         self.connected = asyncio.Event()
         self.websocket = None
         self.status = _ConnectionStatus.CLOSED
@@ -106,7 +109,10 @@ class _WSConnection:
             self.status = _ConnectionStatus.CONNECTING
 
             try:
-                self.websocket = await websockets.connect(self.host_uri)
+                if self.scheme == "wss":
+                    self.websocket = await websockets.connect(self.host_uri, ssl=True)
+                else:
+                    self.websocket = await websockets.connect(self.host_uri)
             except Exception as error:
                 self.status = _ConnectionStatus.CLOSED
                 raise error
