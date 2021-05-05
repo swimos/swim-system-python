@@ -341,6 +341,18 @@ class TestConnections(aiounittest.AsyncTestCase):
         self.assertEqual(_ConnectionStatus.IDLE, connection.status)
         mock_websocket.assert_called_once_with(host_uri)
 
+    @patch('websockets.connect', new_callable=MockWebsocketConnect)
+    async def test_wss_connection_open_new(self, mock_websocket):
+        # Given
+        host_uri = 'wss://1.2.3.4:9001'
+        scheme = 'wss'
+        connection = _WSConnection(host_uri, scheme)
+        # When
+        await connection._open()
+        # Then
+        self.assertEqual(_ConnectionStatus.IDLE, connection.status)
+        mock_websocket.assert_called_once_with(host_uri, ssl=True)
+
     @patch('websockets.connect', new_callable=MockWebsocketConnectException)
     async def test_ws_connection_open_error(self, mock_websocket):
         # Given
@@ -356,6 +368,23 @@ class TestConnections(aiounittest.AsyncTestCase):
         message = error.exception.args[0]
         self.assertEqual(message, 'Mock_websocket_connect_exception')
         mock_websocket.assert_called_once_with(host_uri)
+        self.assertEqual(_ConnectionStatus.CLOSED, connection.status)
+
+    @patch('websockets.connect', new_callable=MockWebsocketConnectException)
+    async def test_wss_connection_open_error(self, mock_websocket):
+        # Given
+        MockWebsocket.get_mock_websocket().raise_exception = True
+        host_uri = 'wss://1.2.3.4:9001'
+        scheme = 'wss'
+        connection = _WSConnection(host_uri, scheme)
+        # When
+        with self.assertRaises(Exception) as error:
+            # noinspection PyTypeChecker
+            await connection._open()
+        # Then
+        message = error.exception.args[0]
+        self.assertEqual(message, 'Mock_websocket_connect_exception')
+        mock_websocket.assert_called_once_with(host_uri, ssl=True)
         self.assertEqual(_ConnectionStatus.CLOSED, connection.status)
 
     @patch('websockets.connect', new_callable=MockWebsocketConnect)

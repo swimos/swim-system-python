@@ -20,43 +20,61 @@ from swimai.client._utils import _URI
 
 class TestUtils(unittest.TestCase):
 
-    def test_uri_scheme_valid_ws(self):
+    def test_normalise_scheme_valid_ws(self):
         # Given
         uri = 'ws://foo_bar:9000'
         uri = urlparse(uri)
         # When
-        actual = _URI._normalise_warp_scheme(uri)
+        actual = _URI._normalise_scheme(uri)
         # Then
-        self.assertTrue(actual)
+        self.assertEqual('ws', actual)
 
-    def test_uri_scheme_valid_warp(self):
+    def test_normalise_scheme_valid_warp(self):
         # Given
         uri = 'warp://foo_bar:9000'
         uri = urlparse(uri)
         # When
-        actual = _URI._normalise_warp_scheme(uri)
+        actual = _URI._normalise_scheme(uri)
         # Then
-        self.assertTrue(actual)
+        self.assertEqual('ws', actual)
 
-    def test_uri_scheme_invalid_empty(self):
+    def test_normalise_scheme_valid_wss(self):
+        # Given
+        uri = 'wss://foo_bar:9000'
+        uri = urlparse(uri)
+        # When
+        actual = _URI._normalise_scheme(uri)
+        # Then
+        self.assertEqual('wss', actual)
+
+    def test_normalise_scheme_valid_warps(self):
+        # Given
+        uri = 'warps://foo_bar:9000'
+        uri = urlparse(uri)
+        # When
+        actual = _URI._normalise_scheme(uri)
+        # Then
+        self.assertEqual('wss', actual)
+
+    def test_normalise_scheme_invalid_empty(self):
         # Given
         uri = 'foo_bar:9000'
         uri = urlparse(uri)
         # When
-        actual = _URI._normalise_warp_scheme(uri)
+        actual = _URI._normalise_scheme(uri)
         # Then
-        self.assertFalse(actual)
+        self.assertIsNone(actual)
 
-    def test_uri_scheme_invalid_http(self):
+    def test_normalise_scheme_invalid_http(self):
         # Given
-        uri = 'carp://foo_bar:9000'
+        uri = 'http://foo_bar:9000'
         uri = urlparse(uri)
         # When
-        actual = _URI._normalise_warp_scheme(uri)
+        actual = _URI._normalise_scheme(uri)
         # Then
-        self.assertFalse(actual)
+        self.assertIsNone(actual)
 
-    def test_normalise_warp_scheme_ws(self):
+    def test_parse_ws_uri(self):
         # Given
         uri = 'ws://foo_bar:9000'
         expected = ('ws://foo_bar:9000', 'ws')
@@ -65,7 +83,7 @@ class TestUtils(unittest.TestCase):
         # Then
         self.assertEqual(expected, actual)
 
-    def test_normalise_warp_scheme_warp(self):
+    def test_parse_warp_uri(self):
         # Given
         uri = 'warp://foo_bar:9000'
         expected = ('ws://foo_bar:9000', 'ws')
@@ -74,7 +92,25 @@ class TestUtils(unittest.TestCase):
         # Then
         self.assertEqual(expected, actual)
 
-    def test_normalise_warp_scheme_invalid(self):
+    def test_parse_wss_uri(self):
+        # Given
+        uri = 'wss://foo_bar:9000'
+        expected = ('wss://foo_bar:9000', 'wss')
+        # When
+        actual = _URI._parse_uri(uri)
+        # Then
+        self.assertEqual(expected, actual)
+
+    def test_parse_warps_uri(self):
+        # Given
+        uri = 'warps://foo_bar:9000'
+        expected = ('wss://foo_bar:9000', 'wss')
+        # When
+        actual = _URI._parse_uri(uri)
+        # Then
+        self.assertEqual(expected, actual)
+
+    def test_parse_invalid_scheme_uri(self):
         # Given
         uri = 'carp://foo_bar:9000'
         # When

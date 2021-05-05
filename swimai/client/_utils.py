@@ -50,7 +50,7 @@ class _URI:
         :return:                - ParseResult containing the different parts of the URI.
         """
         uri = urlparse(uri)
-        normalised_scheme = _URI._normalise_warp_scheme(uri)
+        normalised_scheme = _URI._normalise_scheme(uri)
 
         if normalised_scheme is not None:
             uri = uri._replace(scheme=normalised_scheme)
@@ -59,7 +59,7 @@ class _URI:
             raise TypeError(f'Invalid scheme "{uri.scheme}" for Warp URI!')
 
     @staticmethod
-    def _normalise_warp_scheme(uri: ParseResult) -> Optional[str]:
+    def _normalise_scheme(uri: ParseResult) -> Optional[str]:
         """
         Normalise all different representations of the WARP scheme to a websocket connection.
 
