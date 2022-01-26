@@ -20,6 +20,6 @@ steps:
       set -ex
       chmod +x codecov
       ./codecov -t $TOKEN
-    displayName: 'Upload code coverage'
+    displayName: 'Upload test coverage'
     env:
       TOKEN: $(CODECOV_TOKEN)
