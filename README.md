@@ -1,7 +1,7 @@
 # Swim System Python Implementation
 [![PyPI version](https://badge.fury.io/py/swimai.svg)](https://badge.fury.io/py/swimai)
 [![Build Status](https://travis-ci.com/swimos/swim-system-python.svg?branch=main)](https://travis-ci.com/swimos/swim-system-python)
-[![codecov](https://codecov.io/gh/swimos/swim-system-python/branch/main/graph/badge.svg)](https://codecov.io/gh/swimos/swim-system-python)
+[![Build Status](https://dev.azure.com/swimai-build/swim-rust/_apis/build/status/swimos.swim-system-python?branchName=main)](https://dev.azure.com/swimai-build/swim-rust/_build/latest?definitionId=6&branchName=main)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Code of Conduct](https://img.shields.io/badge/code-of%20conduct-green.svg)](CODE_OF_CONDUCT.md)
 [![chat](https://img.shields.io/badge/chat-Gitter-green.svg)](https://gitter.im/swimos/community)

@@ -1,0 +1,25 @@
+steps:
+  - bash: |
+      curl -Os https://uploader.codecov.io/latest/linux/codecov
+      curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
+      curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
+    displayName: 'Download the Codecov uploader and its keys'
+
+  - bash: |
+      echo $PUBLIC_KEY | base64 --decode | gpg --import
+      gpg --verify codecov.SHA256SUM.sig codecov.SHA256SUM
+    displayName: 'Verify the signature of the SHA256SUM'
+    env:
+      PUBLIC_KEY: $(CODECOV_PUBLIC_KEY)
+
+  - bash: |
+      shasum -a 256 -c codecov.SHA256SUM
+    displayName: 'Verify the integrity of the Codecov uploader'
+
+  - bash: |
+      set -ex
+      chmod +x codecov
+      ./codecov -t $TOKEN
+    displayName: 'Upload code coverage'
+    env:
+      TOKEN: $(CODECOV_TOKEN)
