@@ -24,7 +24,7 @@ steps:
       py.test --cov-report=xml --cov=swimai test/
     displayName: 'Run pytest'
 
-  - template: ci/azure-code-coverage.yml
+  - template: azure-code-coverage.yml
     parameters:
       name: upload_coverage
       displayName: 'Upload coverage'
