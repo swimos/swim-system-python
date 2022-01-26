@@ -27,4 +27,4 @@ steps:
   - template: azure-code-coverage.yml
     parameters:
       name: upload_coverage
-      displayName: 'Upload coverage'
+      displayName: 'Upload code coverage'
